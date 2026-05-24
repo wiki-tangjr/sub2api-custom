@@ -93,6 +93,32 @@
           </div>
         </div>
 
+        <!-- Open externally -->
+        <div v-else-if="menuItem.open_mode === 'new_tab'" class="flex h-full items-center justify-center p-10 text-center">
+          <div class="max-w-md">
+            <div
+              class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-dark-700"
+            >
+              <Icon name="externalLink" size="lg" class="text-gray-400" />
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('customPage.openingNewTabTitle') }}
+            </h3>
+            <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
+              {{ t('customPage.openingNewTabDesc') }}
+            </p>
+            <a
+              :href="embeddedUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-primary btn-sm mt-4 inline-flex"
+            >
+              <Icon name="externalLink" size="sm" class="mr-1.5" :stroke-width="2" />
+              {{ t('customPage.openInNewTab') }}
+            </a>
+          </div>
+        </div>
+
         <!-- Iframe embed mode -->
         <div v-else class="custom-embed-shell">
           <a
@@ -182,6 +208,15 @@ const embeddedUrl = computed(() => {
     locale.value,
   )
 })
+
+watch(
+  () => [loading.value, menuItem.value?.open_mode, embeddedUrl.value] as const,
+  ([isLoading, openMode, url]) => {
+    if (isLoading || openMode !== 'new_tab' || !url) return
+    window.open(url, '_blank', 'noopener,noreferrer')
+  },
+  { immediate: true }
+)
 
 const isValidUrl = computed(() => {
   if (isMarkdownMode.value) return false

@@ -84,6 +84,7 @@ export interface User {
   linuxdo_bound?: boolean
   oidc_bound?: boolean
   wechat_bound?: boolean
+  affiliate_hidden?: boolean
   role: 'admin' | 'user' // User role for authorization
   balance: number // User balance for API usage
   concurrency: number // Allowed concurrent requests
@@ -169,6 +170,7 @@ export interface CustomMenuItem {
   icon_svg: string
   url: string
   page_slug?: string
+  open_mode?: 'iframe' | 'new_tab'
   visibility: 'user' | 'admin'
   sort_order: number
 }

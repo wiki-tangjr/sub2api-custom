@@ -129,6 +129,10 @@ func (r *contentModerationTestUserRepo) GetFirstAdmin(ctx context.Context) (*Use
 	panic("unexpected GetFirstAdmin call")
 }
 
+func (r *contentModerationTestUserRepo) CountActiveAdmins(ctx context.Context) (int, error) {
+	return 1, nil
+}
+
 func (r *contentModerationTestUserRepo) Update(ctx context.Context, user *User) error {
 	if user == nil {
 		return nil

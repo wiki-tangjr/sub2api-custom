@@ -684,6 +684,27 @@
 
               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
 
+              <!-- Toggle Admin Role -->
+              <button
+                v-if="user.role !== 'admin'"
+                @click="handleSetAdmin(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
+              >
+                <Icon name="shield" size="sm" :stroke-width="2" />
+                设为管理员
+              </button>
+
+              <button
+                v-else
+                @click="handleSetUser(user); closeActionMenu()"
+                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+              >
+                <Icon name="user" size="sm" class="text-gray-400" :stroke-width="2" />
+                取消管理员
+              </button>
+
+              <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
+
               <!-- Delete (not for admin) -->
               <button
                 v-if="user.role !== 'admin'"
@@ -1553,6 +1574,30 @@ const handleToggleStatus = async (user: AdminUser) => {
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || t('admin.users.failedToToggle'))
     console.error('Error toggling user status:', error)
+  }
+}
+
+const handleSetAdmin = async (user: AdminUser) => {
+  if (!confirm(`确定将 ${user.email} 设置为管理员吗？该用户将可以登录后台。`)) return
+  try {
+    await adminAPI.users.update(user.id, { role: 'admin' })
+    appStore.showSuccess('已设置为管理员')
+    loadUsers()
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || '设置管理员失败')
+    console.error('Error setting user as admin:', error)
+  }
+}
+
+const handleSetUser = async (user: AdminUser) => {
+  if (!confirm(`确定取消 ${user.email} 的管理员权限吗？`)) return
+  try {
+    await adminAPI.users.update(user.id, { role: 'user' })
+    appStore.showSuccess('已取消管理员权限')
+    loadUsers()
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || '取消管理员失败')
+    console.error('Error setting user as regular user:', error)
   }
 }
 

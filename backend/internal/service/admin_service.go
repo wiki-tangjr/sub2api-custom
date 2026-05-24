@@ -131,6 +131,7 @@ type UpdateUserInput struct {
 	Password      string
 	Username      *string
 	Notes         *string
+	Role          string
 	Balance       *float64 // 使用指针区分"未提供"和"设置为0"
 	Concurrency   *int     // 使用指针区分"未提供"和"设置为0"
 	RPMLimit      *int     // 使用指针区分"未提供"和"设置为0"
@@ -701,6 +702,28 @@ func (s *adminServiceImpl) assignDefaultSubscriptions(ctx context.Context, userI
 }
 
 func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *UpdateUserInput) (*User, error) {
+	if s.entClient != nil {
+		tx, err := s.entClient.Tx(ctx)
+		if err == nil {
+			defer func() { _ = tx.Rollback() }()
+			txCtx := dbent.NewTxContext(ctx, tx)
+			updated, updateErr := s.updateUserInContext(txCtx, id, input)
+			if updateErr != nil {
+				return nil, updateErr
+			}
+			if commitErr := tx.Commit(); commitErr != nil {
+				return nil, commitErr
+			}
+			return updated, nil
+		}
+		if !errors.Is(err, dbent.ErrTxStarted) {
+			return nil, err
+		}
+	}
+	return s.updateUserInContext(ctx, id, input)
+}
+
+func (s *adminServiceImpl) updateUserInContext(ctx context.Context, id int64, input *UpdateUserInput) (*User, error) {
 	// 校验用户专属分组倍率：必须 > 0（nil 合法，表示清除专属倍率）
 	if input.GroupRates != nil {
 		for groupID, rate := range input.GroupRates {
@@ -715,9 +738,41 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 		return nil, err
 	}
 
-	// Protect admin users: cannot disable admin accounts
+	// Protect admin users: cannot disable/demote the last active admin account.
+	// When UpdateUser is running inside an ent transaction, lock the active-admin rows
+	// before counting so two concurrent requests cannot both observe the same count and
+	// remove the final admin privileges/status at the same time.
+	lockActiveAdmins := func() error {
+		if tx := dbent.TxFromContext(ctx); tx != nil {
+			_, err := tx.Client().ExecContext(ctx, `SELECT id FROM users WHERE role = $1 AND status = $2 FOR UPDATE`, RoleAdmin, StatusActive)
+			return err
+		}
+		return nil
+	}
 	if user.Role == "admin" && input.Status == "disabled" {
-		return nil, errors.New("cannot disable admin user")
+		if err := lockActiveAdmins(); err != nil {
+			return nil, err
+		}
+		activeAdmins, err := s.userRepo.CountActiveAdmins(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if activeAdmins <= 1 {
+			return nil, errors.New("cannot disable the last active admin user")
+		}
+	}
+
+	if user.Role == "admin" && input.Role == "user" {
+		if err := lockActiveAdmins(); err != nil {
+			return nil, err
+		}
+		activeAdmins, err := s.userRepo.CountActiveAdmins(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if activeAdmins <= 1 {
+			return nil, errors.New("cannot demote the last active admin user")
+		}
 	}
 
 	oldConcurrency := user.Concurrency
@@ -743,6 +798,10 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	if input.Status != "" {
 		user.Status = input.Status
+	}
+
+	if input.Role != "" {
+		user.Role = input.Role
 	}
 
 	if input.Concurrency != nil {

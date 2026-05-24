@@ -124,6 +124,13 @@ func (s *AuthService) EntClient() *dbent.Client {
 	return s.entClient
 }
 
+func (s *AuthService) AffiliateService() *AffiliateService {
+	if s == nil {
+		return nil
+	}
+	return s.affiliateService
+}
+
 // Register 用户注册，返回token和用户
 func (s *AuthService) Register(ctx context.Context, email, password string) (string, *User, error) {
 	return s.RegisterWithVerification(ctx, email, password, "", "", "", "")
@@ -146,22 +153,46 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 
 	// 检查是否需要邀请码
 	var invitationRedeemCode *RedeemCode
+	invitationCode = strings.TrimSpace(invitationCode)
+	affiliateCode = strings.TrimSpace(affiliateCode)
 	if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
 		if invitationCode == "" {
 			return "", nil, ErrInvitationCodeRequired
 		}
-		// 验证邀请码
-		redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
-		if err != nil {
-			logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, err)
-			return "", nil, ErrInvitationCodeInvalid
+		// 先把用户中心的邀请码/返利码识别为可用的注册邀请码。这类码不消耗 redeem_codes，
+		// 注册成功后会作为 affiliateCode 绑定邀请人。
+		if s.affiliateService != nil {
+			if _, err := s.affiliateService.GetAffiliateByCode(ctx, invitationCode); err == nil {
+				if affiliateCode == "" {
+					affiliateCode = invitationCode
+				}
+			} else {
+				// 不是用户邀请码时，继续按传统兑换码式邀请码校验。
+				redeemCode, redeemErr := s.redeemRepo.GetByCode(ctx, invitationCode)
+				if redeemErr != nil {
+					logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, redeemErr)
+					return "", nil, ErrInvitationCodeInvalid
+				}
+				if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
+					logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
+					return "", nil, ErrInvitationCodeInvalid
+				}
+				invitationRedeemCode = redeemCode
+			}
+		} else {
+			// 验证传统兑换码式邀请码
+			redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
+			if err != nil {
+				logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, err)
+				return "", nil, ErrInvitationCodeInvalid
+			}
+			// 检查类型和状态
+			if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
+				logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
+				return "", nil, ErrInvitationCodeInvalid
+			}
+			invitationRedeemCode = redeemCode
 		}
-		// 检查类型和状态
-		if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
-			logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
-			return "", nil, ErrInvitationCodeInvalid
-		}
-		invitationRedeemCode = redeemCode
 	}
 
 	// 检查是否需要邮件验证

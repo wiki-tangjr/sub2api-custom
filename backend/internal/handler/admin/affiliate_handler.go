@@ -51,11 +51,16 @@ func (h *AffiliateHandler) ListUsers(c *gin.Context) {
 //
 // Both fields are optional and applied independently.
 type UpdateAffiliateUserRequest struct {
-	AffCode              *string  `json:"aff_code"`
-	AffRebateRatePercent *float64 `json:"aff_rebate_rate_percent"`
+	AffCode                  *string  `json:"aff_code"`
+	AffRebateRatePercent     *float64 `json:"aff_rebate_rate_percent"`
+	AffRebateFreezeHours     *int     `json:"aff_rebate_freeze_hours"`
+	AffRebateDurationDays    *int     `json:"aff_rebate_duration_days"`
+	HideAffiliateForInvitees *bool    `json:"hide_affiliate_for_invitees"`
 	// ClearRebateRate explicitly clears the per-user rate (sets it to NULL).
 	// Used to disambiguate from "field not provided".
-	ClearRebateRate bool `json:"clear_rebate_rate"`
+	ClearRebateRate         bool `json:"clear_rebate_rate"`
+	ClearRebateFreezeHours  bool `json:"clear_rebate_freeze_hours"`
+	ClearRebateDurationDays bool `json:"clear_rebate_duration_days"`
 }
 
 func (h *AffiliateHandler) UpdateUserSettings(c *gin.Context) {
@@ -90,6 +95,28 @@ func (h *AffiliateHandler) UpdateUserSettings(c *gin.Context) {
 		}
 	}
 
+	if req.ClearRebateFreezeHours || req.ClearRebateDurationDays || req.AffRebateFreezeHours != nil || req.AffRebateDurationDays != nil {
+		var freezeHours *int
+		var durationDays *int
+		if !req.ClearRebateFreezeHours {
+			freezeHours = req.AffRebateFreezeHours
+		}
+		if !req.ClearRebateDurationDays {
+			durationDays = req.AffRebateDurationDays
+		}
+		if err := h.affiliateService.AdminSetUserRebateCycle(c.Request.Context(), userID, freezeHours, durationDays, req.ClearRebateFreezeHours || req.AffRebateFreezeHours != nil, req.ClearRebateDurationDays || req.AffRebateDurationDays != nil); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+	}
+
+	if req.HideAffiliateForInvitees != nil {
+		if err := h.affiliateService.AdminSetHideAffiliateForInvitees(c.Request.Context(), userID, *req.HideAffiliateForInvitees); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+	}
+
 	response.Success(c, gin.H{"user_id": userID})
 }
 
@@ -107,6 +134,14 @@ func (h *AffiliateHandler) ClearUserSettings(c *gin.Context) {
 		return
 	}
 	if err := h.affiliateService.AdminSetUserRebateRate(c.Request.Context(), userID, nil); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if err := h.affiliateService.AdminSetUserRebateCycle(c.Request.Context(), userID, nil, nil, true, true); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if err := h.affiliateService.AdminSetHideAffiliateForInvitees(c.Request.Context(), userID, false); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}

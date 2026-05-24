@@ -380,6 +380,18 @@ func (r *oauthEmailAffiliateRepoStub) SetUserRebateRate(context.Context, int64, 
 	panic("unexpected SetUserRebateRate call")
 }
 
+func (r *oauthEmailAffiliateRepoStub) SetUserRebateCycle(context.Context, int64, *int, *int, bool, bool) error {
+	panic("unexpected SetUserRebateCycle call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) SetHideAffiliateForInvitees(context.Context, int64, bool) error {
+	panic("unexpected SetHideAffiliateForInvitees call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) IsAffiliateHiddenByInviter(context.Context, int64) (bool, error) {
+	return false, nil
+}
+
 func (r *oauthEmailAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
 	panic("unexpected BatchSetUserRebateRate call")
 }

@@ -87,8 +87,8 @@
           </p>
         </div>
 
-        <!-- Invitation Code Input (Required when enabled) -->
-        <div v-if="invitationCodeEnabled">
+        <!-- Invitation Code Input (Required when enabled or when opened from an affiliate referral link) -->
+        <div v-if="invitationCodeRequiredForRegistration">
           <label for="invitation_code" class="input-label">
             {{ t('auth.invitationCodeLabel') }}
           </label>
@@ -100,7 +100,8 @@
               id="invitation_code"
               v-model="formData.invitation_code"
               type="text"
-              :disabled="registrationActionDisabled"
+              :disabled="registrationActionDisabled || invitationCodeLockedFromReferral"
+              :readonly="invitationCodeLockedFromReferral"
               class="input pl-11 pr-10"
               :class="{
                 'border-green-500 focus:border-green-500 focus:ring-green-500': invitationValidation.valid,
@@ -433,6 +434,17 @@ const registrationActionDisabled = computed(
   () => isLoading.value || !settingsLoaded.value || agreementGateActive.value
 )
 
+// Validate affiliate referral links even when the traditional invitation-code feature is disabled.
+const hasAffiliateReferralCode = computed(() => !!formData.aff_code)
+
+const invitationCodeRequiredForRegistration = computed(
+  () => invitationCodeEnabled.value || hasAffiliateReferralCode.value
+)
+
+const invitationCodeLockedFromReferral = computed(
+  () => hasAffiliateReferralCode.value && formData.invitation_code === formData.aff_code
+)
+
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {
     appStore.showError(value)
@@ -443,6 +455,11 @@ function syncAffiliateReferralCode(): string {
   const code = resolveAffiliateReferralCode(route.query.aff, route.query.aff_code)
   if (code) {
     formData.aff_code = code
+    formData.invitation_code = code
+    invitationValidation.valid = true
+    invitationValidation.invalid = false
+    invitationValidation.message = ''
+    errors.invitation_code = ''
   }
   return code
 }
@@ -784,7 +801,7 @@ function validateForm(): boolean {
   }
 
   // Invitation code validation (required when enabled)
-  if (invitationCodeEnabled.value) {
+  if (invitationCodeRequiredForRegistration.value) {
     if (!formData.invitation_code.trim()) {
       errors.invitation_code = t('auth.invitationCodeRequired')
       isValid = false
@@ -825,8 +842,8 @@ async function handleRegister(): Promise<void> {
     }
   }
 
-  // Check invitation code validation status (if enabled and code provided)
-  if (invitationCodeEnabled.value) {
+  // Check invitation code validation status (if enabled or supplied by affiliate referral link)
+  if (invitationCodeRequiredForRegistration.value) {
     // If still validating, wait
     if (invitationValidating.value) {
       errorMessage.value = t('auth.invitationCodeValidating')

@@ -1,5 +1,5 @@
 <template>
-  <header class="glass sticky top-0 z-30 border-b border-gray-200/50 dark:border-dark-700/50">
+  <header class="fast-glass sticky top-0 z-30 border-b border-gray-200/70 dark:border-dark-700/70">
     <div class="flex h-16 items-center justify-between px-4 md:px-6">
       <!-- Left: Mobile Menu Toggle + Page Title -->
       <div class="flex items-center gap-4">
@@ -21,22 +21,22 @@
         </div>
       </div>
 
-      <!-- Right: Announcements + Docs + Language + Subscriptions + Balance + User Dropdown -->
+      <!-- Right: Announcements + Contact + Language + Subscriptions + Balance + User Dropdown -->
       <div class="flex items-center gap-3">
         <!-- Announcement Bell -->
         <AnnouncementBell v-if="user" />
 
-        <!-- Docs Link -->
-        <a
-          v-if="docUrl"
-          :href="docUrl"
-          target="_blank"
-          rel="noopener noreferrer"
+        <!-- Contact Support: copy configured contact info -->
+        <button
+          v-if="contactInfo"
+          type="button"
+          :title="contactInfo"
           class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
+          @click="copyContactInfo"
         >
-          <Icon name="book" size="sm" />
-          <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
-        </a>
+          <Icon name="chat" size="sm" />
+          <span class="hidden sm:inline">{{ t('common.contactSupport') }}</span>
+        </button>
 
         <!-- Language Switcher -->
         <LocaleSwitcher />
@@ -235,7 +235,6 @@ const user = computed(() => authStore.user)
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)
-const docUrl = computed(() => appStore.docUrl)
 const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
 
 // 只在标准模式的管理员下显示新手引导按钮
@@ -307,6 +306,30 @@ async function handleLogout() {
     console.error('Logout error:', error)
   }
   await router.push('/login')
+}
+
+async function copyContactInfo() {
+  const value = contactInfo.value.trim()
+  if (!value) return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = value
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    appStore.showSuccess(t('common.copiedToClipboard'))
+  } catch (error) {
+    console.error('Copy contact info failed:', error)
+    appStore.showError(t('common.copyFailed'))
+  }
 }
 
 function handleReplayGuide() {

@@ -877,6 +877,15 @@ func (r *userRepository) GetFirstAdmin(ctx context.Context) (*service.User, erro
 	return out, nil
 }
 
+func (r *userRepository) CountActiveAdmins(ctx context.Context) (int, error) {
+	return r.client.User.Query().
+		Where(
+			dbuser.RoleEQ(service.RoleAdmin),
+			dbuser.StatusEQ(service.StatusActive),
+		).
+		Count(ctx)
+}
+
 func (r *userRepository) loadAllowedGroups(ctx context.Context, userIDs []int64) (map[int64][]int64, error) {
 	out := make(map[int64][]int64, len(userIDs))
 	if len(userIDs) == 0 {

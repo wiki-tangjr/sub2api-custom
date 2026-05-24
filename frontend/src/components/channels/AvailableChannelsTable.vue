@@ -1,8 +1,9 @@
 <template>
-  <div class="card overflow-hidden">
-    <table class="w-full table-fixed border-collapse text-sm">
+  <div class="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-dark-700 dark:bg-dark-800">
+    <div class="table-wrapper min-h-0 flex-1 overflow-auto">
+      <table class="w-full table-fixed border-collapse text-sm">
       <thead>
-        <tr class="border-b border-gray-100 bg-gray-50/50 text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400">
+        <tr class="border-b border-gray-100 bg-gray-50/95 text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:bg-dark-800/95 dark:text-gray-400">
           <th class="w-[180px] px-4 py-3 text-center">{{ columns.name }}</th>
           <th class="w-[200px] px-4 py-3 text-left">{{ columns.description }}</th>
           <th class="w-[140px] px-4 py-3 text-left">{{ columns.platform }}</th>
@@ -141,7 +142,8 @@
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -187,3 +189,11 @@ function publicGroups(section: UserChannelPlatformSection): UserAvailableGroup[]
   return section.groups.filter((g) => !g.is_exclusive)
 }
 </script>
+
+<style scoped>
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+</style>

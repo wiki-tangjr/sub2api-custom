@@ -68,7 +68,7 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2;
     @apply rounded-xl px-4 py-2.5 text-sm font-medium;
-    @apply transition-all duration-200 ease-out;
+    @apply transition-colors duration-150 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2;
     @apply disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50;
     @apply active:scale-[0.98];
@@ -165,7 +165,7 @@
     @apply border border-gray-200 dark:border-dark-600;
     @apply text-gray-900 dark:text-gray-100;
     @apply placeholder:text-gray-400 dark:placeholder:text-dark-400;
-    @apply transition-all duration-200;
+    @apply transition-colors duration-150;
     @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
     @apply disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-dark-900;
   }
@@ -199,16 +199,14 @@
 
   /* ============ 玻璃效果 ============ */
   .glass {
-    @apply bg-white/80 backdrop-blur-xl dark:bg-dark-800/80;
+    @apply bg-white/95 dark:bg-dark-800/95;
   }
 
   .glass-card {
-    @apply bg-white/70 dark:bg-dark-800/70;
-    @apply backdrop-blur-xl;
+    @apply bg-white dark:bg-dark-800;
     @apply rounded-2xl;
-    @apply border border-white/20 dark:border-dark-700/50;
-    @apply shadow-glass;
-    @apply transition-all duration-300;
+    @apply border border-gray-100 dark:border-dark-700/50;
+    @apply shadow-card;
   }
 
   /* ============ 卡片样式 ============ */
@@ -217,7 +215,7 @@
     @apply rounded-2xl;
     @apply border border-gray-100 dark:border-dark-700/50;
     @apply shadow-card;
-    @apply transition-all duration-300;
+    @apply transition-colors duration-150;
   }
 
   .card-hover {
@@ -226,10 +224,9 @@
   }
 
   .card-glass {
-    @apply bg-white/70 dark:bg-dark-800/70;
-    @apply backdrop-blur-xl;
-    @apply border border-white/20 dark:border-dark-700/50;
-    @apply shadow-glass;
+    @apply bg-white dark:bg-dark-800;
+    @apply border border-gray-100 dark:border-dark-700/50;
+    @apply shadow-card;
   }
 
   .card-header {
@@ -244,6 +241,11 @@
   .card-footer {
     @apply border-t border-gray-100 dark:border-dark-700;
     @apply px-6 py-4;
+  }
+
+  /* Header 用轻量透明层，避免 sticky + backdrop-filter 在滚动/切页时反复重绘 */
+  .fast-glass {
+    @apply bg-white/95 dark:bg-dark-800/95;
   }
 
   /* ============ 统计卡片 ============ */

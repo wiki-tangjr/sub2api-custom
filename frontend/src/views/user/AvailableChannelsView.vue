@@ -34,6 +34,7 @@
 
       <template #table>
         <AvailableChannelsTable
+          class="h-full min-h-0"
           :columns="columnLabels"
           :rows="filteredChannels"
           :loading="loading"

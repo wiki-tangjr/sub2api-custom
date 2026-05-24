@@ -134,15 +134,21 @@ export function useRoutePrefetch(router?: Router) {
     if (prefetchPaths.length === 0) return
 
     pendingPrefetchHandle.value = scheduleIdleCallback(
-      () => {
+      (deadline) => {
         pendingPrefetchHandle.value = null
 
         const routePath = route.path
         if (prefetchedRoutes.value.has(routePath)) return
 
-        // 获取需要预加载的组件 import 函数
+        const remaining = typeof deadline.timeRemaining === 'function' ? deadline.timeRemaining() : 0
+        // 大页面 chunk 解析/执行会抢占点击和切页的主线程；只在真正空闲或超时兜底时预取。
+        if (!deadline.didTimeout && remaining < 12) {
+          triggerPrefetch(route)
+          return
+        }
+
         const importFns: ComponentImportFn[] = []
-        for (const path of prefetchPaths) {
+        for (const path of prefetchPaths.slice(0, 1)) {
           const importFn = getComponentImporter(path)
           if (importFn) {
             importFns.push(importFn)
@@ -150,12 +156,15 @@ export function useRoutePrefetch(router?: Router) {
         }
 
         if (importFns.length > 0) {
-          Promise.all(importFns.map(prefetchComponent)).then(() => {
+          importFns.reduce(
+            (chain, importFn) => chain.then(() => prefetchComponent(importFn)),
+            Promise.resolve()
+          ).then(() => {
             prefetchedRoutes.value.add(routePath)
           })
         }
       },
-      { timeout: 2000 }
+      { timeout: 5000 }
     )
   }
 

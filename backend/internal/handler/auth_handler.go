@@ -27,13 +27,14 @@ type AuthHandler struct {
 	redeemService        *service.RedeemService
 	totpService          *service.TotpService
 	userAttributeService *service.UserAttributeService
+	affiliateService     *service.AffiliateService
 
 	dingTalkClientInstance *DingTalkClient
 	dingTalkClientMu       sync.Mutex
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, userAttributeService *service.UserAttributeService) *AuthHandler {
+func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, userAttributeService *service.UserAttributeService, affiliateService *service.AffiliateService) *AuthHandler {
 	return &AuthHandler{
 		cfg:                  cfg,
 		authService:          authService,
@@ -43,6 +44,7 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
 		redeemService:        redeemService,
 		totpService:          totpService,
 		userAttributeService: userAttributeService,
+		affiliateService:     affiliateService,
 	}
 }
 
@@ -431,8 +433,18 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		runMode = h.cfg.RunMode
 	}
 
+	profile := userProfileResponseFromService(user, identities)
+	if h.affiliateService != nil && h.affiliateService.IsEnabled(c.Request.Context()) {
+		hidden, err := h.affiliateService.IsAffiliateHiddenForUser(c.Request.Context(), subject.UserID)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		profile.AffiliateHidden = hidden
+	}
+
 	response.Success(c, UserResponse{
-		userProfileResponse: userProfileResponseFromService(user, identities),
+		userProfileResponse: profile,
 		RunMode:             runMode,
 	})
 }
@@ -517,10 +529,34 @@ type ValidateInvitationCodeResponse struct {
 	ErrorCode string `json:"error_code,omitempty"`
 }
 
+func (h *AuthHandler) isAffiliateInvitationCode(ctx context.Context, code string) bool {
+	code = strings.TrimSpace(code)
+	if code == "" || h == nil || h.authService == nil || h.authService.AffiliateService() == nil {
+		return false
+	}
+	_, err := h.authService.AffiliateService().GetAffiliateByCode(ctx, code)
+	return err == nil
+}
+
 // ValidateInvitationCode 验证邀请码（公开接口，注册前调用）
 // POST /api/v1/auth/validate-invitation-code
 func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
-	// 检查邀请码功能是否启用
+	var req ValidateInvitationCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	// 用户中心的邀请返利码也允许作为注册邀请码；它不会被一次性消耗，注册成功后仅用于绑定邀请人。
+	// 即使“传统邀请码注册”开关关闭，也允许前端校验返利邀请链接，避免 /register?aff=... 被误判为不可用。
+	if h.isAffiliateInvitationCode(c.Request.Context(), req.Code) {
+		response.Success(c, ValidateInvitationCodeResponse{
+			Valid: true,
+		})
+		return
+	}
+
+	// 检查传统兑换码式邀请码功能是否启用。
 	if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
 		response.Success(c, ValidateInvitationCodeResponse{
 			Valid:     false,
@@ -529,13 +565,7 @@ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
 		return
 	}
 
-	var req ValidateInvitationCodeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "Invalid request: "+err.Error())
-		return
-	}
-
-	// 验证邀请码
+	// 验证传统兑换码式邀请码
 	redeemCode, err := h.redeemService.GetByCode(c.Request.Context(), req.Code)
 	if err != nil {
 		response.Success(c, ValidateInvitationCodeResponse{

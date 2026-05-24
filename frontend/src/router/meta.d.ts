@@ -56,6 +56,12 @@ declare module 'vue-router' {
     requiresRiskControl?: boolean
 
     /**
+     * 是否要求邀请返利功能已启用，且当前用户未被邀请人设置为隐藏返利入口
+     * @default false
+     */
+    requiresAffiliate?: boolean
+
+    /**
      * i18n key for the page title
      */
     titleKey?: string

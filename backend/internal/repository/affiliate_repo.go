@@ -30,6 +30,7 @@ SELECT ua.user_id,
        COALESCE(ua.aff_rebate_rate_percent, 0)::double precision,
        (ua.aff_rebate_rate_percent IS NOT NULL) AS has_custom_rate,
        ua.aff_count,
+       COALESCE(ua.hide_affiliate_for_invitees, false),
        COALESCE(rebated.rebated_invitee_count, 0),
        (ua.aff_quota + COALESCE(matured.matured_frozen_quota, 0))::double precision,
        ua.aff_history_quota::double precision
@@ -659,6 +660,7 @@ func (r *affiliateRepository) GetAffiliateUserOverview(ctx context.Context, user
 		&customRate,
 		&hasCustomRate,
 		&overview.InvitedCount,
+		&overview.HideAffiliateForInvitees,
 		&overview.RebatedInviteeCount,
 		&overview.AvailableQuota,
 		&overview.HistoryQuota,
@@ -784,6 +786,8 @@ SELECT user_id,
        aff_code,
        aff_code_custom,
        aff_rebate_rate_percent,
+       aff_rebate_freeze_hours,
+       aff_rebate_duration_days,
        inviter_id,
        aff_count,
        aff_quota::double precision,
@@ -807,11 +811,15 @@ WHERE user_id = $1`, userID)
 	var out service.AffiliateSummary
 	var inviterID sql.NullInt64
 	var rebateRate sql.NullFloat64
+	var freezeHours sql.NullInt64
+	var durationDays sql.NullInt64
 	if err := rows.Scan(
 		&out.UserID,
 		&out.AffCode,
 		&out.AffCodeCustom,
 		&rebateRate,
+		&freezeHours,
+		&durationDays,
 		&inviterID,
 		&out.AffCount,
 		&out.AffQuota,
@@ -829,6 +837,14 @@ WHERE user_id = $1`, userID)
 		v := rebateRate.Float64
 		out.AffRebateRatePercent = &v
 	}
+	if freezeHours.Valid {
+		v := int(freezeHours.Int64)
+		out.AffRebateFreezeHours = &v
+	}
+	if durationDays.Valid {
+		v := int(durationDays.Int64)
+		out.AffRebateDurationDays = &v
+	}
 	return &out, nil
 }
 
@@ -838,6 +854,8 @@ SELECT user_id,
        aff_code,
        aff_code_custom,
        aff_rebate_rate_percent,
+       aff_rebate_freeze_hours,
+       aff_rebate_duration_days,
        inviter_id,
        aff_count,
        aff_quota::double precision,
@@ -863,11 +881,15 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 	var out service.AffiliateSummary
 	var inviterID sql.NullInt64
 	var rebateRate sql.NullFloat64
+	var freezeHours sql.NullInt64
+	var durationDays sql.NullInt64
 	if err := rows.Scan(
 		&out.UserID,
 		&out.AffCode,
 		&out.AffCodeCustom,
 		&rebateRate,
+		&freezeHours,
+		&durationDays,
 		&inviterID,
 		&out.AffCount,
 		&out.AffQuota,
@@ -884,6 +906,14 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 	if rebateRate.Valid {
 		v := rebateRate.Float64
 		out.AffRebateRatePercent = &v
+	}
+	if freezeHours.Valid {
+		v := int(freezeHours.Int64)
+		out.AffRebateFreezeHours = &v
+	}
+	if durationDays.Valid {
+		v := int(durationDays.Int64)
+		out.AffRebateDurationDays = &v
 	}
 	return &out, nil
 }
@@ -1081,6 +1111,83 @@ WHERE user_id = $2`, nullableArg(ratePercent), userID)
 	})
 }
 
+// SetUserRebateCycle 设置或清除用户专属返利周期。nil 表示清除（沿用全局）。
+func (r *affiliateRepository) SetUserRebateCycle(ctx context.Context, userID int64, freezeHours *int, durationDays *int, updateFreezeHours bool, updateDurationDays bool) error {
+	if userID <= 0 {
+		return service.ErrUserNotFound
+	}
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+		res, err := txClient.ExecContext(txCtx, `
+UPDATE user_affiliates
+SET aff_rebate_freeze_hours = CASE WHEN $1 THEN $2 ELSE aff_rebate_freeze_hours END,
+    aff_rebate_duration_days = CASE WHEN $3 THEN $4 ELSE aff_rebate_duration_days END,
+    updated_at = NOW()
+WHERE user_id = $5`, updateFreezeHours, nullableIntArg(freezeHours), updateDurationDays, nullableIntArg(durationDays), userID)
+		if err != nil {
+			return fmt.Errorf("set affiliate rebate cycle: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrUserNotFound
+		}
+		return nil
+	})
+}
+
+// SetHideAffiliateForInvitees 设置该用户邀请来的账号是否隐藏邀请返利功能。
+func (r *affiliateRepository) SetHideAffiliateForInvitees(ctx context.Context, userID int64, hide bool) error {
+	if userID <= 0 {
+		return service.ErrUserNotFound
+	}
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+		res, err := txClient.ExecContext(txCtx, `
+UPDATE user_affiliates
+SET hide_affiliate_for_invitees = $1,
+    updated_at = NOW()
+WHERE user_id = $2`, hide, userID)
+		if err != nil {
+			return fmt.Errorf("set hide affiliate for invitees: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrUserNotFound
+		}
+		return nil
+	})
+}
+
+// IsAffiliateHiddenByInviter 返回用户是否因为其邀请人配置而被隐藏邀请返利功能。
+func (r *affiliateRepository) IsAffiliateHiddenByInviter(ctx context.Context, userID int64) (bool, error) {
+	if userID <= 0 {
+		return false, service.ErrUserNotFound
+	}
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, `
+SELECT COALESCE(inviter.hide_affiliate_for_invitees, false)
+FROM user_affiliates invitee
+LEFT JOIN user_affiliates inviter ON inviter.user_id = invitee.inviter_id
+WHERE invitee.user_id = $1
+LIMIT 1`, userID)
+	if err != nil {
+		return false, fmt.Errorf("query affiliate hidden by inviter: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	if !rows.Next() {
+		return false, nil
+	}
+	var hidden bool
+	if err := rows.Scan(&hidden); err != nil {
+		return false, err
+	}
+	return hidden, rows.Err()
+}
+
 // BatchSetUserRebateRate 批量为多个用户设置专属比例（nil 清除）。
 func (r *affiliateRepository) BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error {
 	if len(userIDs) == 0 {
@@ -1123,6 +1230,13 @@ func nullableInt64Arg(v *int64) any {
 	return *v
 }
 
+func nullableIntArg(v *int) any {
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
 // ListUsersWithCustomSettings 列出有专属配置（自定义码或专属比例）的用户。
 //
 // 单一查询同时处理"无搜索"与"按邮箱/用户名模糊搜索"：
@@ -1143,7 +1257,7 @@ func (r *affiliateRepository) ListUsersWithCustomSettings(ctx context.Context, f
 	const baseFrom = `
 FROM user_affiliates ua
 JOIN users u ON u.id = ua.user_id
-WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL)
+WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL OR ua.aff_rebate_freeze_hours IS NOT NULL OR ua.aff_rebate_duration_days IS NOT NULL OR ua.hide_affiliate_for_invitees = true)
   AND (u.email ILIKE $1 OR u.username ILIKE $1)`
 
 	client := clientFromContext(ctx, r.client)
@@ -1160,6 +1274,9 @@ SELECT ua.user_id,
        ua.aff_code,
        ua.aff_code_custom,
        ua.aff_rebate_rate_percent,
+       ua.aff_rebate_freeze_hours,
+       ua.aff_rebate_duration_days,
+       ua.hide_affiliate_for_invitees,
        ua.aff_count` + baseFrom + `
 ORDER BY ua.updated_at DESC
 LIMIT $2 OFFSET $3`
@@ -1174,13 +1291,23 @@ LIMIT $2 OFFSET $3`
 	for rows.Next() {
 		var e service.AffiliateAdminEntry
 		var rebate sql.NullFloat64
+		var freezeHours sql.NullInt64
+		var durationDays sql.NullInt64
 		if err := rows.Scan(&e.UserID, &e.Email, &e.Username, &e.AffCode,
-			&e.AffCodeCustom, &rebate, &e.AffCount); err != nil {
+			&e.AffCodeCustom, &rebate, &freezeHours, &durationDays, &e.HideAffiliateForInvitees, &e.AffCount); err != nil {
 			return nil, 0, err
 		}
 		if rebate.Valid {
 			v := rebate.Float64
 			e.AffRebateRatePercent = &v
+		}
+		if freezeHours.Valid {
+			v := int(freezeHours.Int64)
+			e.AffRebateFreezeHours = &v
+		}
+		if durationDays.Valid {
+			v := int(durationDays.Int64)
+			e.AffRebateDurationDays = &v
 		}
 		entries = append(entries, e)
 	}
