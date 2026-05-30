@@ -1,0 +1,210 @@
+diff --git a/backend/cmd/server/wire_gen.go b/backend/cmd/server/wire_gen.go
+index 1e5625a6..4de27d64 100644
+--- a/backend/cmd/server/wire_gen.go
++++ b/backend/cmd/server/wire_gen.go
+@@ -84,7 +84,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
+ 	userAttributeDefinitionRepository := repository.NewUserAttributeDefinitionRepository(client)
+ 	userAttributeValueRepository := repository.NewUserAttributeValueRepository(client)
+ 	userAttributeService := service.NewUserAttributeService(userAttributeDefinitionRepository, userAttributeValueRepository)
+-	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService, userAttributeService)
++	authHandler := handler.NewAuthHandler(configConfig, authService, userService, settingService, promoService, redeemService, totpService, userAttributeService, affiliateService)
+ 	userHandler := handler.NewUserHandler(userService, authService, emailService, emailCache, affiliateService)
+ 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
+ 	usageLogRepository := repository.NewUsageLogRepository(client, db)
+diff --git a/backend/internal/handler/auth_handler.go b/backend/internal/handler/auth_handler.go
+index 9f7b1c46..58fb9a5a 100644
+--- a/backend/internal/handler/auth_handler.go
++++ b/backend/internal/handler/auth_handler.go
+@@ -27,13 +27,14 @@ type AuthHandler struct {
+ 	redeemService        *service.RedeemService
+ 	totpService          *service.TotpService
+ 	userAttributeService *service.UserAttributeService
++	affiliateService     *service.AffiliateService
+ 
+ 	dingTalkClientInstance *DingTalkClient
+ 	dingTalkClientMu       sync.Mutex
+ }
+ 
+ // NewAuthHandler creates a new AuthHandler
+-func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, userAttributeService *service.UserAttributeService) *AuthHandler {
++func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userService *service.UserService, settingService *service.SettingService, promoService *service.PromoService, redeemService *service.RedeemService, totpService *service.TotpService, userAttributeService *service.UserAttributeService, affiliateService *service.AffiliateService) *AuthHandler {
+ 	return &AuthHandler{
+ 		cfg:                  cfg,
+ 		authService:          authService,
+@@ -43,6 +44,7 @@ func NewAuthHandler(cfg *config.Config, authService *service.AuthService, userSe
+ 		redeemService:        redeemService,
+ 		totpService:          totpService,
+ 		userAttributeService: userAttributeService,
++		affiliateService:     affiliateService,
+ 	}
+ }
+ 
+@@ -431,8 +433,18 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
+ 		runMode = h.cfg.RunMode
+ 	}
+ 
++	profile := userProfileResponseFromService(user, identities)
++	if h.affiliateService != nil && h.affiliateService.IsEnabled(c.Request.Context()) {
++		hidden, err := h.affiliateService.IsAffiliateHiddenForUser(c.Request.Context(), subject.UserID)
++		if err != nil {
++			response.ErrorFrom(c, err)
++			return
++		}
++		profile.AffiliateHidden = hidden
++	}
++
+ 	response.Success(c, UserResponse{
+-		userProfileResponse: userProfileResponseFromService(user, identities),
++		userProfileResponse: profile,
+ 		RunMode:             runMode,
+ 	})
+ }
+diff --git a/backend/internal/server/api_contract_test.go b/backend/internal/server/api_contract_test.go
+index 380a9b4d..0ceeb4e1 100644
+--- a/backend/internal/server/api_contract_test.go
++++ b/backend/internal/server/api_contract_test.go
+@@ -1253,7 +1253,7 @@ func newContractDeps(t *testing.T) *contractDeps {
+ 	settingService := service.NewSettingService(settingRepo, cfg)
+ 
+ 	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+-	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil, nil)
++	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil, nil, nil)
+ 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
+ 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService)
+ 	adminSettingHandler := adminhandler.NewSettingHandler(settingService, nil, nil, nil, nil, nil, nil)
+diff --git a/frontend/src/components/channels/AvailableChannelsTable.vue b/frontend/src/components/channels/AvailableChannelsTable.vue
+index 5b9c0eba..7f1e75dd 100644
+--- a/frontend/src/components/channels/AvailableChannelsTable.vue
++++ b/frontend/src/components/channels/AvailableChannelsTable.vue
+@@ -1,8 +1,9 @@
+ <template>
+-  <div class="card overflow-hidden">
+-    <table class="w-full table-fixed border-collapse text-sm">
++  <div class="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-dark-700 dark:bg-dark-800">
++    <div class="table-wrapper min-h-0 flex-1 overflow-auto">
++      <table class="w-full table-fixed border-collapse text-sm">
+       <thead>
+-        <tr class="border-b border-gray-100 bg-gray-50/50 text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400">
++        <tr class="border-b border-gray-100 bg-gray-50/95 text-xs font-medium uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:bg-dark-800/95 dark:text-gray-400">
+           <th class="w-[180px] px-4 py-3 text-center">{{ columns.name }}</th>
+           <th class="w-[200px] px-4 py-3 text-left">{{ columns.description }}</th>
+           <th class="w-[140px] px-4 py-3 text-left">{{ columns.platform }}</th>
+@@ -141,7 +142,8 @@
+           </td>
+         </tr>
+       </tbody>
+-    </table>
++      </table>
++    </div>
+   </div>
+ </template>
+ 
+@@ -187,3 +189,11 @@ function publicGroups(section: UserChannelPlatformSection): UserAvailableGroup[]
+   return section.groups.filter((g) => !g.is_exclusive)
+ }
+ </script>
++
++<style scoped>
++thead {
++  position: sticky;
++  top: 0;
++  z-index: 10;
++}
++</style>
+diff --git a/frontend/src/components/layout/AppSidebar.vue b/frontend/src/components/layout/AppSidebar.vue
+index 7cc00f53..c59c753a 100644
+--- a/frontend/src/components/layout/AppSidebar.vue
++++ b/frontend/src/components/layout/AppSidebar.vue
+@@ -264,6 +264,7 @@ interface NavItem {
+   iconSvg?: string
+   externalUrl?: string
+   hideInSimpleMode?: boolean
++  hideWhenAffiliateHidden?: boolean
+   children?: NavItem[]
+   /**
+    * When true, the parent item only toggles the expand/collapse state and
+@@ -754,7 +755,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
+     { path: '/purchase', label: t('nav.buySubscription'), icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment },
+     { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment },
+     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
+-    { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
++    { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, hideWhenAffiliateHidden: true, featureFlag: flagAffiliate },
+     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
+     ...customMenuItemsForUser.value.map((item): NavItem => ({
+       ...getCustomMenuNavTarget(item),
+@@ -766,9 +767,9 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
+   return items
+ }
+ 
+-// finalizeNav 合并三重过滤：featureFlag 过滤 + simple 模式过滤。
++// finalizeNav 合并过滤：featureFlag + simple 模式 + 邀请人下线隐藏返利入口。
+ function finalizeNav(items: NavItem[]): NavItem[] {
+-  const visible = applyFeatureFlags(items)
++  const visible = applyFeatureFlags(items).filter(item => !(item.hideWhenAffiliateHidden && authStore.user?.affiliate_hidden))
+   return authStore.isSimpleMode ? visible.filter(item => !item.hideInSimpleMode) : visible
+ }
+ 
+diff --git a/frontend/src/router/index.ts b/frontend/src/router/index.ts
+index 3979ac70..1e44bdd6 100644
+--- a/frontend/src/router/index.ts
++++ b/frontend/src/router/index.ts
+@@ -12,6 +12,7 @@ import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
+ import { getSetupStatus } from '@/api/setup'
+ import { resolveCompletedSetupRedirectPath } from './setupRedirect'
+ import { resolveDocumentTitle } from './title'
++import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
+ 
+ /**
+  * Route definitions with lazy loading
+@@ -235,6 +236,7 @@ const routes: RouteRecordRaw[] = [
+     meta: {
+       requiresAuth: true,
+       requiresAdmin: false,
++      requiresAffiliate: true,
+       title: 'Affiliate',
+       titleKey: 'affiliate.title',
+       descriptionKey: 'affiliate.description'
+@@ -825,6 +827,14 @@ router.beforeEach(async (to, _from, next) => {
+     }
+   }
+ 
++  if (to.meta.requiresAffiliate) {
++    const affiliateEnabled = isFeatureFlagEnabled(FeatureFlags.affiliate)
++    if (!affiliateEnabled || authStore.user?.affiliate_hidden) {
++      next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
++      return
++    }
++  }
++
+   // 简易模式下限制访问某些页面
+   if (authStore.isSimpleMode) {
+     const restrictedPaths = [
+diff --git a/frontend/src/router/meta.d.ts b/frontend/src/router/meta.d.ts
+index 5c468016..99b9ef98 100644
+--- a/frontend/src/router/meta.d.ts
++++ b/frontend/src/router/meta.d.ts
+@@ -55,6 +55,12 @@ declare module 'vue-router' {
+      */
+     requiresRiskControl?: boolean
+ 
++    /**
++     * 是否要求邀请返利功能已启用，且当前用户未被邀请人设置为隐藏返利入口
++     * @default false
++     */
++    requiresAffiliate?: boolean
++
+     /**
+      * i18n key for the page title
+      */
+diff --git a/frontend/src/views/user/AvailableChannelsView.vue b/frontend/src/views/user/AvailableChannelsView.vue
+index a6c9ebc8..afe74d88 100644
+--- a/frontend/src/views/user/AvailableChannelsView.vue
++++ b/frontend/src/views/user/AvailableChannelsView.vue
+@@ -34,6 +34,7 @@
+ 
+       <template #table>
+         <AvailableChannelsTable
++          class="h-full min-h-0"
+           :columns="columnLabels"
+           :rows="filteredChannels"
+           :loading="loading"

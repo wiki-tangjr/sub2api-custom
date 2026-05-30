@@ -1,0 +1,2109 @@
+diff --git a/backend/Makefile b/backend/Makefile
+index 7084ccb9..413e455a 100644
+--- a/backend/Makefile
++++ b/backend/Makefile
+@@ -4,7 +4,7 @@ VERSION ?= $(shell tr -d '\r\n' < ./cmd/server/VERSION)
+ LDFLAGS ?= -s -w -X main.Version=$(VERSION)
+ 
+ build:
+-	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -trimpath -o bin/server ./cmd/server
++	CGO_ENABLED=0 go build -tags embed -ldflags="$(LDFLAGS)" -trimpath -o bin/server ./cmd/server
+ 
+ generate:
+ 	go generate ./ent
+diff --git a/backend/internal/handler/admin/affiliate_handler.go b/backend/internal/handler/admin/affiliate_handler.go
+index d443d344..27d41e2e 100644
+--- a/backend/internal/handler/admin/affiliate_handler.go
++++ b/backend/internal/handler/admin/affiliate_handler.go
+@@ -51,11 +51,16 @@ func (h *AffiliateHandler) ListUsers(c *gin.Context) {
+ //
+ // Both fields are optional and applied independently.
+ type UpdateAffiliateUserRequest struct {
+-	AffCode              *string  `json:"aff_code"`
+-	AffRebateRatePercent *float64 `json:"aff_rebate_rate_percent"`
++	AffCode                  *string  `json:"aff_code"`
++	AffRebateRatePercent     *float64 `json:"aff_rebate_rate_percent"`
++	AffRebateFreezeHours     *int     `json:"aff_rebate_freeze_hours"`
++	AffRebateDurationDays    *int     `json:"aff_rebate_duration_days"`
++	HideAffiliateForInvitees *bool    `json:"hide_affiliate_for_invitees"`
+ 	// ClearRebateRate explicitly clears the per-user rate (sets it to NULL).
+ 	// Used to disambiguate from "field not provided".
+-	ClearRebateRate bool `json:"clear_rebate_rate"`
++	ClearRebateRate         bool `json:"clear_rebate_rate"`
++	ClearRebateFreezeHours  bool `json:"clear_rebate_freeze_hours"`
++	ClearRebateDurationDays bool `json:"clear_rebate_duration_days"`
+ }
+ 
+ func (h *AffiliateHandler) UpdateUserSettings(c *gin.Context) {
+@@ -90,6 +95,28 @@ func (h *AffiliateHandler) UpdateUserSettings(c *gin.Context) {
+ 		}
+ 	}
+ 
++	if req.ClearRebateFreezeHours || req.ClearRebateDurationDays || req.AffRebateFreezeHours != nil || req.AffRebateDurationDays != nil {
++		var freezeHours *int
++		var durationDays *int
++		if !req.ClearRebateFreezeHours {
++			freezeHours = req.AffRebateFreezeHours
++		}
++		if !req.ClearRebateDurationDays {
++			durationDays = req.AffRebateDurationDays
++		}
++		if err := h.affiliateService.AdminSetUserRebateCycle(c.Request.Context(), userID, freezeHours, durationDays, req.ClearRebateFreezeHours || req.AffRebateFreezeHours != nil, req.ClearRebateDurationDays || req.AffRebateDurationDays != nil); err != nil {
++			response.ErrorFrom(c, err)
++			return
++		}
++	}
++
++	if req.HideAffiliateForInvitees != nil {
++		if err := h.affiliateService.AdminSetHideAffiliateForInvitees(c.Request.Context(), userID, *req.HideAffiliateForInvitees); err != nil {
++			response.ErrorFrom(c, err)
++			return
++		}
++	}
++
+ 	response.Success(c, gin.H{"user_id": userID})
+ }
+ 
+@@ -110,6 +137,14 @@ func (h *AffiliateHandler) ClearUserSettings(c *gin.Context) {
+ 		response.ErrorFrom(c, err)
+ 		return
+ 	}
++	if err := h.affiliateService.AdminSetUserRebateCycle(c.Request.Context(), userID, nil, nil, true, true); err != nil {
++		response.ErrorFrom(c, err)
++		return
++	}
++	if err := h.affiliateService.AdminSetHideAffiliateForInvitees(c.Request.Context(), userID, false); err != nil {
++		response.ErrorFrom(c, err)
++		return
++	}
+ 	if _, err := h.affiliateService.AdminResetUserAffCode(c.Request.Context(), userID); err != nil {
+ 		response.ErrorFrom(c, err)
+ 		return
+diff --git a/backend/internal/handler/admin/setting_handler.go b/backend/internal/handler/admin/setting_handler.go
+index 9907d441..d7fa15fd 100644
+--- a/backend/internal/handler/admin/setting_handler.go
++++ b/backend/internal/handler/admin/setting_handler.go
+@@ -1276,6 +1276,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
+ 				response.BadRequest(c, "Custom menu item visibility must be 'user' or 'admin'")
+ 				return
+ 			}
++			if item.OpenMode == "" {
++				items[i].OpenMode = "iframe"
++			} else if item.OpenMode != "iframe" && item.OpenMode != "new_tab" {
++				response.BadRequest(c, "Custom menu item open_mode must be 'iframe' or 'new_tab'")
++				return
++			}
+ 			if len(item.IconSVG) > maxMenuItemIconSVGLen {
+ 				response.BadRequest(c, "Custom menu item icon SVG is too large (max 10KB)")
+ 				return
+diff --git a/backend/internal/handler/admin/user_handler.go b/backend/internal/handler/admin/user_handler.go
+index db35472e..70d3240c 100644
+--- a/backend/internal/handler/admin/user_handler.go
++++ b/backend/internal/handler/admin/user_handler.go
+@@ -51,6 +51,7 @@ type UpdateUserRequest struct {
+ 	Password      string   `json:"password" binding:"omitempty,min=6"`
+ 	Username      *string  `json:"username"`
+ 	Notes         *string  `json:"notes"`
++	Role          string   `json:"role" binding:"omitempty,oneof=admin user"`
+ 	Balance       *float64 `json:"balance"`
+ 	Concurrency   *int     `json:"concurrency"`
+ 	RPMLimit      *int     `json:"rpm_limit"`
+@@ -277,6 +278,7 @@ func (h *UserHandler) Update(c *gin.Context) {
+ 		Password:      req.Password,
+ 		Username:      req.Username,
+ 		Notes:         req.Notes,
++		Role:          req.Role,
+ 		Balance:       req.Balance,
+ 		Concurrency:   req.Concurrency,
+ 		RPMLimit:      req.RPMLimit,
+diff --git a/backend/internal/handler/auth_email_oauth_test.go b/backend/internal/handler/auth_email_oauth_test.go
+index ecf71c5a..3d96d940 100644
+--- a/backend/internal/handler/auth_email_oauth_test.go
++++ b/backend/internal/handler/auth_email_oauth_test.go
+@@ -380,6 +380,18 @@ func (r *oauthEmailAffiliateRepoStub) SetUserRebateRate(context.Context, int64,
+ 	panic("unexpected SetUserRebateRate call")
+ }
+ 
++func (r *oauthEmailAffiliateRepoStub) SetUserRebateCycle(context.Context, int64, *int, *int, bool, bool) error {
++	panic("unexpected SetUserRebateCycle call")
++}
++
++func (r *oauthEmailAffiliateRepoStub) SetHideAffiliateForInvitees(context.Context, int64, bool) error {
++	panic("unexpected SetHideAffiliateForInvitees call")
++}
++
++func (r *oauthEmailAffiliateRepoStub) IsAffiliateHiddenByInviter(context.Context, int64) (bool, error) {
++	return false, nil
++}
++
+ func (r *oauthEmailAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
+ 	panic("unexpected BatchSetUserRebateRate call")
+ }
+diff --git a/backend/internal/handler/auth_handler.go b/backend/internal/handler/auth_handler.go
+index a9af910d..9f7b1c46 100644
+--- a/backend/internal/handler/auth_handler.go
++++ b/backend/internal/handler/auth_handler.go
+@@ -517,25 +517,43 @@ type ValidateInvitationCodeResponse struct {
+ 	ErrorCode string `json:"error_code,omitempty"`
+ }
+ 
++func (h *AuthHandler) isAffiliateInvitationCode(ctx context.Context, code string) bool {
++	code = strings.TrimSpace(code)
++	if code == "" || h == nil || h.authService == nil || h.authService.AffiliateService() == nil {
++		return false
++	}
++	_, err := h.authService.AffiliateService().GetAffiliateByCode(ctx, code)
++	return err == nil
++}
++
+ // ValidateInvitationCode 验证邀请码（公开接口，注册前调用）
+ // POST /api/v1/auth/validate-invitation-code
+ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
+-	// 检查邀请码功能是否启用
+-	if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
++	var req ValidateInvitationCodeRequest
++	if err := c.ShouldBindJSON(&req); err != nil {
++		response.BadRequest(c, "Invalid request: "+err.Error())
++		return
++	}
++
++	// 用户中心的邀请返利码也允许作为注册邀请码；它不会被一次性消耗，注册成功后仅用于绑定邀请人。
++	// 即使“传统邀请码注册”开关关闭，也允许前端校验返利邀请链接，避免 /register?aff=... 被误判为不可用。
++	if h.isAffiliateInvitationCode(c.Request.Context(), req.Code) {
+ 		response.Success(c, ValidateInvitationCodeResponse{
+-			Valid:     false,
+-			ErrorCode: "INVITATION_CODE_DISABLED",
++			Valid: true,
+ 		})
+ 		return
+ 	}
+ 
+-	var req ValidateInvitationCodeRequest
+-	if err := c.ShouldBindJSON(&req); err != nil {
+-		response.BadRequest(c, "Invalid request: "+err.Error())
++	// 检查传统兑换码式邀请码功能是否启用。
++	if h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(c.Request.Context()) {
++		response.Success(c, ValidateInvitationCodeResponse{
++			Valid:     false,
++			ErrorCode: "INVITATION_CODE_DISABLED",
++		})
+ 		return
+ 	}
+ 
+-	// 验证邀请码
++	// 验证传统兑换码式邀请码
+ 	redeemCode, err := h.redeemService.GetByCode(c.Request.Context(), req.Code)
+ 	if err != nil {
+ 		response.Success(c, ValidateInvitationCodeResponse{
+diff --git a/backend/internal/handler/auth_oauth_pending_flow_test.go b/backend/internal/handler/auth_oauth_pending_flow_test.go
+index 584e5751..b3674bca 100644
+--- a/backend/internal/handler/auth_oauth_pending_flow_test.go
++++ b/backend/internal/handler/auth_oauth_pending_flow_test.go
+@@ -2667,6 +2667,10 @@ func (r *oauthPendingFlowUserRepo) GetFirstAdmin(context.Context) (*service.User
+ 	panic("unexpected GetFirstAdmin call")
+ }
+ 
++func (r *oauthPendingFlowUserRepo) CountActiveAdmins(context.Context) (int, error) {
++	return 1, nil
++}
++
+ func (r *oauthPendingFlowUserRepo) Update(ctx context.Context, user *service.User) error {
+ 	entity, err := r.client.User.UpdateOneID(user.ID).
+ 		SetEmail(user.Email).
+diff --git a/backend/internal/handler/dto/settings.go b/backend/internal/handler/dto/settings.go
+index 45ad7a70..e42106fa 100644
+--- a/backend/internal/handler/dto/settings.go
++++ b/backend/internal/handler/dto/settings.go
+@@ -12,7 +12,8 @@ type CustomMenuItem struct {
+ 	IconSVG    string `json:"icon_svg"`
+ 	URL        string `json:"url"`
+ 	PageSlug   string `json:"page_slug,omitempty"`
+-	Visibility string `json:"visibility"` // "user" or "admin"
++	OpenMode   string `json:"open_mode,omitempty"` // "iframe" or "new_tab"
++	Visibility string `json:"visibility"`         // "user" or "admin"
+ 	SortOrder  int    `json:"sort_order"`
+ }
+ 
+diff --git a/backend/internal/handler/user_handler.go b/backend/internal/handler/user_handler.go
+index f1dbf4e1..effe78f5 100644
+--- a/backend/internal/handler/user_handler.go
++++ b/backend/internal/handler/user_handler.go
+@@ -54,6 +54,7 @@ type UpdateProfileRequest struct {
+ 
+ type userProfileResponse struct {
+ 	dto.User
++	AffiliateHidden   bool                                   `json:"affiliate_hidden"`
+ 	AvatarURL         string                                 `json:"avatar_url,omitempty"`
+ 	AvatarSource      *userProfileSourceContext              `json:"avatar_source,omitempty"`
+ 	UsernameSource    *userProfileSourceContext              `json:"username_source,omitempty"`
+@@ -504,7 +505,15 @@ func (h *UserHandler) buildUserProfileResponse(ctx context.Context, userID int64
+ 	if err != nil {
+ 		return userProfileResponse{}, err
+ 	}
+-	return userProfileResponseFromService(user, identities), nil
++	profile := userProfileResponseFromService(user, identities)
++	if h.affiliateService != nil && h.affiliateService.IsEnabled(ctx) {
++		hidden, err := h.affiliateService.IsAffiliateHiddenForUser(ctx, userID)
++		if err != nil {
++			return userProfileResponse{}, err
++		}
++		profile.AffiliateHidden = hidden
++	}
++	return profile, nil
+ }
+ 
+ func userProfileResponseFromService(user *service.User, identities service.UserIdentitySummarySet) userProfileResponse {
+diff --git a/backend/internal/repository/affiliate_repo.go b/backend/internal/repository/affiliate_repo.go
+index 61da539e..2a2feb1e 100644
+--- a/backend/internal/repository/affiliate_repo.go
++++ b/backend/internal/repository/affiliate_repo.go
+@@ -30,6 +30,7 @@ SELECT ua.user_id,
+        COALESCE(ua.aff_rebate_rate_percent, 0)::double precision,
+        (ua.aff_rebate_rate_percent IS NOT NULL) AS has_custom_rate,
+        ua.aff_count,
++       COALESCE(ua.hide_affiliate_for_invitees, false),
+        COALESCE(rebated.rebated_invitee_count, 0),
+        (ua.aff_quota + COALESCE(matured.matured_frozen_quota, 0))::double precision,
+        ua.aff_history_quota::double precision
+@@ -659,6 +660,7 @@ func (r *affiliateRepository) GetAffiliateUserOverview(ctx context.Context, user
+ 		&customRate,
+ 		&hasCustomRate,
+ 		&overview.InvitedCount,
++		&overview.HideAffiliateForInvitees,
+ 		&overview.RebatedInviteeCount,
+ 		&overview.AvailableQuota,
+ 		&overview.HistoryQuota,
+@@ -784,6 +786,8 @@ SELECT user_id,
+        aff_code,
+        aff_code_custom,
+        aff_rebate_rate_percent,
++       aff_rebate_freeze_hours,
++       aff_rebate_duration_days,
+        inviter_id,
+        aff_count,
+        aff_quota::double precision,
+@@ -807,11 +811,15 @@ WHERE user_id = $1`, userID)
+ 	var out service.AffiliateSummary
+ 	var inviterID sql.NullInt64
+ 	var rebateRate sql.NullFloat64
++	var freezeHours sql.NullInt64
++	var durationDays sql.NullInt64
+ 	if err := rows.Scan(
+ 		&out.UserID,
+ 		&out.AffCode,
+ 		&out.AffCodeCustom,
+ 		&rebateRate,
++		&freezeHours,
++		&durationDays,
+ 		&inviterID,
+ 		&out.AffCount,
+ 		&out.AffQuota,
+@@ -829,6 +837,14 @@ WHERE user_id = $1`, userID)
+ 		v := rebateRate.Float64
+ 		out.AffRebateRatePercent = &v
+ 	}
++	if freezeHours.Valid {
++		v := int(freezeHours.Int64)
++		out.AffRebateFreezeHours = &v
++	}
++	if durationDays.Valid {
++		v := int(durationDays.Int64)
++		out.AffRebateDurationDays = &v
++	}
+ 	return &out, nil
+ }
+ 
+@@ -838,6 +854,8 @@ SELECT user_id,
+        aff_code,
+        aff_code_custom,
+        aff_rebate_rate_percent,
++       aff_rebate_freeze_hours,
++       aff_rebate_duration_days,
+        inviter_id,
+        aff_count,
+        aff_quota::double precision,
+@@ -863,11 +881,15 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
+ 	var out service.AffiliateSummary
+ 	var inviterID sql.NullInt64
+ 	var rebateRate sql.NullFloat64
++	var freezeHours sql.NullInt64
++	var durationDays sql.NullInt64
+ 	if err := rows.Scan(
+ 		&out.UserID,
+ 		&out.AffCode,
+ 		&out.AffCodeCustom,
+ 		&rebateRate,
++		&freezeHours,
++		&durationDays,
+ 		&inviterID,
+ 		&out.AffCount,
+ 		&out.AffQuota,
+@@ -885,6 +907,14 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
+ 		v := rebateRate.Float64
+ 		out.AffRebateRatePercent = &v
+ 	}
++	if freezeHours.Valid {
++		v := int(freezeHours.Int64)
++		out.AffRebateFreezeHours = &v
++	}
++	if durationDays.Valid {
++		v := int(durationDays.Int64)
++		out.AffRebateDurationDays = &v
++	}
+ 	return &out, nil
+ }
+ 
+@@ -1081,6 +1111,83 @@ WHERE user_id = $2`, nullableArg(ratePercent), userID)
+ 	})
+ }
+ 
++// SetUserRebateCycle 设置或清除用户专属返利周期。nil 表示清除（沿用全局）。
++func (r *affiliateRepository) SetUserRebateCycle(ctx context.Context, userID int64, freezeHours *int, durationDays *int, updateFreezeHours bool, updateDurationDays bool) error {
++	if userID <= 0 {
++		return service.ErrUserNotFound
++	}
++	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
++		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
++			return err
++		}
++		res, err := txClient.ExecContext(txCtx, `
++UPDATE user_affiliates
++SET aff_rebate_freeze_hours = CASE WHEN $1 THEN $2 ELSE aff_rebate_freeze_hours END,
++    aff_rebate_duration_days = CASE WHEN $3 THEN $4 ELSE aff_rebate_duration_days END,
++    updated_at = NOW()
++WHERE user_id = $5`, updateFreezeHours, nullableIntArg(freezeHours), updateDurationDays, nullableIntArg(durationDays), userID)
++		if err != nil {
++			return fmt.Errorf("set affiliate rebate cycle: %w", err)
++		}
++		affected, _ := res.RowsAffected()
++		if affected == 0 {
++			return service.ErrUserNotFound
++		}
++		return nil
++	})
++}
++
++// SetHideAffiliateForInvitees 设置该用户邀请来的账号是否隐藏邀请返利功能。
++func (r *affiliateRepository) SetHideAffiliateForInvitees(ctx context.Context, userID int64, hide bool) error {
++	if userID <= 0 {
++		return service.ErrUserNotFound
++	}
++	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
++		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
++			return err
++		}
++		res, err := txClient.ExecContext(txCtx, `
++UPDATE user_affiliates
++SET hide_affiliate_for_invitees = $1,
++    updated_at = NOW()
++WHERE user_id = $2`, hide, userID)
++		if err != nil {
++			return fmt.Errorf("set hide affiliate for invitees: %w", err)
++		}
++		affected, _ := res.RowsAffected()
++		if affected == 0 {
++			return service.ErrUserNotFound
++		}
++		return nil
++	})
++}
++
++// IsAffiliateHiddenByInviter 返回用户是否因为其邀请人配置而被隐藏邀请返利功能。
++func (r *affiliateRepository) IsAffiliateHiddenByInviter(ctx context.Context, userID int64) (bool, error) {
++	if userID <= 0 {
++		return false, service.ErrUserNotFound
++	}
++	client := clientFromContext(ctx, r.client)
++	rows, err := client.QueryContext(ctx, `
++SELECT COALESCE(inviter.hide_affiliate_for_invitees, false)
++FROM user_affiliates invitee
++LEFT JOIN user_affiliates inviter ON inviter.user_id = invitee.inviter_id
++WHERE invitee.user_id = $1
++LIMIT 1`, userID)
++	if err != nil {
++		return false, fmt.Errorf("query affiliate hidden by inviter: %w", err)
++	}
++	defer func() { _ = rows.Close() }()
++	if !rows.Next() {
++		return false, nil
++	}
++	var hidden bool
++	if err := rows.Scan(&hidden); err != nil {
++		return false, err
++	}
++	return hidden, rows.Err()
++}
++
+ // BatchSetUserRebateRate 批量为多个用户设置专属比例（nil 清除）。
+ func (r *affiliateRepository) BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error {
+ 	if len(userIDs) == 0 {
+@@ -1123,6 +1230,13 @@ func nullableInt64Arg(v *int64) any {
+ 	return *v
+ }
+ 
++func nullableIntArg(v *int) any {
++	if v == nil {
++		return nil
++	}
++	return *v
++}
++
+ // ListUsersWithCustomSettings 列出有专属配置（自定义码或专属比例）的用户。
+ //
+ // 单一查询同时处理"无搜索"与"按邮箱/用户名模糊搜索"：
+@@ -1143,7 +1257,7 @@ func (r *affiliateRepository) ListUsersWithCustomSettings(ctx context.Context, f
+ 	const baseFrom = `
+ FROM user_affiliates ua
+ JOIN users u ON u.id = ua.user_id
+-WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL)
++WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL OR ua.aff_rebate_freeze_hours IS NOT NULL OR ua.aff_rebate_duration_days IS NOT NULL OR ua.hide_affiliate_for_invitees = true)
+   AND (u.email ILIKE $1 OR u.username ILIKE $1)`
+ 
+ 	client := clientFromContext(ctx, r.client)
+@@ -1160,6 +1274,9 @@ SELECT ua.user_id,
+        ua.aff_code,
+        ua.aff_code_custom,
+        ua.aff_rebate_rate_percent,
++       ua.aff_rebate_freeze_hours,
++       ua.aff_rebate_duration_days,
++       ua.hide_affiliate_for_invitees,
+        ua.aff_count` + baseFrom + `
+ ORDER BY ua.updated_at DESC
+ LIMIT $2 OFFSET $3`
+@@ -1174,14 +1291,24 @@ LIMIT $2 OFFSET $3`
+ 	for rows.Next() {
+ 		var e service.AffiliateAdminEntry
+ 		var rebate sql.NullFloat64
++		var freezeHours sql.NullInt64
++		var durationDays sql.NullInt64
+ 		if err := rows.Scan(&e.UserID, &e.Email, &e.Username, &e.AffCode,
+-			&e.AffCodeCustom, &rebate, &e.AffCount); err != nil {
++			&e.AffCodeCustom, &rebate, &freezeHours, &durationDays, &e.HideAffiliateForInvitees, &e.AffCount); err != nil {
+ 			return nil, 0, err
+ 		}
+ 		if rebate.Valid {
+ 			v := rebate.Float64
+ 			e.AffRebateRatePercent = &v
+ 		}
++		if freezeHours.Valid {
++			v := int(freezeHours.Int64)
++			e.AffRebateFreezeHours = &v
++		}
++		if durationDays.Valid {
++			v := int(durationDays.Int64)
++			e.AffRebateDurationDays = &v
++		}
+ 		entries = append(entries, e)
+ 	}
+ 	if err := rows.Err(); err != nil {
+diff --git a/backend/internal/repository/user_repo.go b/backend/internal/repository/user_repo.go
+index 610d9a7b..44c00f3b 100644
+--- a/backend/internal/repository/user_repo.go
++++ b/backend/internal/repository/user_repo.go
+@@ -877,6 +877,15 @@ func (r *userRepository) GetFirstAdmin(ctx context.Context) (*service.User, erro
+ 	return out, nil
+ }
+ 
++func (r *userRepository) CountActiveAdmins(ctx context.Context) (int, error) {
++	return r.client.User.Query().
++		Where(
++			dbuser.RoleEQ(service.RoleAdmin),
++			dbuser.StatusEQ(service.StatusActive),
++		).
++		Count(ctx)
++}
++
+ func (r *userRepository) loadAllowedGroups(ctx context.Context, userIDs []int64) (map[int64][]int64, error) {
+ 	out := make(map[int64][]int64, len(userIDs))
+ 	if len(userIDs) == 0 {
+diff --git a/backend/internal/service/admin_service.go b/backend/internal/service/admin_service.go
+index 843af013..a6a81e3f 100644
+--- a/backend/internal/service/admin_service.go
++++ b/backend/internal/service/admin_service.go
+@@ -131,6 +131,7 @@ type UpdateUserInput struct {
+ 	Password      string
+ 	Username      *string
+ 	Notes         *string
++	Role          string
+ 	Balance       *float64 // 使用指针区分"未提供"和"设置为0"
+ 	Concurrency   *int     // 使用指针区分"未提供"和"设置为0"
+ 	RPMLimit      *int     // 使用指针区分"未提供"和"设置为0"
+@@ -715,9 +716,25 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
+ 		return nil, err
+ 	}
+ 
+-	// Protect admin users: cannot disable admin accounts
++	// Protect admin users: cannot disable the last active admin account.
+ 	if user.Role == "admin" && input.Status == "disabled" {
+-		return nil, errors.New("cannot disable admin user")
++		activeAdmins, err := s.userRepo.CountActiveAdmins(ctx)
++		if err != nil {
++			return nil, err
++		}
++		if activeAdmins <= 1 {
++			return nil, errors.New("cannot disable the last active admin user")
++		}
++	}
++
++	if user.Role == "admin" && input.Role == "user" {
++		activeAdmins, err := s.userRepo.CountActiveAdmins(ctx)
++		if err != nil {
++			return nil, err
++		}
++		if activeAdmins <= 1 {
++			return nil, errors.New("cannot demote the last active admin user")
++		}
+ 	}
+ 
+ 	oldConcurrency := user.Concurrency
+@@ -745,6 +762,10 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
+ 		user.Status = input.Status
+ 	}
+ 
++	if input.Role != "" {
++		user.Role = input.Role
++	}
++
+ 	if input.Concurrency != nil {
+ 		user.Concurrency = *input.Concurrency
+ 	}
+diff --git a/backend/internal/service/affiliate_service.go b/backend/internal/service/affiliate_service.go
+index 91cca5e2..969bab13 100644
+--- a/backend/internal/service/affiliate_service.go
++++ b/backend/internal/service/affiliate_service.go
+@@ -58,17 +58,19 @@ func isValidAffiliateCodeFormat(code string) bool {
+ }
+ 
+ type AffiliateSummary struct {
+-	UserID               int64     `json:"user_id"`
+-	AffCode              string    `json:"aff_code"`
+-	AffCodeCustom        bool      `json:"aff_code_custom"`
+-	AffRebateRatePercent *float64  `json:"aff_rebate_rate_percent,omitempty"`
+-	InviterID            *int64    `json:"inviter_id,omitempty"`
+-	AffCount             int       `json:"aff_count"`
+-	AffQuota             float64   `json:"aff_quota"`
+-	AffFrozenQuota       float64   `json:"aff_frozen_quota"`
+-	AffHistoryQuota      float64   `json:"aff_history_quota"`
+-	CreatedAt            time.Time `json:"created_at"`
+-	UpdatedAt            time.Time `json:"updated_at"`
++	UserID                int64     `json:"user_id"`
++	AffCode               string    `json:"aff_code"`
++	AffCodeCustom         bool      `json:"aff_code_custom"`
++	AffRebateRatePercent  *float64  `json:"aff_rebate_rate_percent,omitempty"`
++	AffRebateFreezeHours  *int      `json:"aff_rebate_freeze_hours,omitempty"`
++	AffRebateDurationDays *int      `json:"aff_rebate_duration_days,omitempty"`
++	InviterID             *int64    `json:"inviter_id,omitempty"`
++	AffCount              int       `json:"aff_count"`
++	AffQuota              float64   `json:"aff_quota"`
++	AffFrozenQuota        float64   `json:"aff_frozen_quota"`
++	AffHistoryQuota       float64   `json:"aff_history_quota"`
++	CreatedAt             time.Time `json:"created_at"`
++	UpdatedAt             time.Time `json:"updated_at"`
+ }
+ 
+ type AffiliateInvitee struct {
+@@ -108,6 +110,9 @@ type AffiliateRepository interface {
+ 	UpdateUserAffCode(ctx context.Context, userID int64, newCode string) error
+ 	ResetUserAffCode(ctx context.Context, userID int64) (string, error)
+ 	SetUserRebateRate(ctx context.Context, userID int64, ratePercent *float64) error
++	SetUserRebateCycle(ctx context.Context, userID int64, freezeHours *int, durationDays *int, updateFreezeHours bool, updateDurationDays bool) error
++	SetHideAffiliateForInvitees(ctx context.Context, userID int64, hide bool) error
++	IsAffiliateHiddenByInviter(ctx context.Context, userID int64) (bool, error)
+ 	BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error
+ 	ListUsersWithCustomSettings(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateAdminEntry, int64, error)
+ 	ListAffiliateInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error)
+@@ -125,13 +130,16 @@ type AffiliateAdminFilter struct {
+ 
+ // AffiliateAdminEntry 专属用户列表条目
+ type AffiliateAdminEntry struct {
+-	UserID               int64    `json:"user_id"`
+-	Email                string   `json:"email"`
+-	Username             string   `json:"username"`
+-	AffCode              string   `json:"aff_code"`
+-	AffCodeCustom        bool     `json:"aff_code_custom"`
+-	AffRebateRatePercent *float64 `json:"aff_rebate_rate_percent,omitempty"`
+-	AffCount             int      `json:"aff_count"`
++	UserID                   int64    `json:"user_id"`
++	Email                    string   `json:"email"`
++	Username                 string   `json:"username"`
++	AffCode                  string   `json:"aff_code"`
++	AffCodeCustom            bool     `json:"aff_code_custom"`
++	AffRebateRatePercent     *float64 `json:"aff_rebate_rate_percent,omitempty"`
++	AffRebateFreezeHours     *int     `json:"aff_rebate_freeze_hours,omitempty"`
++	AffRebateDurationDays    *int     `json:"aff_rebate_duration_days,omitempty"`
++	HideAffiliateForInvitees bool     `json:"hide_affiliate_for_invitees"`
++	AffCount                 int      `json:"aff_count"`
+ }
+ 
+ type AffiliateRecordFilter struct {
+@@ -192,16 +200,17 @@ type AffiliateTransferRecord struct {
+ }
+ 
+ type AffiliateUserOverview struct {
+-	UserID              int64   `json:"user_id"`
+-	Email               string  `json:"email"`
+-	Username            string  `json:"username"`
+-	AffCode             string  `json:"aff_code"`
+-	RebateRatePercent   float64 `json:"rebate_rate_percent"`
+-	RebateRateCustom    bool    `json:"-"`
+-	InvitedCount        int     `json:"invited_count"`
+-	RebatedInviteeCount int     `json:"rebated_invitee_count"`
+-	AvailableQuota      float64 `json:"available_quota"`
+-	HistoryQuota        float64 `json:"history_quota"`
++	UserID                   int64   `json:"user_id"`
++	Email                    string  `json:"email"`
++	Username                 string  `json:"username"`
++	AffCode                  string  `json:"aff_code"`
++	RebateRatePercent        float64 `json:"rebate_rate_percent"`
++	RebateRateCustom         bool    `json:"-"`
++	HideAffiliateForInvitees bool    `json:"hide_affiliate_for_invitees"`
++	InvitedCount             int     `json:"invited_count"`
++	RebatedInviteeCount      int     `json:"rebated_invitee_count"`
++	AvailableQuota           float64 `json:"available_quota"`
++	HistoryQuota             float64 `json:"history_quota"`
+ }
+ 
+ type AffiliateService struct {
+@@ -238,7 +247,22 @@ func (s *AffiliateService) EnsureUserAffiliate(ctx context.Context, userID int64
+ 	return s.repo.EnsureUserAffiliate(ctx, userID)
+ }
+ 
++func (s *AffiliateService) IsAffiliateHiddenForUser(ctx context.Context, userID int64) (bool, error) {
++	if userID <= 0 {
++		return false, infraerrors.BadRequest("INVALID_USER", "invalid user")
++	}
++	if s == nil || s.repo == nil {
++		return false, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
++	}
++	return s.repo.IsAffiliateHiddenByInviter(ctx, userID)
++}
++
+ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64) (*AffiliateDetail, error) {
++	if hidden, err := s.IsAffiliateHiddenForUser(ctx, userID); err != nil {
++		return nil, err
++	} else if hidden {
++		return nil, infraerrors.Forbidden("AFFILIATE_HIDDEN_BY_INVITER", "affiliate feature is hidden by inviter")
++	}
+ 	// Lazy thaw: move any matured frozen quota to available before reading.
+ 	if s != nil && s.repo != nil {
+ 		// best-effort: thaw failure is non-fatal
+@@ -266,6 +290,20 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
+ 	}, nil
+ }
+ 
++func (s *AffiliateService) GetAffiliateByCode(ctx context.Context, rawCode string) (*AffiliateSummary, error) {
++	code := strings.ToUpper(strings.TrimSpace(rawCode))
++	if code == "" || !isValidAffiliateCodeFormat(code) {
++		return nil, ErrAffiliateCodeInvalid
++	}
++	if s == nil || s.repo == nil {
++		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
++	}
++	if !s.IsEnabled(ctx) {
++		return nil, ErrAffiliateCodeInvalid
++	}
++	return s.repo.GetAffiliateByCode(ctx, code)
++}
++
+ func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, rawCode string) error {
+ 	code := strings.ToUpper(strings.TrimSpace(rawCode))
+ 	if code == "" {
+@@ -340,12 +378,10 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
+ 	if err != nil {
+ 		return 0, err
+ 	}
+-	// 有效期检查：超过返利有效期后不再产生返利
+-	if s.settingService != nil {
+-		if durationDays := s.settingService.GetAffiliateRebateDurationDays(ctx); durationDays > 0 {
+-			if time.Now().After(inviteeSummary.CreatedAt.AddDate(0, 0, durationDays)) {
+-				return 0, nil
+-			}
++	// 有效期检查：邀请人有专属有效期时优先生效，否则回退全局设置。
++	if durationDays := s.resolveRebateDurationDays(ctx, inviterSummary); durationDays > 0 {
++		if time.Now().After(inviteeSummary.CreatedAt.AddDate(0, 0, durationDays)) {
++			return 0, nil
+ 		}
+ 	}
+ 
+@@ -371,10 +407,8 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
+ 		}
+ 	}
+ 
+-	var freezeHours int
+-	if s.settingService != nil {
+-		freezeHours = s.settingService.GetAffiliateRebateFreezeHours(ctx)
+-	}
++	// 冻结期同样按邀请人专属设置优先，否则回退全局。
++	freezeHours := s.resolveRebateFreezeHours(ctx, inviterSummary)
+ 
+ 	applied, err := s.repo.AccrueQuota(ctx, *inviteeSummary.InviterID, inviteeUserID, rebate, freezeHours, sourceOrderID)
+ 	if err != nil {
+@@ -399,6 +433,40 @@ func (s *AffiliateService) resolveRebateRatePercent(ctx context.Context, inviter
+ 	return s.globalRebateRatePercent(ctx)
+ }
+ 
++// resolveRebateFreezeHours returns the inviter's exclusive freeze period when set,
++// otherwise the global setting value. 0 means no freeze.
++func (s *AffiliateService) resolveRebateFreezeHours(ctx context.Context, inviter *AffiliateSummary) int {
++	if inviter != nil && inviter.AffRebateFreezeHours != nil {
++		return clampInt(*inviter.AffRebateFreezeHours, AffiliateRebateFreezeHoursDefault, AffiliateRebateFreezeHoursMax)
++	}
++	if s == nil || s.settingService == nil {
++		return AffiliateRebateFreezeHoursDefault
++	}
++	return s.settingService.GetAffiliateRebateFreezeHours(ctx)
++}
++
++// resolveRebateDurationDays returns the inviter's exclusive validity period when
++// set, otherwise the global setting value. 0 means permanent.
++func (s *AffiliateService) resolveRebateDurationDays(ctx context.Context, inviter *AffiliateSummary) int {
++	if inviter != nil && inviter.AffRebateDurationDays != nil {
++		return clampInt(*inviter.AffRebateDurationDays, AffiliateRebateDurationDaysDefault, AffiliateRebateDurationDaysMax)
++	}
++	if s == nil || s.settingService == nil {
++		return AffiliateRebateDurationDaysDefault
++	}
++	return s.settingService.GetAffiliateRebateDurationDays(ctx)
++}
++
++func clampInt(v, min, max int) int {
++	if v < min {
++		return min
++	}
++	if v > max {
++		return max
++	}
++	return v
++}
++
+ // globalRebateRatePercent reads the system-wide rebate rate via SettingService,
+ // returning the documented default when SettingService is unavailable.
+ func (s *AffiliateService) globalRebateRatePercent(ctx context.Context) float64 {
+@@ -508,6 +576,16 @@ func validateExclusiveRate(ratePercent *float64) error {
+ 	return nil
+ }
+ 
++func validateExclusiveRebateCycle(freezeHours *int, durationDays *int) error {
++	if freezeHours != nil && (*freezeHours < AffiliateRebateFreezeHoursDefault || *freezeHours > AffiliateRebateFreezeHoursMax) {
++		return infraerrors.BadRequest("INVALID_REBATE_FREEZE_HOURS", "rebate freeze hours out of range")
++	}
++	if durationDays != nil && (*durationDays < AffiliateRebateDurationDaysDefault || *durationDays > AffiliateRebateDurationDaysMax) {
++		return infraerrors.BadRequest("INVALID_REBATE_DURATION_DAYS", "rebate duration days out of range")
++	}
++	return nil
++}
++
+ // AdminUpdateUserAffCode 管理员改写用户的邀请码（专属邀请码）。
+ func (s *AffiliateService) AdminUpdateUserAffCode(ctx context.Context, userID int64, rawCode string) error {
+ 	if s == nil || s.repo == nil {
+@@ -539,6 +617,25 @@ func (s *AffiliateService) AdminSetUserRebateRate(ctx context.Context, userID in
+ 	return s.repo.SetUserRebateRate(ctx, userID, ratePercent)
+ }
+ 
++// AdminSetUserRebateCycle 设置/清除用户专属返利冻结期和有效期。nil 表示清除并沿用全局。
++func (s *AffiliateService) AdminSetUserRebateCycle(ctx context.Context, userID int64, freezeHours *int, durationDays *int, updateFreezeHours bool, updateDurationDays bool) error {
++	if s == nil || s.repo == nil {
++		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
++	}
++	if err := validateExclusiveRebateCycle(freezeHours, durationDays); err != nil {
++		return err
++	}
++	return s.repo.SetUserRebateCycle(ctx, userID, freezeHours, durationDays, updateFreezeHours, updateDurationDays)
++}
++
++// AdminSetHideAffiliateForInvitees 设置是否对该用户邀请来的账号隐藏邀请返利入口。
++func (s *AffiliateService) AdminSetHideAffiliateForInvitees(ctx context.Context, userID int64, hide bool) error {
++	if s == nil || s.repo == nil {
++		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
++	}
++	return s.repo.SetHideAffiliateForInvitees(ctx, userID, hide)
++}
++
+ // AdminBatchSetUserRebateRate 批量设置/清除用户专属返利比例。
+ func (s *AffiliateService) AdminBatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error {
+ 	if s == nil || s.repo == nil {
+diff --git a/backend/internal/service/auth_service.go b/backend/internal/service/auth_service.go
+index ce2b3fa3..6862795e 100644
+--- a/backend/internal/service/auth_service.go
++++ b/backend/internal/service/auth_service.go
+@@ -124,6 +124,13 @@ func (s *AuthService) EntClient() *dbent.Client {
+ 	return s.entClient
+ }
+ 
++func (s *AuthService) AffiliateService() *AffiliateService {
++	if s == nil {
++		return nil
++	}
++	return s.affiliateService
++}
++
+ // Register 用户注册，返回token和用户
+ func (s *AuthService) Register(ctx context.Context, email, password string) (string, *User, error) {
+ 	return s.RegisterWithVerification(ctx, email, password, "", "", "", "")
+@@ -146,22 +153,46 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
+ 
+ 	// 检查是否需要邀请码
+ 	var invitationRedeemCode *RedeemCode
++	invitationCode = strings.TrimSpace(invitationCode)
++	affiliateCode = strings.TrimSpace(affiliateCode)
+ 	if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
+ 		if invitationCode == "" {
+ 			return "", nil, ErrInvitationCodeRequired
+ 		}
+-		// 验证邀请码
+-		redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
+-		if err != nil {
+-			logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, err)
+-			return "", nil, ErrInvitationCodeInvalid
+-		}
+-		// 检查类型和状态
+-		if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
+-			logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
+-			return "", nil, ErrInvitationCodeInvalid
++		// 先把用户中心的邀请码/返利码识别为可用的注册邀请码。这类码不消耗 redeem_codes，
++		// 注册成功后会作为 affiliateCode 绑定邀请人。
++		if s.affiliateService != nil {
++			if _, err := s.affiliateService.GetAffiliateByCode(ctx, invitationCode); err == nil {
++				if affiliateCode == "" {
++					affiliateCode = invitationCode
++				}
++			} else {
++				// 不是用户邀请码时，继续按传统兑换码式邀请码校验。
++				redeemCode, redeemErr := s.redeemRepo.GetByCode(ctx, invitationCode)
++				if redeemErr != nil {
++					logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, redeemErr)
++					return "", nil, ErrInvitationCodeInvalid
++				}
++				if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
++					logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
++					return "", nil, ErrInvitationCodeInvalid
++				}
++				invitationRedeemCode = redeemCode
++			}
++		} else {
++			// 验证传统兑换码式邀请码
++			redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
++			if err != nil {
++				logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, err)
++				return "", nil, ErrInvitationCodeInvalid
++			}
++			// 检查类型和状态
++			if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
++				logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
++				return "", nil, ErrInvitationCodeInvalid
++			}
++			invitationRedeemCode = redeemCode
+ 		}
+-		invitationRedeemCode = redeemCode
+ 	}
+ 
+ 	// 检查是否需要邮件验证
+diff --git a/backend/internal/service/content_moderation_test.go b/backend/internal/service/content_moderation_test.go
+index 30578ca5..9a96d898 100644
+--- a/backend/internal/service/content_moderation_test.go
++++ b/backend/internal/service/content_moderation_test.go
+@@ -129,6 +129,10 @@ func (r *contentModerationTestUserRepo) GetFirstAdmin(ctx context.Context) (*Use
+ 	panic("unexpected GetFirstAdmin call")
+ }
+ 
++func (r *contentModerationTestUserRepo) CountActiveAdmins(ctx context.Context) (int, error) {
++	return 1, nil
++}
++
+ func (r *contentModerationTestUserRepo) Update(ctx context.Context, user *User) error {
+ 	if user == nil {
+ 		return nil
+diff --git a/backend/internal/service/user_service.go b/backend/internal/service/user_service.go
+index b346f6e7..bba1b85c 100644
+--- a/backend/internal/service/user_service.go
++++ b/backend/internal/service/user_service.go
+@@ -81,6 +81,7 @@ type UserRepository interface {
+ 	GetByID(ctx context.Context, id int64) (*User, error)
+ 	GetByEmail(ctx context.Context, email string) (*User, error)
+ 	GetFirstAdmin(ctx context.Context) (*User, error)
++	CountActiveAdmins(ctx context.Context) (int, error)
+ 	Update(ctx context.Context, user *User) error
+ 	Delete(ctx context.Context, id int64) error
+ 	GetUserAvatar(ctx context.Context, userID int64) (*UserAvatar, error)
+diff --git a/frontend/src/api/admin/affiliates.ts b/frontend/src/api/admin/affiliates.ts
+index dadb0ae9..f1c64f29 100644
+--- a/frontend/src/api/admin/affiliates.ts
++++ b/frontend/src/api/admin/affiliates.ts
+@@ -14,6 +14,9 @@ export interface AffiliateAdminEntry {
+   aff_code: string
+   aff_code_custom: boolean
+   aff_rebate_rate_percent?: number | null
++  aff_rebate_freeze_hours?: number | null
++  aff_rebate_duration_days?: number | null
++  hide_affiliate_for_invitees: boolean
+   aff_count: number
+ }
+ 
+@@ -92,8 +95,13 @@ export interface AffiliateUserOverview {
+ export interface UpdateAffiliateUserRequest {
+   aff_code?: string
+   aff_rebate_rate_percent?: number | null
++  aff_rebate_freeze_hours?: number | null
++  aff_rebate_duration_days?: number | null
++  hide_affiliate_for_invitees?: boolean
+   /** Set true to explicitly clear the per-user rate (sets it to NULL). */
+   clear_rebate_rate?: boolean
++  clear_rebate_freeze_hours?: boolean
++  clear_rebate_duration_days?: boolean
+ }
+ 
+ export interface BatchSetRateRequest {
+diff --git a/frontend/src/components/layout/AppHeader.vue b/frontend/src/components/layout/AppHeader.vue
+index 306f1429..71ff4736 100644
+--- a/frontend/src/components/layout/AppHeader.vue
++++ b/frontend/src/components/layout/AppHeader.vue
+@@ -1,5 +1,5 @@
+ <template>
+-  <header class="glass sticky top-0 z-30 border-b border-gray-200/50 dark:border-dark-700/50">
++  <header class="fast-glass sticky top-0 z-30 border-b border-gray-200/70 dark:border-dark-700/70">
+     <div class="flex h-16 items-center justify-between px-4 md:px-6">
+       <!-- Left: Mobile Menu Toggle + Page Title -->
+       <div class="flex items-center gap-4">
+@@ -21,22 +21,22 @@
+         </div>
+       </div>
+ 
+-      <!-- Right: Announcements + Docs + Language + Subscriptions + Balance + User Dropdown -->
++      <!-- Right: Announcements + Contact + Language + Subscriptions + Balance + User Dropdown -->
+       <div class="flex items-center gap-3">
+         <!-- Announcement Bell -->
+         <AnnouncementBell v-if="user" />
+ 
+-        <!-- Docs Link -->
+-        <a
+-          v-if="docUrl"
+-          :href="docUrl"
+-          target="_blank"
+-          rel="noopener noreferrer"
++        <!-- Contact Support: copy configured contact info -->
++        <button
++          v-if="contactInfo"
++          type="button"
++          :title="contactInfo"
+           class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
++          @click="copyContactInfo"
+         >
+-          <Icon name="book" size="sm" />
+-          <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
+-        </a>
++          <Icon name="chat" size="sm" />
++          <span class="hidden sm:inline">{{ t('common.contactSupport') }}</span>
++        </button>
+ 
+         <!-- Language Switcher -->
+         <LocaleSwitcher />
+@@ -235,7 +235,6 @@ const user = computed(() => authStore.user)
+ const dropdownOpen = ref(false)
+ const dropdownRef = ref<HTMLElement | null>(null)
+ const contactInfo = computed(() => appStore.contactInfo)
+-const docUrl = computed(() => appStore.docUrl)
+ const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
+ 
+ // 只在标准模式的管理员下显示新手引导按钮
+@@ -309,6 +308,30 @@ async function handleLogout() {
+   await router.push('/login')
+ }
+ 
++async function copyContactInfo() {
++  const value = contactInfo.value.trim()
++  if (!value) return
++  try {
++    if (navigator.clipboard?.writeText) {
++      await navigator.clipboard.writeText(value)
++    } else {
++      const textarea = document.createElement('textarea')
++      textarea.value = value
++      textarea.setAttribute('readonly', '')
++      textarea.style.position = 'fixed'
++      textarea.style.opacity = '0'
++      document.body.appendChild(textarea)
++      textarea.select()
++      document.execCommand('copy')
++      document.body.removeChild(textarea)
++    }
++    appStore.showSuccess(t('common.copiedToClipboard'))
++  } catch (error) {
++    console.error('Copy contact info failed:', error)
++    appStore.showError(t('common.copyFailed'))
++  }
++}
++
+ function handleReplayGuide() {
+   closeDropdown()
+   onboardingStore.replay()
+diff --git a/frontend/src/components/layout/AppLayout.vue b/frontend/src/components/layout/AppLayout.vue
+index 4c5b0c5d..28eb96c1 100644
+--- a/frontend/src/components/layout/AppLayout.vue
++++ b/frontend/src/components/layout/AppLayout.vue
+@@ -1,14 +1,11 @@
+ <template>
+   <div class="min-h-screen bg-gray-50 dark:bg-dark-950">
+-    <!-- Background Decoration -->
+-    <div class="pointer-events-none fixed inset-0 bg-mesh-gradient"></div>
+-
+     <!-- Sidebar -->
+     <AppSidebar />
+ 
+     <!-- Main Content Area -->
+     <div
+-      class="relative min-h-screen transition-all duration-300"
++      class="relative min-h-screen"
+       :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64']"
+     >
+       <!-- Header -->
+diff --git a/frontend/src/components/layout/AppSidebar.vue b/frontend/src/components/layout/AppSidebar.vue
+index 3d7f1604..7cc00f53 100644
+--- a/frontend/src/components/layout/AppSidebar.vue
++++ b/frontend/src/components/layout/AppSidebar.vue
+@@ -55,20 +55,57 @@
+               </button>
+               <!-- Children -->
+               <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="mb-1 ml-4 border-l border-gray-200 pl-2 dark:border-dark-600">
+-                <router-link
+-                  v-for="child in item.children"
+-                  :key="child.path"
+-                  :to="child.path"
+-                  class="sidebar-link mb-0.5 py-1.5 text-sm"
+-                  :class="{ 'sidebar-link-active': route.path === child.path }"
+-                  @click="handleMenuItemClick(child.path)"
+-                >
+-                  <component :is="child.icon" class="h-4 w-4 flex-shrink-0" />
+-                  <span>{{ child.label }}</span>
+-                </router-link>
++                <template v-for="child in item.children" :key="child.path">
++                  <a
++                    v-if="child.externalUrl"
++                    :href="child.externalUrl"
++                    target="_blank"
++                    rel="noopener noreferrer"
++                    class="sidebar-link mb-0.5 py-1.5 text-sm"
++                    @click="handleMenuItemClick(child)"
++                  >
++                    <span v-if="child.iconSvg" class="h-4 w-4 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(child.iconSvg)"></span>
++                    <component v-else :is="child.icon" class="h-4 w-4 flex-shrink-0" />
++                    <span>{{ child.label }}</span>
++                  </a>
++                  <router-link
++                    v-else
++                    :to="child.path"
++                    class="sidebar-link mb-0.5 py-1.5 text-sm"
++                    :class="{ 'sidebar-link-active': route.path === child.path }"
++                    @click="handleMenuItemClick(child)"
++                  >
++                    <span v-if="child.iconSvg" class="h-4 w-4 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(child.iconSvg)"></span>
++                    <component v-else :is="child.icon" class="h-4 w-4 flex-shrink-0" />
++                    <span>{{ child.label }}</span>
++                  </router-link>
++                </template>
+               </div>
+             </template>
+             <!-- Normal item (no children) -->
++            <a
++              v-if="item.externalUrl"
++              :href="item.externalUrl"
++              target="_blank"
++              rel="noopener noreferrer"
++              class="sidebar-link mb-1"
++              :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
++              :title="sidebarCollapsed ? item.label : undefined"
++              :id="
++                item.path === '/admin/accounts'
++                  ? 'sidebar-channel-manage'
++                  : item.path === '/admin/groups'
++                    ? 'sidebar-group-manage'
++                    : item.path === '/admin/redeem'
++                      ? 'sidebar-wallet'
++                      : undefined
++              "
++              @click="handleMenuItemClick(item)"
++            >
++              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
++              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
++              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
++            </a>
+             <router-link
+               v-else
+               :to="item.path"
+@@ -84,7 +121,7 @@
+                       ? 'sidebar-wallet'
+                       : undefined
+               "
+-              @click="handleMenuItemClick(item.path)"
++              @click="handleMenuItemClick(item)"
+             >
+               <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
+               <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
+@@ -101,40 +138,72 @@
+             </span>
+           </div>
+ 
+-          <router-link
+-            v-for="item in personalNavItems"
+-            :key="item.path"
+-            :to="item.path"
+-            class="sidebar-link mb-1"
+-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
+-            :title="sidebarCollapsed ? item.label : undefined"
+-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
+-            @click="handleMenuItemClick(item.path)"
+-          >
+-            <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
+-            <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
+-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+-          </router-link>
++          <template v-for="item in personalNavItems" :key="item.path">
++            <a
++              v-if="item.externalUrl"
++              :href="item.externalUrl"
++              target="_blank"
++              rel="noopener noreferrer"
++              class="sidebar-link mb-1"
++              :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
++              :title="sidebarCollapsed ? item.label : undefined"
++              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
++              @click="handleMenuItemClick(item)"
++            >
++              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
++              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
++              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
++            </a>
++            <router-link
++              v-else
++              :to="item.path"
++              class="sidebar-link mb-1"
++              :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
++              :title="sidebarCollapsed ? item.label : undefined"
++              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
++              @click="handleMenuItemClick(item)"
++            >
++              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
++              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
++              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
++            </router-link>
++          </template>
+         </div>
+       </template>
+ 
+       <!-- Regular User View -->
+       <template v-else-if="!appStore.backendModeEnabled">
+         <div class="sidebar-section">
+-          <router-link
+-            v-for="item in userNavItems"
+-            :key="item.path"
+-            :to="item.path"
+-            class="sidebar-link mb-1"
+-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
+-            :title="sidebarCollapsed ? item.label : undefined"
+-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
+-            @click="handleMenuItemClick(item.path)"
+-          >
+-            <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
+-            <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
+-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+-          </router-link>
++          <template v-for="item in userNavItems" :key="item.path">
++            <a
++              v-if="item.externalUrl"
++              :href="item.externalUrl"
++              target="_blank"
++              rel="noopener noreferrer"
++              class="sidebar-link mb-1"
++              :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
++              :title="sidebarCollapsed ? item.label : undefined"
++              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
++              @click="handleMenuItemClick(item)"
++            >
++              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
++              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
++              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
++            </a>
++            <router-link
++              v-else
++              :to="item.path"
++              class="sidebar-link mb-1"
++              :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
++              :title="sidebarCollapsed ? item.label : undefined"
++              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
++              @click="handleMenuItemClick(item)"
++            >
++              <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
++              <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
++              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
++            </router-link>
++          </template>
+         </div>
+       </template>
+     </nav>
+@@ -193,6 +262,7 @@ interface NavItem {
+   label: string
+   icon: unknown
+   iconSvg?: string
++  externalUrl?: string
+   hideInSimpleMode?: boolean
+   children?: NavItem[]
+   /**
+@@ -654,6 +724,17 @@ const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
+ const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
+ const flagAdminPayment = () => adminSettingsStore.paymentEnabled
+ 
++function getCustomMenuNavTarget(item: { id: string; url: string; open_mode?: string }): Pick<NavItem, 'path' | 'externalUrl'> {
++  if (item.open_mode === 'new_tab') {
++    const rawUrl = (item.url || '').trim()
++    if (/^https?:\/\//i.test(rawUrl)) {
++      return { path: `custom-external:${item.id}`, externalUrl: rawUrl }
++    }
++    return { path: `/custom/${item.id}` }
++  }
++  return { path: `/custom/${item.id}` }
++}
++
+ // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
+ // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
+ //
+@@ -676,7 +757,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
+     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
+     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
+     ...customMenuItemsForUser.value.map((item): NavItem => ({
+-      path: `/custom/${item.id}`,
++      ...getCustomMenuNavTarget(item),
+       label: item.label,
+       icon: null,
+       iconSvg: item.icon_svg,
+@@ -775,14 +856,14 @@ const adminNavItems = computed((): NavItem[] => {
+     filtered.push({ path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon })
+     filtered.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
+     for (const cm of customMenuItemsForAdmin.value) {
+-      filtered.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })
++      filtered.push({ ...getCustomMenuNavTarget(cm), label: cm.label, icon: null, iconSvg: cm.icon_svg })
+     }
+     return filtered
+   }
+ 
+   visible.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
+   for (const cm of customMenuItemsForAdmin.value) {
+-    visible.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })
++    visible.push({ ...getCustomMenuNavTarget(cm), label: cm.label, icon: null, iconSvg: cm.icon_svg })
+   }
+   return visible
+ })
+@@ -801,7 +882,7 @@ function closeMobile() {
+   appStore.setMobileOpen(false)
+ }
+ 
+-function handleMenuItemClick(itemPath: string) {
++function handleMenuItemClick(item: NavItem) {
+   if (mobileOpen.value) {
+     setTimeout(() => {
+       appStore.setMobileOpen(false)
+@@ -815,7 +896,7 @@ function handleMenuItemClick(itemPath: string) {
+     '/keys': '[data-tour="sidebar-my-keys"]'
+   }
+ 
+-  const selector = pathToSelector[itemPath]
++  const selector = pathToSelector[item.path]
+   if (selector && onboardingStore.isCurrentStep(selector)) {
+     onboardingStore.nextStep(500)
+   }
+diff --git a/frontend/src/composables/useRoutePrefetch.ts b/frontend/src/composables/useRoutePrefetch.ts
+index b1b5a032..b3ccacdd 100644
+--- a/frontend/src/composables/useRoutePrefetch.ts
++++ b/frontend/src/composables/useRoutePrefetch.ts
+@@ -134,15 +134,21 @@ export function useRoutePrefetch(router?: Router) {
+     if (prefetchPaths.length === 0) return
+ 
+     pendingPrefetchHandle.value = scheduleIdleCallback(
+-      () => {
++      (deadline) => {
+         pendingPrefetchHandle.value = null
+ 
+         const routePath = route.path
+         if (prefetchedRoutes.value.has(routePath)) return
+ 
+-        // 获取需要预加载的组件 import 函数
++        const remaining = typeof deadline.timeRemaining === 'function' ? deadline.timeRemaining() : 0
++        // 大页面 chunk 解析/执行会抢占点击和切页的主线程；只在真正空闲或超时兜底时预取。
++        if (!deadline.didTimeout && remaining < 12) {
++          triggerPrefetch(route)
++          return
++        }
++
+         const importFns: ComponentImportFn[] = []
+-        for (const path of prefetchPaths) {
++        for (const path of prefetchPaths.slice(0, 1)) {
+           const importFn = getComponentImporter(path)
+           if (importFn) {
+             importFns.push(importFn)
+@@ -150,12 +156,15 @@ export function useRoutePrefetch(router?: Router) {
+         }
+ 
+         if (importFns.length > 0) {
+-          Promise.all(importFns.map(prefetchComponent)).then(() => {
++          importFns.reduce(
++            (chain, importFn) => chain.then(() => prefetchComponent(importFn)),
++            Promise.resolve()
++          ).then(() => {
+             prefetchedRoutes.value.add(routePath)
+           })
+         }
+       },
+-      { timeout: 2000 }
++      { timeout: 5000 }
+     )
+   }
+ 
+diff --git a/frontend/src/i18n/locales/en.ts b/frontend/src/i18n/locales/en.ts
+index 9ac1466e..68617e12 100644
+--- a/frontend/src/i18n/locales/en.ts
++++ b/frontend/src/i18n/locales/en.ts
+@@ -5207,21 +5207,27 @@ export default {
+           perInviteeCapDesc: 'Maximum total rebate from a single invitee. 0 = no limit.',
+           customUsers: {
+             title: 'Per-User Overrides',
+-            description: 'Set a custom invite code or exclusive rebate rate for specific users. Lists only users that have an override applied.',
++            description: 'Set a custom invite code, rebate rate, freeze period, validity period, or hide affiliate access for users invited by specific users. Lists only users that have an override applied.',
+             addButton: 'Add Custom User',
+             searchPlaceholder: 'Search by email or username',
+             batchButton: 'Batch Set Rate ({count} selected)',
+             empty: 'No users with custom affiliate settings yet',
+             customBadge: 'custom',
+             useGlobal: 'use global',
++            forever: 'forever',
++            notHidden: 'shown',
++            hidden: 'hidden',
+             resetTitle: 'Reset Custom Settings',
+-            resetMessage: 'Reset all custom settings for {email}?\n• The exclusive rebate rate will be cleared (fall back to the global rate)\n• The invite code will be regenerated as a new system code (previously shared links will stop working)',
++            resetMessage: 'Reset all custom settings for {email}?\n• The exclusive rebate rate, freeze period, and validity period will be cleared (fall back to global settings)\n• Invited users will regain access to the affiliate page\n• The invite code will be regenerated as a new system code (previously shared links will stop working)',
+             totalLabel: '{total} total',
+             col: {
+               email: 'Email',
+               username: 'Username',
+               code: 'Invite Code',
+               rate: 'Custom Rate',
++              freeze: 'Freeze',
++              duration: 'Validity',
++              hideInvitees: 'Hide Downline',
+               actions: 'Actions',
+             },
+           },
+@@ -5237,8 +5243,18 @@ export default {
+             rateLabel: 'Exclusive Rebate Rate (optional)',
+             ratePlaceholder: 'e.g. 30',
+             rateHint: '0-100. Leave empty (in edit mode) to clear and fall back to the global rate.',
++            freezeLabel: 'Exclusive Freeze Period (hours, optional)',
++            freezePlaceholder: 'e.g. 24',
++            freezeHint: '0-720 hours. Leave empty (in edit mode) to clear and fall back to global.',
++            durationLabel: 'Exclusive Validity Period (days, optional)',
++            durationPlaceholder: 'e.g. 30',
++            durationHint: '0-3650 days; 0 means forever. Leave empty (in edit mode) to clear and fall back to global.',
++            hideInviteesLabel: 'Hide affiliate access for users invited by this user',
++            hideInviteesHint: 'When enabled, invited accounts stay bound to this invite code but cannot see or access affiliate/rebate features, preventing downstream invites.',
+             errorBadRate: 'Please enter a number between 0 and 100',
+-            errorEmpty: 'Fill at least one: custom invite code or exclusive rebate rate',
++            errorBadFreeze: 'Please enter an integer hour value between 0 and 720',
++            errorBadDuration: 'Please enter an integer day value between 0 and 3650',
++            errorEmpty: 'Fill at least one: custom invite code, exclusive rebate rate, freeze period, validity period, or hide downline affiliate toggle',
+           },
+           batchModal: {
+             title: 'Batch Set Rate ({count} users selected)',
+@@ -5581,6 +5597,10 @@ export default {
+         visibility: 'Visible To',
+         visibilityUser: 'Regular Users',
+         visibilityAdmin: 'Administrators',
++        openMode: 'Open Mode',
++        openModeIframe: 'Embed in page (iframe)',
++        openModeNewTab: 'Open in new tab',
++        openModeHint: 'When "Open in new tab" is selected, clicking the sidebar item opens the URL in a browser tab directly.',
+         add: 'Add Menu Item',
+         remove: 'Remove',
+         moveUp: 'Move Up',
+@@ -6319,6 +6339,8 @@ export default {
+     notFoundDesc: 'This custom page does not exist or has been removed.',
+     notConfiguredTitle: 'Page URL not configured',
+     notConfiguredDesc: 'The URL for this custom page has not been properly configured.',
++    openingNewTabTitle: 'Opening in a new tab',
++    openingNewTabDesc: 'If your browser blocked the popup, click the button below to open it manually.',
+   },
+ 
+   // Announcements Page
+diff --git a/frontend/src/i18n/locales/zh.ts b/frontend/src/i18n/locales/zh.ts
+index 3e90405a..f033ef58 100644
+--- a/frontend/src/i18n/locales/zh.ts
++++ b/frontend/src/i18n/locales/zh.ts
+@@ -5370,21 +5370,27 @@ export default {
+           perInviteeCapDesc: '每个被邀请用户最多产生的返利总额。0 = 无上限。',
+           customUsers: {
+             title: '专属用户配置',
+-            description: '为指定用户设置专属邀请码或专属返利比例。仅展示已设置过专属配置的用户。',
++            description: '为指定用户设置专属邀请码、返利比例、冻结期、有效期或隐藏其邀请用户的邀请返利入口。仅展示已设置过专属配置的用户。',
+             addButton: '添加专属用户',
+             searchPlaceholder: '搜索邮箱或用户名',
+             batchButton: '批量设置比例（已选 {count}）',
+             empty: '暂无专属配置用户',
+             customBadge: '自定义',
+             useGlobal: '沿用全局',
++            forever: '永久',
++            notHidden: '不隐藏',
++            hidden: '隐藏',
+             resetTitle: '重置该用户的专属配置',
+-            resetMessage: '确认将 {email} 的专属配置全部重置为默认？\n• 专属返利比例将清除（沿用全局）\n• 邀请码将重新生成为系统随机码（已分发的旧邀请链接将失效）',
++            resetMessage: '确认将 {email} 的专属配置全部重置为默认？\n• 专属返利比例、冻结期、有效期将清除（沿用全局）\n• 邀请来的用户将恢复显示邀请返利入口\n• 邀请码将重新生成为系统随机码（已分发的旧邀请链接将失效）',
+             totalLabel: '共 {total} 条',
+             col: {
+               email: '邮箱',
+               username: '用户名',
+               code: '邀请码',
+               rate: '专属比例',
++              freeze: '冻结期',
++              duration: '有效期',
++              hideInvitees: '隐藏下级返利',
+               actions: '操作',
+             },
+           },
+@@ -5400,8 +5406,18 @@ export default {
+             rateLabel: '专属返利比例（可选）',
+             ratePlaceholder: '例如 30',
+             rateHint: '0-100%；留空（编辑模式下）表示清除专属比例并沿用全局。',
++            freezeLabel: '专属冻结期（小时，可选）',
++            freezePlaceholder: '例如 24',
++            freezeHint: '0-720 小时；留空（编辑模式下）表示清除专属冻结期并沿用全局。',
++            durationLabel: '专属有效期（天，可选）',
++            durationPlaceholder: '例如 30',
++            durationHint: '0-3650 天；0 表示永久；留空（编辑模式下）表示清除专属有效期并沿用全局。',
++            hideInviteesLabel: '隐藏该用户邀请来的账号里的邀请返利',
++            hideInviteesHint: '开启后，被该用户邀请来的账号仍绑定原邀请码，但看不到也不能访问邀请返利功能，避免继续发展下级。',
+             errorBadRate: '请输入 0-100 之间的比例',
+-            errorEmpty: '至少填写一项：专属邀请码或专属返利比例',
++            errorBadFreeze: '请输入 0-720 之间的整数小时',
++            errorBadDuration: '请输入 0-3650 之间的整数天数',
++            errorEmpty: '至少填写一项：专属邀请码、专属返利比例、专属冻结期、专属有效期或隐藏下级返利开关',
+           },
+           batchModal: {
+             title: '批量设置专属比例（已选 {count} 个用户）',
+@@ -5741,6 +5757,10 @@ export default {
+         visibility: '可见角色',
+         visibilityUser: '普通用户',
+         visibilityAdmin: '管理员',
++        openMode: '打开方式',
++        openModeIframe: '页面内嵌（iframe）',
++        openModeNewTab: '新标签页跳转',
++        openModeHint: '选择“新标签页跳转”后，点击侧边栏菜单会直接在浏览器新标签页打开该链接。',
+         add: '添加菜单项',
+         remove: '删除',
+         moveUp: '上移',
+@@ -6477,6 +6497,8 @@ export default {
+     notFoundDesc: '该自定义页面不存在或已被删除。',
+     notConfiguredTitle: '页面链接未配置',
+     notConfiguredDesc: '该自定义页面的 URL 未正确配置。',
++    openingNewTabTitle: '正在打开新标签页',
++    openingNewTabDesc: '如果浏览器拦截了弹窗，请点击下方按钮手动打开。',
+   },
+ 
+   // Announcements Page
+diff --git a/frontend/src/style.css b/frontend/src/style.css
+index 1bd13b5f..698d3669 100644
+--- a/frontend/src/style.css
++++ b/frontend/src/style.css
+@@ -68,7 +68,7 @@
+   .btn {
+     @apply inline-flex items-center justify-center gap-2;
+     @apply rounded-xl px-4 py-2.5 text-sm font-medium;
+-    @apply transition-all duration-200 ease-out;
++    @apply transition-colors duration-150 ease-out;
+     @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2;
+     @apply disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50;
+     @apply active:scale-[0.98];
+@@ -165,7 +165,7 @@
+     @apply border border-gray-200 dark:border-dark-600;
+     @apply text-gray-900 dark:text-gray-100;
+     @apply placeholder:text-gray-400 dark:placeholder:text-dark-400;
+-    @apply transition-all duration-200;
++    @apply transition-colors duration-150;
+     @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+     @apply disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-dark-900;
+   }
+@@ -199,16 +199,14 @@
+ 
+   /* ============ 玻璃效果 ============ */
+   .glass {
+-    @apply bg-white/80 backdrop-blur-xl dark:bg-dark-800/80;
++    @apply bg-white/95 dark:bg-dark-800/95;
+   }
+ 
+   .glass-card {
+-    @apply bg-white/70 dark:bg-dark-800/70;
+-    @apply backdrop-blur-xl;
++    @apply bg-white dark:bg-dark-800;
+     @apply rounded-2xl;
+-    @apply border border-white/20 dark:border-dark-700/50;
+-    @apply shadow-glass;
+-    @apply transition-all duration-300;
++    @apply border border-gray-100 dark:border-dark-700/50;
++    @apply shadow-card;
+   }
+ 
+   /* ============ 卡片样式 ============ */
+@@ -217,7 +215,7 @@
+     @apply rounded-2xl;
+     @apply border border-gray-100 dark:border-dark-700/50;
+     @apply shadow-card;
+-    @apply transition-all duration-300;
++    @apply transition-colors duration-150;
+   }
+ 
+   .card-hover {
+@@ -226,10 +224,9 @@
+   }
+ 
+   .card-glass {
+-    @apply bg-white/70 dark:bg-dark-800/70;
+-    @apply backdrop-blur-xl;
+-    @apply border border-white/20 dark:border-dark-700/50;
+-    @apply shadow-glass;
++    @apply bg-white dark:bg-dark-800;
++    @apply border border-gray-100 dark:border-dark-700/50;
++    @apply shadow-card;
+   }
+ 
+   .card-header {
+@@ -246,6 +243,11 @@
+     @apply px-6 py-4;
+   }
+ 
++  /* Header 用轻量透明层，避免 sticky + backdrop-filter 在滚动/切页时反复重绘 */
++  .fast-glass {
++    @apply bg-white/95 dark:bg-dark-800/95;
++  }
++
+   /* ============ 统计卡片 ============ */
+   .stat-card {
+     @apply card p-5;
+diff --git a/frontend/src/types/index.ts b/frontend/src/types/index.ts
+index 82b6ed29..45f26ece 100644
+--- a/frontend/src/types/index.ts
++++ b/frontend/src/types/index.ts
+@@ -84,6 +84,7 @@ export interface User {
+   linuxdo_bound?: boolean
+   oidc_bound?: boolean
+   wechat_bound?: boolean
++  affiliate_hidden?: boolean
+   role: 'admin' | 'user' // User role for authorization
+   balance: number // User balance for API usage
+   concurrency: number // Allowed concurrent requests
+@@ -169,6 +170,7 @@ export interface CustomMenuItem {
+   icon_svg: string
+   url: string
+   page_slug?: string
++  open_mode?: 'iframe' | 'new_tab'
+   visibility: 'user' | 'admin'
+   sort_order: number
+ }
+diff --git a/frontend/src/views/admin/AccountsView.vue b/frontend/src/views/admin/AccountsView.vue
+index 51137c8b..2f871d8d 100644
+--- a/frontend/src/views/admin/AccountsView.vue
++++ b/frontend/src/views/admin/AccountsView.vue
+@@ -375,7 +375,7 @@
+ </template>
+ 
+ <script setup lang="ts">
+-import { ref, reactive, computed, onMounted, onUnmounted, toRaw, watch } from 'vue'
++import { ref, reactive, computed, onMounted, onUnmounted, toRaw, watch, defineAsyncComponent } from 'vue'
+ import { useIntervalFn } from '@vueuse/core'
+ import { useI18n } from 'vue-i18n'
+ import { useAppStore } from '@/stores/app'
+@@ -389,7 +389,8 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+ import DataTable from '@/components/common/DataTable.vue'
+ import Pagination from '@/components/common/Pagination.vue'
+ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+-import { CreateAccountModal, EditAccountModal, BulkEditAccountModal, SyncFromCrsModal, TempUnschedStatusModal } from '@/components/account'
++import SyncFromCrsModal from '@/components/account/SyncFromCrsModal.vue'
++import TempUnschedStatusModal from '@/components/account/TempUnschedStatusModal.vue'
+ import AccountTableActions from '@/components/admin/account/AccountTableActions.vue'
+ import AccountTableFilters from '@/components/admin/account/AccountTableFilters.vue'
+ import AccountBulkActionsBar from '@/components/admin/account/AccountBulkActionsBar.vue'
+@@ -417,6 +418,10 @@ const { t } = useI18n()
+ const appStore = useAppStore()
+ const authStore = useAuthStore()
+ 
++const CreateAccountModal = defineAsyncComponent(() => import('@/components/account/CreateAccountModal.vue'))
++const EditAccountModal = defineAsyncComponent(() => import('@/components/account/EditAccountModal.vue'))
++const BulkEditAccountModal = defineAsyncComponent(() => import('@/components/account/BulkEditAccountModal.vue'))
++
+ const proxies = ref<AccountProxy[]>([])
+ const groups = ref<AdminGroup[]>([])
+ const accountTableRef = ref<HTMLElement | null>(null)
+diff --git a/frontend/src/views/admin/SettingsView.vue b/frontend/src/views/admin/SettingsView.vue
+index e0c3e1d4..fd7a0d37 100644
+--- a/frontend/src/views/admin/SettingsView.vue
++++ b/frontend/src/views/admin/SettingsView.vue
+@@ -4696,6 +4696,26 @@
+                     </select>
+                   </div>
+ 
++                  <!-- Open mode -->
++                  <div class="sm:col-span-2">
++                    <label
++                      class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
++                    >
++                      {{ t("admin.settings.customMenu.openMode") }}
++                    </label>
++                    <select v-model="item.open_mode" class="input text-sm">
++                      <option value="iframe">
++                        {{ t("admin.settings.customMenu.openModeIframe") }}
++                      </option>
++                      <option value="new_tab">
++                        {{ t("admin.settings.customMenu.openModeNewTab") }}
++                      </option>
++                    </select>
++                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
++                      {{ t("admin.settings.customMenu.openModeHint") }}
++                    </p>
++                  </div>
++
+                   <!-- URL (full width) -->
+                   <div class="sm:col-span-2">
+                     <label
+@@ -5227,17 +5247,20 @@
+                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.username') }}</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.code') }}</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.rate') }}</th>
++                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.freeze') }}</th>
++                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.duration') }}</th>
++                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.hideInvitees') }}</th>
+                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.actions') }}</th>
+                       </tr>
+                     </thead>
+                     <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
+                       <tr v-if="affiliateState.loading">
+-                        <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
++                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
+                           {{ t('common.loading') }}
+                         </td>
+                       </tr>
+                       <tr v-else-if="affiliateState.entries.length === 0">
+-                        <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
++                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
+                           {{ t('admin.settings.features.affiliate.customUsers.empty') }}
+                         </td>
+                       </tr>
+@@ -5262,6 +5285,21 @@
+                           <span v-if="entry.aff_rebate_rate_percent != null">{{ entry.aff_rebate_rate_percent }}%</span>
+                           <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
+                         </td>
++                        <td class="px-3 py-2 text-sm">
++                          <span v-if="entry.aff_rebate_freeze_hours != null">{{ entry.aff_rebate_freeze_hours }}h</span>
++                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
++                        </td>
++                        <td class="px-3 py-2 text-sm">
++                          <span v-if="entry.aff_rebate_duration_days != null">{{ entry.aff_rebate_duration_days === 0 ? t('admin.settings.features.affiliate.customUsers.forever') : `${entry.aff_rebate_duration_days}d` }}</span>
++                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
++                        </td>
++                        <td class="px-3 py-2 text-sm">
++                          <span
++                            v-if="entry.hide_affiliate_for_invitees"
++                            class="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
++                          >{{ t('admin.settings.features.affiliate.customUsers.hidden') }}</span>
++                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.notHidden') }}</span>
++                        </td>
+                         <td class="px-3 py-2 text-sm">
+                           <div class="flex items-center gap-2">
+                             <button type="button" class="text-primary-600 hover:underline" @click="openAffiliateModal(entry)">
+@@ -5408,6 +5446,51 @@
+                   {{ t('admin.settings.features.affiliate.modal.rateHint') }}
+                 </p>
+               </div>
++
++              <div class="grid gap-4 sm:grid-cols-2">
++                <div>
++                  <label class="input-label">{{ t('admin.settings.features.affiliate.modal.freezeLabel') }}</label>
++                  <input
++                    v-model="affiliateModal.freezeHours"
++                    type="number"
++                    step="1"
++                    min="0"
++                    max="720"
++                    class="input"
++                    :placeholder="t('admin.settings.features.affiliate.modal.freezePlaceholder')"
++                  />
++                  <p class="mt-1 text-xs text-gray-400">
++                    {{ t('admin.settings.features.affiliate.modal.freezeHint') }}
++                  </p>
++                </div>
++                <div>
++                  <label class="input-label">{{ t('admin.settings.features.affiliate.modal.durationLabel') }}</label>
++                  <input
++                    v-model="affiliateModal.durationDays"
++                    type="number"
++                    step="1"
++                    min="0"
++                    max="3650"
++                    class="input"
++                    :placeholder="t('admin.settings.features.affiliate.modal.durationPlaceholder')"
++                  />
++                  <p class="mt-1 text-xs text-gray-400">
++                    {{ t('admin.settings.features.affiliate.modal.durationHint') }}
++                  </p>
++                </div>
++              </div>
++
++              <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-dark-700">
++                <input
++                  v-model="affiliateModal.hideInvitees"
++                  type="checkbox"
++                  class="mt-1"
++                />
++                <span>
++                  <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.settings.features.affiliate.modal.hideInviteesLabel') }}</span>
++                  <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('admin.settings.features.affiliate.modal.hideInviteesHint') }}</span>
++                </span>
++              </label>
+             </div>
+ 
+             <div class="mt-6 flex items-center justify-between gap-3">
+@@ -6752,6 +6835,8 @@ type SettingsForm = Omit<
+   openai_advanced_scheduler_enabled: boolean;
+ };
+ 
++type CustomMenuOpenMode = "iframe" | "new_tab";
++
+ const form = reactive<SettingsForm>({
+   registration_enabled: true,
+   email_verify_enabled: false,
+@@ -6812,6 +6897,7 @@ const form = reactive<SettingsForm>({
+     label: string;
+     icon_svg: string;
+     url: string;
++    open_mode?: CustomMenuOpenMode;
+     visibility: "user" | "admin";
+     sort_order: number;
+   }>,
+@@ -7441,6 +7527,7 @@ function addMenuItem() {
+     label: "",
+     icon_svg: "",
+     url: "",
++    open_mode: "iframe",
+     visibility: "user",
+     sort_order: form.custom_menu_items.length,
+   });
+@@ -7557,6 +7644,12 @@ async function loadSettings() {
+         (form as Record<string, unknown>)[key] = value;
+       }
+     }
++    form.custom_menu_items = Array.isArray(settings.custom_menu_items)
++      ? settings.custom_menu_items.map((item) => ({
++          ...item,
++          open_mode: item.open_mode === "new_tab" ? "new_tab" : "iframe",
++        }))
++      : [];
+     form.login_agreement_mode =
+       settings.login_agreement_mode === "checkbox" ? "checkbox" : "modal";
+     form.login_agreement_updated_at =
+@@ -9048,6 +9141,9 @@ interface AffiliateModalState {
+   editingEntry: AffiliateAdminEntry | null;
+   code: string;
+   rate: string | number;
++  freezeHours: string | number;
++  durationDays: string | number;
++  hideInvitees: boolean;
+   searchTimer: number | null;
+ }
+ 
+@@ -9061,6 +9157,9 @@ const affiliateModal = reactive<AffiliateModalState>({
+   editingEntry: null,
+   code: "",
+   rate: "",
++  freezeHours: "",
++  durationDays: "",
++  hideInvitees: false,
+   searchTimer: null,
+ });
+ 
+@@ -9150,6 +9249,17 @@ function parseRebateRate(raw: unknown): number | null | undefined {
+   return parsed;
+ }
+ 
++function parseAffiliateInteger(raw: unknown, min: number, max: number, errorKey: string): number | null | undefined {
++  const s = String(raw ?? "").trim();
++  if (s === "") return null;
++  const parsed = Number(s);
++  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
++    appStore.showError(t(errorKey));
++    return undefined;
++  }
++  return parsed;
++}
++
+ async function loadAffiliateUsers() {
+   affiliateState.loading = true;
+   try {
+@@ -9206,6 +9316,11 @@ function openAffiliateModal(entry: AffiliateAdminEntry | null) {
+   affiliateModal.code = entry?.aff_code_custom ? entry.aff_code : "";
+   affiliateModal.rate =
+     entry?.aff_rebate_rate_percent != null ? String(entry.aff_rebate_rate_percent) : "";
++  affiliateModal.freezeHours =
++    entry?.aff_rebate_freeze_hours != null ? String(entry.aff_rebate_freeze_hours) : "";
++  affiliateModal.durationDays =
++    entry?.aff_rebate_duration_days != null ? String(entry.aff_rebate_duration_days) : "";
++  affiliateModal.hideInvitees = Boolean(entry?.hide_affiliate_for_invitees);
+ }
+ 
+ function closeAffiliateModal() {
+@@ -9255,12 +9370,18 @@ const affiliateModalCanSubmit = computed(() => {
+   }
+   const codeFilled = affiliateModal.code.trim() !== "";
+   const rateFilled = String(affiliateModal.rate ?? "").trim() !== "";
+-  if (codeFilled || rateFilled) return true;
+-  // Edit mode + empty rate input is a meaningful "clear" only if the user
+-  // currently has an exclusive rate to clear.
++  const freezeFilled = String(affiliateModal.freezeHours ?? "").trim() !== "";
++  const durationFilled = String(affiliateModal.durationDays ?? "").trim() !== "";
++  const hideInviteesChanged = affiliateModal.hideInvitees !== Boolean(affiliateModal.editingEntry?.hide_affiliate_for_invitees);
++  if (codeFilled || rateFilled || freezeFilled || durationFilled || hideInviteesChanged) return true;
++  // Edit mode + empty inputs are meaningful "clear" actions only when the user
++  // currently has corresponding exclusive settings.
+   return (
+     affiliateModal.mode === "edit" &&
+-    affiliateModal.editingEntry?.aff_rebate_rate_percent != null
++    (affiliateModal.editingEntry?.aff_rebate_rate_percent != null ||
++      affiliateModal.editingEntry?.aff_rebate_freeze_hours != null ||
++      affiliateModal.editingEntry?.aff_rebate_duration_days != null ||
++      affiliateModal.editingEntry?.hide_affiliate_for_invitees)
+   );
+ });
+ 
+@@ -9292,6 +9413,40 @@ async function submitAffiliateModal() {
+     payload.aff_rebate_rate_percent = rateInput;
+   }
+ 
++  const freezeInput = parseAffiliateInteger(
++    affiliateModal.freezeHours,
++    0,
++    720,
++    "admin.settings.features.affiliate.modal.errorBadFreeze",
++  );
++  if (freezeInput === undefined) return;
++  if (freezeInput === null) {
++    if (affiliateModal.mode === "edit" && affiliateModal.editingEntry?.aff_rebate_freeze_hours != null) {
++      payload.clear_rebate_freeze_hours = true;
++    }
++  } else {
++    payload.aff_rebate_freeze_hours = freezeInput;
++  }
++
++  const durationInput = parseAffiliateInteger(
++    affiliateModal.durationDays,
++    0,
++    3650,
++    "admin.settings.features.affiliate.modal.errorBadDuration",
++  );
++  if (durationInput === undefined) return;
++  if (durationInput === null) {
++    if (affiliateModal.mode === "edit" && affiliateModal.editingEntry?.aff_rebate_duration_days != null) {
++      payload.clear_rebate_duration_days = true;
++    }
++  } else {
++    payload.aff_rebate_duration_days = durationInput;
++  }
++
++  if (affiliateModal.hideInvitees !== Boolean(affiliateModal.editingEntry?.hide_affiliate_for_invitees)) {
++    payload.hide_affiliate_for_invitees = affiliateModal.hideInvitees;
++  }
++
+   affiliateModal.saving = true;
+   try {
+     await affiliatesAPI.updateUserSettings(userId, payload);
+diff --git a/frontend/src/views/admin/UsersView.vue b/frontend/src/views/admin/UsersView.vue
+index 512bae67..800ef5e1 100644
+--- a/frontend/src/views/admin/UsersView.vue
++++ b/frontend/src/views/admin/UsersView.vue
+@@ -684,6 +684,27 @@
+ 
+               <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
+ 
++              <!-- Toggle Admin Role -->
++              <button
++                v-if="user.role !== 'admin'"
++                @click="handleSetAdmin(user); closeActionMenu()"
++                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
++              >
++                <Icon name="shield" size="sm" :stroke-width="2" />
++                设为管理员
++              </button>
++
++              <button
++                v-else
++                @click="handleSetUser(user); closeActionMenu()"
++                class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
++              >
++                <Icon name="user" size="sm" class="text-gray-400" :stroke-width="2" />
++                取消管理员
++              </button>
++
++              <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
++
+               <!-- Delete (not for admin) -->
+               <button
+                 v-if="user.role !== 'admin'"
+@@ -1556,6 +1577,30 @@ const handleToggleStatus = async (user: AdminUser) => {
+   }
+ }
+ 
++const handleSetAdmin = async (user: AdminUser) => {
++  if (!confirm(`确定将 ${user.email} 设置为管理员吗？该用户将可以登录后台。`)) return
++  try {
++    await adminAPI.users.update(user.id, { role: 'admin' })
++    appStore.showSuccess('已设置为管理员')
++    loadUsers()
++  } catch (error: any) {
++    appStore.showError(error.response?.data?.detail || '设置管理员失败')
++    console.error('Error setting user as admin:', error)
++  }
++}
++
++const handleSetUser = async (user: AdminUser) => {
++  if (!confirm(`确定取消 ${user.email} 的管理员权限吗？`)) return
++  try {
++    await adminAPI.users.update(user.id, { role: 'user' })
++    appStore.showSuccess('已取消管理员权限')
++    loadUsers()
++  } catch (error: any) {
++    appStore.showError(error.response?.data?.detail || '取消管理员失败')
++    console.error('Error setting user as regular user:', error)
++  }
++}
++
+ const handleViewApiKeys = (user: AdminUser) => {
+   viewingUser.value = user
+   showApiKeysModal.value = true
+diff --git a/frontend/src/views/auth/RegisterView.vue b/frontend/src/views/auth/RegisterView.vue
+index fbd3716f..d629d794 100644
+--- a/frontend/src/views/auth/RegisterView.vue
++++ b/frontend/src/views/auth/RegisterView.vue
+@@ -87,8 +87,8 @@
+           </p>
+         </div>
+ 
+-        <!-- Invitation Code Input (Required when enabled) -->
+-        <div v-if="invitationCodeEnabled">
++        <!-- Invitation Code Input (Required when enabled or when opened from an affiliate referral link) -->
++        <div v-if="invitationCodeRequiredForRegistration">
+           <label for="invitation_code" class="input-label">
+             {{ t('auth.invitationCodeLabel') }}
+           </label>
+@@ -100,7 +100,8 @@
+               id="invitation_code"
+               v-model="formData.invitation_code"
+               type="text"
+-              :disabled="registrationActionDisabled"
++              :disabled="registrationActionDisabled || invitationCodeLockedFromReferral"
++              :readonly="invitationCodeLockedFromReferral"
+               class="input pl-11 pr-10"
+               :class="{
+                 'border-green-500 focus:border-green-500 focus:ring-green-500': invitationValidation.valid,
+@@ -433,6 +434,17 @@ const registrationActionDisabled = computed(
+   () => isLoading.value || !settingsLoaded.value || agreementGateActive.value
+ )
+ 
++// Validate affiliate referral links even when the traditional invitation-code feature is disabled.
++const hasAffiliateReferralCode = computed(() => !!formData.aff_code)
++
++const invitationCodeRequiredForRegistration = computed(
++  () => invitationCodeEnabled.value || hasAffiliateReferralCode.value
++)
++
++const invitationCodeLockedFromReferral = computed(
++  () => hasAffiliateReferralCode.value && formData.invitation_code === formData.aff_code
++)
++
+ watch(validationToastMessage, (value, previousValue) => {
+   if (value && value !== previousValue) {
+     appStore.showError(value)
+@@ -443,6 +455,11 @@ function syncAffiliateReferralCode(): string {
+   const code = resolveAffiliateReferralCode(route.query.aff, route.query.aff_code)
+   if (code) {
+     formData.aff_code = code
++    formData.invitation_code = code
++    invitationValidation.valid = true
++    invitationValidation.invalid = false
++    invitationValidation.message = ''
++    errors.invitation_code = ''
+   }
+   return code
+ }
+@@ -784,7 +801,7 @@ function validateForm(): boolean {
+   }
+ 
+   // Invitation code validation (required when enabled)
+-  if (invitationCodeEnabled.value) {
++  if (invitationCodeRequiredForRegistration.value) {
+     if (!formData.invitation_code.trim()) {
+       errors.invitation_code = t('auth.invitationCodeRequired')
+       isValid = false
+@@ -825,8 +842,8 @@ async function handleRegister(): Promise<void> {
+     }
+   }
+ 
+-  // Check invitation code validation status (if enabled and code provided)
+-  if (invitationCodeEnabled.value) {
++  // Check invitation code validation status (if enabled or supplied by affiliate referral link)
++  if (invitationCodeRequiredForRegistration.value) {
+     // If still validating, wait
+     if (invitationValidating.value) {
+       errorMessage.value = t('auth.invitationCodeValidating')
+diff --git a/frontend/src/views/user/CustomPageView.vue b/frontend/src/views/user/CustomPageView.vue
+index 59764c63..b4b2bb1e 100644
+--- a/frontend/src/views/user/CustomPageView.vue
++++ b/frontend/src/views/user/CustomPageView.vue
+@@ -93,6 +93,32 @@
+           </div>
+         </div>
+ 
++        <!-- Open externally -->
++        <div v-else-if="menuItem.open_mode === 'new_tab'" class="flex h-full items-center justify-center p-10 text-center">
++          <div class="max-w-md">
++            <div
++              class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-dark-700"
++            >
++              <Icon name="externalLink" size="lg" class="text-gray-400" />
++            </div>
++            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
++              {{ t('customPage.openingNewTabTitle') }}
++            </h3>
++            <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
++              {{ t('customPage.openingNewTabDesc') }}
++            </p>
++            <a
++              :href="embeddedUrl"
++              target="_blank"
++              rel="noopener noreferrer"
++              class="btn btn-primary btn-sm mt-4 inline-flex"
++            >
++              <Icon name="externalLink" size="sm" class="mr-1.5" :stroke-width="2" />
++              {{ t('customPage.openInNewTab') }}
++            </a>
++          </div>
++        </div>
++
+         <!-- Iframe embed mode -->
+         <div v-else class="custom-embed-shell">
+           <a
+@@ -183,6 +209,15 @@ const embeddedUrl = computed(() => {
+   )
+ })
+ 
++watch(
++  () => [loading.value, menuItem.value?.open_mode, embeddedUrl.value] as const,
++  ([isLoading, openMode, url]) => {
++    if (isLoading || openMode !== 'new_tab' || !url) return
++    window.open(url, '_blank', 'noopener,noreferrer')
++  },
++  { immediate: true }
++)
++
+ const isValidUrl = computed(() => {
+   if (isMarkdownMode.value) return false
+   const url = embeddedUrl.value

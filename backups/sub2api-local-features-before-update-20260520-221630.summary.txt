@@ -1,0 +1,83 @@
+stamp=20260520-221630
+HEAD=91da815993732e6536be8c702168822e482cd850
+branch=main
+status:
+M  backend/Makefile
+ M backend/cmd/server/wire_gen.go
+M  backend/internal/handler/admin/affiliate_handler.go
+M  backend/internal/handler/admin/setting_handler.go
+M  backend/internal/handler/admin/user_handler.go
+M  backend/internal/handler/auth_email_oauth_test.go
+MM backend/internal/handler/auth_handler.go
+M  backend/internal/handler/auth_oauth_pending_flow_test.go
+M  backend/internal/handler/dto/settings.go
+M  backend/internal/handler/user_handler.go
+M  backend/internal/repository/affiliate_repo.go
+M  backend/internal/repository/user_repo.go
+ M backend/internal/server/api_contract_test.go
+M  backend/internal/service/admin_service.go
+M  backend/internal/service/affiliate_service.go
+M  backend/internal/service/auth_service.go
+M  backend/internal/service/content_moderation_test.go
+M  backend/internal/service/user_service.go
+M  frontend/src/api/admin/affiliates.ts
+ M frontend/src/components/channels/AvailableChannelsTable.vue
+M  frontend/src/components/layout/AppHeader.vue
+M  frontend/src/components/layout/AppLayout.vue
+MM frontend/src/components/layout/AppSidebar.vue
+M  frontend/src/composables/useRoutePrefetch.ts
+M  frontend/src/i18n/locales/en.ts
+M  frontend/src/i18n/locales/zh.ts
+ M frontend/src/router/index.ts
+ M frontend/src/router/meta.d.ts
+M  frontend/src/style.css
+M  frontend/src/types/index.ts
+M  frontend/src/views/admin/AccountsView.vue
+M  frontend/src/views/admin/SettingsView.vue
+M  frontend/src/views/admin/UsersView.vue
+M  frontend/src/views/auth/RegisterView.vue
+ M frontend/src/views/user/AvailableChannelsView.vue
+M  frontend/src/views/user/CustomPageView.vue
+?? backend/migrations/140_affiliate_user_rebate_cycle_overrides.sql
+?? backend/migrations/141_affiliate_hide_for_invitees.sql
+?? backups/
+?? patches/
+\nchanged files:
+backend/cmd/server/wire_gen.go
+backend/internal/handler/auth_handler.go
+backend/internal/server/api_contract_test.go
+frontend/src/components/channels/AvailableChannelsTable.vue
+frontend/src/components/layout/AppSidebar.vue
+frontend/src/router/index.ts
+frontend/src/router/meta.d.ts
+frontend/src/views/user/AvailableChannelsView.vue
+backend/Makefile
+backend/internal/handler/admin/affiliate_handler.go
+backend/internal/handler/admin/setting_handler.go
+backend/internal/handler/admin/user_handler.go
+backend/internal/handler/auth_email_oauth_test.go
+backend/internal/handler/auth_handler.go
+backend/internal/handler/auth_oauth_pending_flow_test.go
+backend/internal/handler/dto/settings.go
+backend/internal/handler/user_handler.go
+backend/internal/repository/affiliate_repo.go
+backend/internal/repository/user_repo.go
+backend/internal/service/admin_service.go
+backend/internal/service/affiliate_service.go
+backend/internal/service/auth_service.go
+backend/internal/service/content_moderation_test.go
+backend/internal/service/user_service.go
+frontend/src/api/admin/affiliates.ts
+frontend/src/components/layout/AppHeader.vue
+frontend/src/components/layout/AppLayout.vue
+frontend/src/components/layout/AppSidebar.vue
+frontend/src/composables/useRoutePrefetch.ts
+frontend/src/i18n/locales/en.ts
+frontend/src/i18n/locales/zh.ts
+frontend/src/style.css
+frontend/src/types/index.ts
+frontend/src/views/admin/AccountsView.vue
+frontend/src/views/admin/SettingsView.vue
+frontend/src/views/admin/UsersView.vue
+frontend/src/views/auth/RegisterView.vue
+frontend/src/views/user/CustomPageView.vue
