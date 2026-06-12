@@ -11,12 +11,12 @@ export default {
     getStarted: '立即开始',
     goToDashboard: '进入控制台',
     // 新增：面向用户的价值主张
-    heroSubtitle: '一个密钥，畅用多个 AI 模型',
-    heroDescription: '无需管理多个订阅账号，一站式接入 Claude、GPT、Gemini 等主流 AI 服务',
+    heroSubtitle: '一个密钥，统一接入多种智能能力',
+    heroDescription: '提供文本处理、代码辅助、图像生成与多模态理解等能力的统一接入与用量管理',
     tags: {
-      subscriptionToApi: '订阅转 API',
-      stickySession: '会话保持',
-      realtimeBilling: '按量计费'
+      subscriptionToApi: '统一接入',
+      stickySession: '稳定调度',
+      realtimeBilling: '用量管理'
     },
     // 用户痛点区块
     painPoints: {
@@ -24,11 +24,11 @@ export default {
       items: {
         expensive: {
           title: '订阅费用高',
-          desc: '每个 AI 服务都要单独订阅，每月支出越来越多'
+          desc: '多种智能能力分别接入和维护，综合成本较高'
         },
         complex: {
           title: '多账号难管理',
-          desc: '不同平台的账号、密钥分散各处，管理起来很麻烦'
+          desc: '不同能力和接口分散各处，配置与权限管理较复杂'
         },
         unstable: {
           title: '服务不稳定',
@@ -43,13 +43,13 @@ export default {
     // 解决方案区块
     solutions: {
       title: '我们帮你解决',
-      subtitle: '简单三步，开始省心使用 AI'
+      subtitle: '简单三步，开始省心使用智能服务'
     },
     features: {
       unifiedGateway: '一键接入',
-      unifiedGatewayDesc: '获取一个 API 密钥，即可调用所有已接入的 AI 模型，无需分别申请。',
+      unifiedGatewayDesc: '获取一个访问密钥，即可调用已接入的文本、图像、代码等智能能力。',
       multiAccount: '稳定可靠',
-      multiAccountDesc: '智能调度多个上游账号，自动切换和负载均衡，告别频繁报错。',
+      multiAccountDesc: '智能调度可用资源，自动切换和负载均衡，提升访问稳定性。',
       balanceQuota: '用多少付多少',
       balanceQuotaDesc: '按实际使用量计费，支持设置配额上限，团队用量一目了然。'
     },
@@ -68,19 +68,19 @@ export default {
           us: '按量付费，用多少付多少'
         },
         models: {
-          feature: '模型选择',
-          official: '单一服务商',
-          us: '多模型随意切换'
+          feature: '能力范围',
+          official: '单一能力入口',
+          us: '多种能力统一接入'
         },
         management: {
           feature: '账号管理',
-          official: '每个服务单独管理',
+          official: '每个入口单独管理',
           us: '统一密钥，一站管理'
         },
         stability: {
           feature: '服务稳定性',
-          official: '单账号易触发限制',
-          us: '多账号池，自动切换'
+          official: '单入口易受限制',
+          us: '多资源调度，自动切换'
         },
         control: {
           feature: '用量控制',
@@ -90,19 +90,20 @@ export default {
       }
     },
     providers: {
-      title: '已支持的 AI 模型',
-      description: '一个 API，多种选择',
+      title: '已支持的智能能力',
+      description: '一个入口，多种能力',
       supported: '已支持',
-      soon: '即将推出',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: '更多'
+      soon: '规划中',
+      text: '文本处理',
+      code: '代码辅助',
+      image: '图像生成',
+      multimodal: '多模态理解',
+      more: '更多能力'
     },
     // CTA 区块
     cta: {
       title: '准备好开始了吗？',
-      description: '注册即可获得免费试用额度，体验一站式 AI 服务',
+      description: '注册即可获得试用额度，体验统一智能服务接入',
       button: '免费注册'
     },
     footer: {

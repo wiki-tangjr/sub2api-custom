@@ -92,6 +92,29 @@ func (e *OpenAIImagesUpstreamError) clientMessage() string {
 	return "Upstream request failed"
 }
 
+func (e *OpenAIImagesUpstreamError) isRateLimitExceeded() bool {
+	if e == nil {
+		return false
+	}
+	code := strings.TrimSpace(e.Code)
+	errType := strings.TrimSpace(e.ErrorType)
+	message := strings.ToLower(strings.TrimSpace(e.Message))
+	return strings.EqualFold(code, "rate_limit_exceeded") ||
+		strings.EqualFold(errType, "rate_limit_exceeded") ||
+		strings.Contains(message, "rate limit")
+}
+
+func (e *OpenAIImagesUpstreamError) toFailoverError() *UpstreamFailoverError {
+	if e == nil || !e.isRateLimitExceeded() {
+		return nil
+	}
+	body := buildOpenAIImagesStreamErrorBodyFromUpstream(e)
+	return &UpstreamFailoverError{
+		StatusCode:   http.StatusTooManyRequests,
+		ResponseBody: body,
+	}
+}
+
 func openAIResponsesImageResultKey(itemID string, result openAIResponsesImageResult) string {
 	if strings.TrimSpace(result.Result) != "" {
 		return strings.TrimSpace(result.OutputFormat) + "|" + strings.TrimSpace(result.Result)
@@ -565,6 +588,8 @@ func openAIImagesUpstreamErrorFromGJSON(errorObj gjson.Result, upstreamRequestID
 	statusCode := http.StatusBadGateway
 	if strings.EqualFold(code, "moderation_blocked") || strings.EqualFold(errType, "image_generation_user_error") {
 		statusCode = http.StatusBadRequest
+	} else if strings.EqualFold(code, "rate_limit_exceeded") || strings.EqualFold(errType, "rate_limit_exceeded") {
+		statusCode = http.StatusTooManyRequests
 	}
 	if message == "" {
 		message = "Upstream request failed"
@@ -908,6 +933,10 @@ func (s *OpenAIGatewayService) handleOpenAIImagesOAuthNonStreamingResponse(
 	}
 	if len(results) == 0 {
 		if upstreamErr := extractOpenAIImagesUpstreamError(body); upstreamErr != nil {
+			if failoverErr := upstreamErr.toFailoverError(); failoverErr != nil && (c == nil || c.Writer == nil || !c.Writer.Written()) {
+				setOpsUpstreamError(c, failoverErr.StatusCode, upstreamErr.clientMessage(), "")
+				return OpenAIUsage{}, 0, nil, failoverErr
+			}
 			setOpsUpstreamError(c, upstreamErr.clientStatusCode(), upstreamErr.clientMessage(), "")
 			writeOpenAIImagesUpstreamErrorResponse(c, upstreamErr)
 			return OpenAIUsage{}, 0, nil, upstreamErr

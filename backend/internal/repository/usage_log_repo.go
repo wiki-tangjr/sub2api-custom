@@ -2130,6 +2130,66 @@ func (r *usageLogRepository) GetAccountWindowStats(ctx context.Context, accountI
 
 // GetAccountWindowStatsBatch 批量获取同一窗口起点下多个账号的统计数据。
 // 返回 map[accountID]*AccountStats，未命中的账号会返回零值统计，便于上层直接复用。
+func (r *usageLogRepository) GetOpenAIImageAccountLatencyStats(ctx context.Context, endpoint string, model string, since time.Time) (map[int64]service.OpenAIImageAccountLatencyStats, error) {
+	if r == nil || r.sql == nil {
+		return map[int64]service.OpenAIImageAccountLatencyStats{}, nil
+	}
+	endpoint = strings.TrimSpace(endpoint)
+	model = strings.TrimSpace(model)
+	if endpoint == "" || model == "" {
+		return map[int64]service.OpenAIImageAccountLatencyStats{}, nil
+	}
+
+	rows, err := r.sql.QueryContext(ctx, `
+		SELECT
+			account_id,
+			COUNT(*)::int,
+			ROUND(AVG(duration_ms))::bigint,
+			percentile_disc(0.5) WITHIN GROUP (ORDER BY duration_ms)::bigint,
+			percentile_disc(0.9) WITHIN GROUP (ORDER BY duration_ms)::bigint,
+			percentile_disc(0.95) WITHIN GROUP (ORDER BY duration_ms)::bigint,
+			MAX(duration_ms)::bigint,
+			COUNT(*) FILTER (WHERE duration_ms >= $4)::int,
+			COUNT(*) FILTER (WHERE duration_ms >= $5)::int
+		FROM usage_logs
+		WHERE created_at >= $1
+		  AND inbound_endpoint = $2
+		  AND COALESCE(NULLIF(requested_model, ''), model) = $3
+		  AND account_id IS NOT NULL
+		  AND duration_ms IS NOT NULL
+		  AND duration_ms > 0
+		  AND actual_cost > 0
+		GROUP BY account_id
+	`, since, endpoint, model, int64(120000), int64(240000))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[int64]service.OpenAIImageAccountLatencyStats)
+	for rows.Next() {
+		var stat service.OpenAIImageAccountLatencyStats
+		if err := rows.Scan(
+			&stat.AccountID,
+			&stat.RequestCount,
+			&stat.AvgMs,
+			&stat.P50Ms,
+			&stat.P90Ms,
+			&stat.P95Ms,
+			&stat.MaxMs,
+			&stat.SlowCount,
+			&stat.VerySlowCount,
+		); err != nil {
+			return nil, err
+		}
+		result[stat.AccountID] = stat
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (r *usageLogRepository) GetAccountWindowStatsBatch(ctx context.Context, accountIDs []int64, startTime time.Time) (map[int64]*usagestats.AccountStats, error) {
 	result := make(map[int64]*usagestats.AccountStats, len(accountIDs))
 	if len(accountIDs) == 0 {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+const (
+	openAIImagesRateLimitSameAccountRetries = 2
+	openAIImagesRateLimitDefaultRetryDelay  = 750 * time.Millisecond
+	openAIImagesRateLimitMaxRetryDelay      = 3 * time.Second
+)
+
+var openAIImagesRetryInPattern = regexp.MustCompile(`(?i)try again in\s+([0-9]+(?:\.[0-9]+)?)\s*(ms|s|sec|secs|second|seconds)`)
 
 // Images handles OpenAI Images API requests.
 // POST /v1/images/generations
@@ -141,6 +150,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	sameAccountRetryCount := make(map[int64]int)
+	imageRateLimitRetryCount := make(map[int64]int)
 	var lastFailoverErr *service.UpstreamFailoverError
 
 	for {
@@ -150,6 +160,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 			apiKey.GroupID,
 			sessionHash,
 			requestModel,
+			parsed.Endpoint,
 			failedAccountIDs,
 			parsed.RequiredCapability,
 		)
@@ -239,6 +250,27 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 				var failoverErr *service.UpstreamFailoverError
 				if errors.As(err, &failoverErr) {
 					h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+					if failoverErr.StatusCode == http.StatusTooManyRequests {
+						if imageRateLimitRetryCount[account.ID] < openAIImagesRateLimitSameAccountRetries {
+							imageRateLimitRetryCount[account.ID]++
+							retryDelay := openAIImagesRateLimitRetryDelay(failoverErr)
+							reqLog.Warn("openai.images.rate_limit_same_account_retry",
+								zap.Int64("account_id", account.ID),
+								zap.Int("retry_count", imageRateLimitRetryCount[account.ID]),
+								zap.Int("retry_limit", openAIImagesRateLimitSameAccountRetries),
+								zap.Int64("retry_delay_ms", retryDelay.Milliseconds()),
+							)
+							select {
+							case <-c.Request.Context().Done():
+								return
+							case <-time.After(retryDelay):
+							}
+							continue
+						}
+						h.gatewayService.ReportOpenAIImageRateLimit(account.ID, parsed.Endpoint, parsed.Model)
+					} else {
+						h.gatewayService.ReportOpenAIImageScheduleResult(account.ID, parsed.Endpoint, parsed.Model, forwardDurationMs, false)
+					}
 					if failoverErr.RetryableOnSameAccount {
 						retryLimit := account.GetPoolModeRetryCount()
 						if sameAccountRetryCount[account.ID] < retryLimit {
@@ -278,6 +310,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 					continue
 				}
 				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, false, nil)
+				h.gatewayService.ReportOpenAIImageScheduleResult(account.ID, parsed.Endpoint, parsed.Model, forwardDurationMs, false)
 				upstreamErrorAlreadyCommunicated := openAIForwardErrorAlreadyCommunicated(c, writerSizeBeforeForward, err)
 				wroteFallback := false
 				if !upstreamErrorAlreadyCommunicated {
@@ -302,8 +335,10 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 				h.gatewayService.UpdateCodexUsageSnapshotFromHeaders(c.Request.Context(), account.ID, result.ResponseHeaders)
 			}
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, result.FirstTokenMs)
+			h.gatewayService.ReportOpenAIImageScheduleResult(account.ID, parsed.Endpoint, parsed.Model, forwardDurationMs, true)
 		} else {
 			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, true, nil)
+			h.gatewayService.ReportOpenAIImageScheduleResult(account.ID, parsed.Endpoint, parsed.Model, forwardDurationMs, true)
 		}
 
 		userAgent := c.GetHeader("User-Agent")
@@ -355,4 +390,33 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 
 func isMultipartImagesContentType(contentType string) bool {
 	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(contentType)), "multipart/form-data")
+}
+
+func openAIImagesRateLimitRetryDelay(err *service.UpstreamFailoverError) time.Duration {
+	delay := openAIImagesRateLimitDefaultRetryDelay
+	if err == nil || len(err.ResponseBody) == 0 {
+		return delay
+	}
+	message := service.ExtractUpstreamErrorMessage(err.ResponseBody)
+	matches := openAIImagesRetryInPattern.FindStringSubmatch(message)
+	if len(matches) != 3 {
+		return delay
+	}
+	value, parseErr := strconv.ParseFloat(matches[1], 64)
+	if parseErr != nil || value <= 0 {
+		return delay
+	}
+	switch strings.ToLower(matches[2]) {
+	case "ms":
+		delay = time.Duration(value * float64(time.Millisecond))
+	default:
+		delay = time.Duration(value * float64(time.Second))
+	}
+	if delay < openAIImagesRateLimitDefaultRetryDelay {
+		delay = openAIImagesRateLimitDefaultRetryDelay
+	}
+	if delay > openAIImagesRateLimitMaxRetryDelay {
+		delay = openAIImagesRateLimitMaxRetryDelay
+	}
+	return delay
 }

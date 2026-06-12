@@ -11,12 +11,12 @@ export default {
     getStarted: 'Get Started',
     goToDashboard: 'Go to Dashboard',
     // User-focused value proposition
-    heroSubtitle: 'One Key, All AI Models',
-    heroDescription: 'No need to manage multiple subscriptions. Access Claude, GPT, Gemini and more with a single API key',
+    heroSubtitle: 'One Key, Unified Intelligent Capabilities',
+    heroDescription: 'Unified access and usage management for text processing, coding assistance, image generation, and multimodal capabilities',
     tags: {
-      subscriptionToApi: 'Subscription to API',
-      stickySession: 'Session Persistence',
-      realtimeBilling: 'Pay As You Go'
+      subscriptionToApi: 'Unified Access',
+      stickySession: 'Stable Routing',
+      realtimeBilling: 'Usage Management'
     },
     // Pain points section
     painPoints: {
@@ -24,11 +24,11 @@ export default {
       items: {
         expensive: {
           title: 'High Subscription Costs',
-          desc: 'Paying for multiple AI subscriptions that add up every month'
+          desc: 'Separate integrations and maintenance increase overall cost'
         },
         complex: {
           title: 'Account Chaos',
-          desc: 'Managing scattered accounts and API keys across different platforms'
+          desc: 'Capabilities and interfaces are scattered, making configuration and permissions harder to manage'
         },
         unstable: {
           title: 'Service Interruptions',
@@ -43,13 +43,13 @@ export default {
     // Solutions section
     solutions: {
       title: 'We Solve These Problems',
-      subtitle: 'Three simple steps to stress-free AI access'
+      subtitle: 'Three simple steps to easier intelligent service access'
     },
     features: {
       unifiedGateway: 'One-Click Access',
-      unifiedGatewayDesc: 'Get a single API key to call all connected AI models. No separate applications needed.',
+      unifiedGatewayDesc: 'Get a single access key for connected text, image, coding, and other intelligent capabilities.',
       multiAccount: 'Always Reliable',
-      multiAccountDesc: 'Smart routing across multiple upstream accounts with automatic failover. Say goodbye to errors.',
+      multiAccountDesc: 'Smart routing across available resources with automatic failover and load balancing for better stability.',
       balanceQuota: 'Pay What You Use',
       balanceQuotaDesc: 'Usage-based billing with quota limits. Full visibility into team consumption.'
     },
@@ -68,19 +68,19 @@ export default {
           us: 'Pay only for what you use'
         },
         models: {
-          feature: 'Model Selection',
-          official: 'Single provider only',
-          us: 'Switch between models freely'
+          feature: 'Capability Coverage',
+          official: 'Single capability entry',
+          us: 'Unified access to multiple capabilities'
         },
         management: {
           feature: 'Account Management',
-          official: 'Manage each service separately',
+          official: 'Manage each entry separately',
           us: 'Unified key, one dashboard'
         },
         stability: {
           feature: 'Stability',
-          official: 'Single account rate limits',
-          us: 'Multi-account pool, auto-failover'
+          official: 'Single entry may be limited',
+          us: 'Resource routing with auto-failover'
         },
         control: {
           feature: 'Usage Control',
@@ -90,19 +90,20 @@ export default {
       }
     },
     providers: {
-      title: 'Supported AI Models',
-      description: 'One API, Multiple Choices',
+      title: 'Supported Intelligent Capabilities',
+      description: 'One Entry, Multiple Capabilities',
       supported: 'Supported',
-      soon: 'Soon',
-      claude: 'Claude',
-      gemini: 'Gemini',
-      antigravity: 'Antigravity',
-      more: 'More'
+      soon: 'Planned',
+      text: 'Text Processing',
+      code: 'Coding Assistance',
+      image: 'Image Generation',
+      multimodal: 'Multimodal Understanding',
+      more: 'More Capabilities'
     },
     // CTA section
     cta: {
       title: 'Ready to Get Started?',
-      description: 'Sign up now and get free trial credits to experience seamless AI access',
+      description: 'Sign up now and get trial credits to experience unified intelligent service access',
       button: 'Sign Up Free'
     },
     footer: {
