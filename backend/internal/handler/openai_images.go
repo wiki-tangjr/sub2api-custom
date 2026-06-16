@@ -157,6 +157,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 			apiKey.GroupID,
 			sessionHash,
 			requestModel,
+			parsed.Endpoint,
 			failedAccountIDs,
 			parsed.RequiredCapability,
 		)
