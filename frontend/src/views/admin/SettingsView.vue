@@ -349,9 +349,7 @@
                       class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                     >
                       {{
-                        t(
-                          "admin.settings.rateLimit429Cooldown.cooldownSeconds",
-                        )
+                        t("admin.settings.rateLimit429Cooldown.cooldownSeconds")
                       }}
                     </label>
                     <input
@@ -1280,9 +1278,7 @@
 
                 <!-- Fallback Action (only when model_whitelist is non-empty) -->
                 <div
-                  v-if="
-                    rule.model_whitelist && rule.model_whitelist.length > 0
-                  "
+                  v-if="rule.model_whitelist && rule.model_whitelist.length > 0"
                   class="mt-3"
                 >
                   <label
@@ -1806,7 +1802,9 @@
             </div>
             <div class="space-y-6 p-6">
               <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-700">
+                <div
+                  class="rounded-lg border border-gray-200 p-4 dark:border-dark-700"
+                >
                   <div class="flex items-start justify-between gap-4">
                     <div>
                       <h3 class="font-medium text-gray-900 dark:text-white">
@@ -1825,7 +1823,9 @@
                   </div>
 
                   <div v-if="form.github_oauth_enabled" class="mt-4 space-y-4">
-                    <div class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-300">
+                    <div
+                      class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-300"
+                    >
                       <template v-if="isZhLocale">
                         开通引导：GitHub Settings → Developer settings →
                         <a
@@ -1834,8 +1834,10 @@
                           target="_blank"
                           rel="noopener noreferrer"
                           class="font-medium text-primary-600 hover:underline dark:text-primary-400"
-                        >OAuth Apps</a>
-                        → New OAuth App；Homepage URL 填站点域名，Authorization callback URL 填下面的后端回调地址。
+                          >OAuth Apps</a
+                        >
+                        → New OAuth App；Homepage URL 填站点域名，Authorization
+                        callback URL 填下面的后端回调地址。
                       </template>
                       <template v-else>
                         Setup guide: GitHub Settings → Developer settings →
@@ -1845,14 +1847,20 @@
                           target="_blank"
                           rel="noopener noreferrer"
                           class="font-medium text-primary-600 hover:underline dark:text-primary-400"
-                        >OAuth Apps</a>
-                        → New OAuth App. Use your site origin as Homepage URL and the backend callback URL below as Authorization callback URL.
+                          >OAuth Apps</a
+                        >
+                        → New OAuth App. Use your site origin as Homepage URL
+                        and the backend callback URL below as Authorization
+                        callback URL.
                       </template>
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                       <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client ID</label>
+                        <label
+                          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >Client ID</label
+                        >
                         <input
                           v-model="form.github_oauth_client_id"
                           type="text"
@@ -1861,14 +1869,20 @@
                         />
                       </div>
                       <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client Secret</label>
+                        <label
+                          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >Client Secret</label
+                        >
                         <input
                           v-model="form.github_oauth_client_secret"
                           type="password"
                           class="input font-mono text-sm"
                           :placeholder="
                             form.github_oauth_client_secret_configured
-                              ? localText('密钥已配置，留空以保留当前值。', 'Secret configured. Leave empty to keep the current value.')
+                              ? localText(
+                                  '密钥已配置，留空以保留当前值。',
+                                  'Secret configured. Leave empty to keep the current value.',
+                                )
                               : 'GitHub OAuth Client Secret'
                           "
                         />
@@ -1876,7 +1890,9 @@
                     </div>
 
                     <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         {{ localText("后端回调地址", "Backend Callback URL") }}
                       </label>
                       <input
@@ -1885,7 +1901,9 @@
                         class="input font-mono text-sm"
                         placeholder="https://your-domain.com/api/v1/auth/oauth/github/callback"
                       />
-                      <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <div
+                        class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                      >
                         <button
                           type="button"
                           class="btn btn-secondary btn-sm w-fit"
@@ -1903,7 +1921,9 @@
                     </div>
 
                     <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         {{ localText("前端回跳地址", "Frontend Callback URL") }}
                       </label>
                       <input
@@ -1916,7 +1936,9 @@
                   </div>
                 </div>
 
-                <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-700">
+                <div
+                  class="rounded-lg border border-gray-200 p-4 dark:border-dark-700"
+                >
                   <div class="flex items-start justify-between gap-4">
                     <div>
                       <h3 class="font-medium text-gray-900 dark:text-white">
@@ -1935,7 +1957,9 @@
                   </div>
 
                   <div v-if="form.google_oauth_enabled" class="mt-4 space-y-4">
-                    <div class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-300">
+                    <div
+                      class="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-dark-800 dark:text-gray-300"
+                    >
                       {{
                         localText(
                           "开通引导：Google Cloud Console → APIs & Services → OAuth consent screen 完成同意屏幕；Credentials → Create Credentials → OAuth client ID，类型选择 Web application，并把下面地址加入 Authorized redirect URIs。",
@@ -1946,7 +1970,10 @@
 
                     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                       <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client ID</label>
+                        <label
+                          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >Client ID</label
+                        >
                         <input
                           v-model="form.google_oauth_client_id"
                           type="text"
@@ -1955,14 +1982,20 @@
                         />
                       </div>
                       <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Client Secret</label>
+                        <label
+                          class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >Client Secret</label
+                        >
                         <input
                           v-model="form.google_oauth_client_secret"
                           type="password"
                           class="input font-mono text-sm"
                           :placeholder="
                             form.google_oauth_client_secret_configured
-                              ? localText('密钥已配置，留空以保留当前值。', 'Secret configured. Leave empty to keep the current value.')
+                              ? localText(
+                                  '密钥已配置，留空以保留当前值。',
+                                  'Secret configured. Leave empty to keep the current value.',
+                                )
                               : 'Google OAuth Client Secret'
                           "
                         />
@@ -1970,7 +2003,9 @@
                     </div>
 
                     <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         {{ localText("后端回调地址", "Backend Callback URL") }}
                       </label>
                       <input
@@ -1979,7 +2014,9 @@
                         class="input font-mono text-sm"
                         placeholder="https://your-domain.com/api/v1/auth/oauth/google/callback"
                       />
-                      <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <div
+                        class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                      >
                         <button
                           type="button"
                           class="btn btn-secondary btn-sm w-fit"
@@ -1997,7 +2034,9 @@
                     </div>
 
                     <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <label
+                        class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         {{ localText("前端回跳地址", "Frontend Callback URL") }}
                       </label>
                       <input
@@ -2054,7 +2093,9 @@
                         <h3 class="font-medium text-gray-900 dark:text-white">
                           {{ localText("PC 应用", "PC App") }}
                         </h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        <p
+                          class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                        >
                           {{
                             localText(
                               "桌面浏览器通过微信开放平台扫码登录。可与公众号或移动应用同时存在。",
@@ -2127,7 +2168,9 @@
                         <h3 class="font-medium text-gray-900 dark:text-white">
                           {{ localText("公众号", "Official Account") }}
                         </h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        <p
+                          class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                        >
                           {{
                             localText(
                               "仅在微信内浏览器可用；非微信环境下会显示不可用。",
@@ -2150,7 +2193,9 @@
                         <label
                           class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                         >
-                          {{ localText("公众号 AppID", "Official Account App ID") }}
+                          {{
+                            localText("公众号 AppID", "Official Account App ID")
+                          }}
                         </label>
                         <input
                           v-model="form.wechat_connect_mp_app_id"
@@ -2158,10 +2203,7 @@
                           type="text"
                           class="input font-mono text-sm"
                           :placeholder="
-                            localText(
-                              '公众号 AppID',
-                              'Official Account App ID',
-                            )
+                            localText('公众号 AppID', 'Official Account App ID')
                           "
                         />
                       </div>
@@ -2205,7 +2247,9 @@
                         <h3 class="font-medium text-gray-900 dark:text-white">
                           {{ localText("移动应用", "Mobile App") }}
                         </h3>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        <p
+                          class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                        >
                           {{
                             localText(
                               "原生移动端通过微信 SDK 唤起授权，网页端不会直接发起该流程。",
@@ -2236,10 +2280,7 @@
                           type="text"
                           class="input font-mono text-sm"
                           :placeholder="
-                            localText(
-                              '移动应用 AppID',
-                              'Mobile App ID',
-                            )
+                            localText('移动应用 AppID', 'Mobile App ID')
                           "
                         />
                       </div>
@@ -2247,7 +2288,9 @@
                         <label
                           class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                         >
-                          {{ localText("移动应用 AppSecret", "Mobile App Secret") }}
+                          {{
+                            localText("移动应用 AppSecret", "Mobile App Secret")
+                          }}
                         </label>
                         <input
                           v-model="form.wechat_connect_mobile_app_secret"
@@ -2292,19 +2335,16 @@
                     <label
                       class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                     >
-                      {{
-                        localText(
-                          "浏览器回调地址",
-                          "Browser Redirect URL",
-                        )
-                      }}
+                      {{ localText("浏览器回调地址", "Browser Redirect URL") }}
                     </label>
                     <input
                       data-testid="wechat-connect-redirect-url"
                       v-model="form.wechat_connect_redirect_url"
                       type="url"
                       class="input font-mono text-sm"
-                      :placeholder="t('admin.settings.wechatConnect.redirectUrlPlaceholder')"
+                      :placeholder="
+                        t('admin.settings.wechatConnect.redirectUrlPlaceholder')
+                      "
                     />
                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       {{
@@ -2338,17 +2378,25 @@
                   <label
                     class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    {{ t("admin.settings.wechatConnect.frontendRedirectUrlLabel") }}
+                    {{
+                      t("admin.settings.wechatConnect.frontendRedirectUrlLabel")
+                    }}
                   </label>
                   <input
                     data-testid="wechat-connect-frontend-redirect-url"
                     v-model="form.wechat_connect_frontend_redirect_url"
                     type="text"
                     class="input font-mono text-sm"
-                    :placeholder="t('admin.settings.wechatConnect.frontendRedirectUrlPlaceholder')"
+                    :placeholder="
+                      t(
+                        'admin.settings.wechatConnect.frontendRedirectUrlPlaceholder',
+                      )
+                    "
                   />
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {{ t("admin.settings.wechatConnect.frontendRedirectUrlHint") }}
+                    {{
+                      t("admin.settings.wechatConnect.frontendRedirectUrlHint")
+                    }}
                   </p>
                 </div>
               </div>
@@ -2453,8 +2501,12 @@
                   </div>
 
                   <!-- Corp Restriction Policy -->
-                  <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <div
+                    class="border-t border-gray-100 pt-4 dark:border-dark-700"
+                  >
+                    <label
+                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       {{ t("admin.settings.dingtalk.corpPolicy.label") }}
                     </label>
                     <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
@@ -2463,7 +2515,9 @@
                     <div class="space-y-2">
                       <label class="flex cursor-pointer items-center gap-3">
                         <input
-                          v-model="form.dingtalk_connect_corp_restriction_policy"
+                          v-model="
+                            form.dingtalk_connect_corp_restriction_policy
+                          "
                           type="radio"
                           value="none"
                           class="h-4 w-4 text-primary-600"
@@ -2474,13 +2528,17 @@
                       </label>
                       <label class="flex cursor-pointer items-center gap-3">
                         <input
-                          v-model="form.dingtalk_connect_corp_restriction_policy"
+                          v-model="
+                            form.dingtalk_connect_corp_restriction_policy
+                          "
                           type="radio"
                           value="internal_only"
                           class="h-4 w-4 text-primary-600"
                         />
                         <span class="text-sm text-gray-700 dark:text-gray-300">
-                          {{ t("admin.settings.dingtalk.corpPolicy.internalOnly") }}
+                          {{
+                            t("admin.settings.dingtalk.corpPolicy.internalOnly")
+                          }}
                         </span>
                       </label>
                     </div>
@@ -2488,131 +2546,206 @@
 
                   <!-- bypass_registration toggle（仅 internal_only 模式下可见可用） -->
                   <div
-                    v-if="form.dingtalk_connect_corp_restriction_policy === 'internal_only'"
+                    v-if="
+                      form.dingtalk_connect_corp_restriction_policy ===
+                      'internal_only'
+                    "
                     class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-dark-700"
                   >
                     <div>
-                      <label class="font-medium text-gray-900 dark:text-white">{{
-                        t("admin.settings.dingtalk.bypassRegistration")
-                      }}</label>
+                      <label
+                        class="font-medium text-gray-900 dark:text-white"
+                        >{{
+                          t("admin.settings.dingtalk.bypassRegistration")
+                        }}</label
+                      >
                       <p class="text-sm text-gray-500 dark:text-gray-400">
-                        {{ t("admin.settings.dingtalk.bypassRegistrationHint") }}
+                        {{
+                          t("admin.settings.dingtalk.bypassRegistrationHint")
+                        }}
                       </p>
                     </div>
-                    <Toggle v-model="form.dingtalk_connect_bypass_registration" />
+                    <Toggle
+                      v-model="form.dingtalk_connect_bypass_registration"
+                    />
                   </div>
 
                   <!-- 身份同步开关（仅 internal_only 模式下可见） -->
                   <div
-                    v-if="form.dingtalk_connect_corp_restriction_policy === 'internal_only'"
+                    v-if="
+                      form.dingtalk_connect_corp_restriction_policy ===
+                      'internal_only'
+                    "
                     class="pt-4 border-t border-gray-100 dark:border-dark-700 space-y-2"
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <label class="font-medium text-gray-900 dark:text-white">{{
-                          t("admin.settings.dingtalk.syncDisplayName")
-                        }}</label>
+                        <label
+                          class="font-medium text-gray-900 dark:text-white"
+                          >{{
+                            t("admin.settings.dingtalk.syncDisplayName")
+                          }}</label
+                        >
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                           {{ t("admin.settings.dingtalk.syncDisplayNameHint") }}
                         </p>
                       </div>
-                      <Toggle v-model="form.dingtalk_connect_sync_display_name" />
+                      <Toggle
+                        v-model="form.dingtalk_connect_sync_display_name"
+                      />
                     </div>
-                    <div v-if="form.dingtalk_connect_sync_display_name" class="space-y-2">
+                    <div
+                      v-if="form.dingtalk_connect_sync_display_name"
+                      class="space-y-2"
+                    >
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
-                          {{ t("admin.settings.dingtalk.syncDisplayNameTarget") }}
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
+                          {{
+                            t("admin.settings.dingtalk.syncDisplayNameTarget")
+                          }}
                         </label>
                         <input
-                          v-model="form.dingtalk_connect_sync_display_name_attr_key"
+                          v-model="
+                            form.dingtalk_connect_sync_display_name_attr_key
+                          "
                           type="text"
                           placeholder="dingtalk_name"
                           class="input text-sm flex-1 max-w-xs"
                         />
                       </div>
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
                           {{ t("admin.settings.dingtalk.syncAttrDisplayName") }}
                         </label>
                         <input
-                          v-model="form.dingtalk_connect_sync_display_name_attr_name"
+                          v-model="
+                            form.dingtalk_connect_sync_display_name_attr_name
+                          "
                           type="text"
                           placeholder="钉钉姓名"
                           class="input text-sm flex-1 max-w-xs"
                         />
                       </div>
                     </div>
-                    <p v-if="form.dingtalk_connect_sync_display_name" class="text-xs text-gray-400 dark:text-gray-500">
-                      {{ t("admin.settings.dingtalk.syncDisplayNameTargetHint") }}
+                    <p
+                      v-if="form.dingtalk_connect_sync_display_name"
+                      class="text-xs text-gray-400 dark:text-gray-500"
+                    >
+                      {{
+                        t("admin.settings.dingtalk.syncDisplayNameTargetHint")
+                      }}
                     </p>
                   </div>
                   <div
-                    v-if="form.dingtalk_connect_corp_restriction_policy === 'internal_only'"
+                    v-if="
+                      form.dingtalk_connect_corp_restriction_policy ===
+                      'internal_only'
+                    "
                     class="pt-4 border-t border-gray-100 dark:border-dark-700 space-y-2"
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <label class="font-medium text-gray-900 dark:text-white">{{
-                          t("admin.settings.dingtalk.syncCorpEmail")
-                        }}</label>
+                        <label
+                          class="font-medium text-gray-900 dark:text-white"
+                          >{{
+                            t("admin.settings.dingtalk.syncCorpEmail")
+                          }}</label
+                        >
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                           {{ t("admin.settings.dingtalk.syncCorpEmailHint") }}
                         </p>
-                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                          {{ t("admin.settings.dingtalk.syncCorpEmailPermissionHint") }}
+                        <p
+                          class="text-xs text-amber-600 dark:text-amber-400 mt-1"
+                        >
+                          {{
+                            t(
+                              "admin.settings.dingtalk.syncCorpEmailPermissionHint",
+                            )
+                          }}
                         </p>
                       </div>
                       <Toggle v-model="form.dingtalk_connect_sync_corp_email" />
                     </div>
-                    <div v-if="form.dingtalk_connect_sync_corp_email" class="space-y-2">
+                    <div
+                      v-if="form.dingtalk_connect_sync_corp_email"
+                      class="space-y-2"
+                    >
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
                           {{ t("admin.settings.dingtalk.syncCorpEmailTarget") }}
                         </label>
                         <input
-                          v-model="form.dingtalk_connect_sync_corp_email_attr_key"
+                          v-model="
+                            form.dingtalk_connect_sync_corp_email_attr_key
+                          "
                           type="text"
                           placeholder="dingtalk_email"
                           class="input text-sm flex-1 max-w-xs"
                         />
                       </div>
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
                           {{ t("admin.settings.dingtalk.syncAttrDisplayName") }}
                         </label>
                         <input
-                          v-model="form.dingtalk_connect_sync_corp_email_attr_name"
+                          v-model="
+                            form.dingtalk_connect_sync_corp_email_attr_name
+                          "
                           type="text"
                           placeholder="钉钉企业邮箱"
                           class="input text-sm flex-1 max-w-xs"
                         />
                       </div>
                     </div>
-                    <p v-if="form.dingtalk_connect_sync_corp_email" class="text-xs text-gray-400 dark:text-gray-500">
+                    <p
+                      v-if="form.dingtalk_connect_sync_corp_email"
+                      class="text-xs text-gray-400 dark:text-gray-500"
+                    >
                       {{ t("admin.settings.dingtalk.syncCorpEmailTargetHint") }}
                     </p>
                   </div>
                   <div
-                    v-if="form.dingtalk_connect_corp_restriction_policy === 'internal_only'"
+                    v-if="
+                      form.dingtalk_connect_corp_restriction_policy ===
+                      'internal_only'
+                    "
                     class="pt-4 border-t border-gray-100 dark:border-dark-700 space-y-2"
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <label class="font-medium text-gray-900 dark:text-white">{{
-                          t("admin.settings.dingtalk.syncDept")
-                        }}</label>
+                        <label
+                          class="font-medium text-gray-900 dark:text-white"
+                          >{{ t("admin.settings.dingtalk.syncDept") }}</label
+                        >
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                           {{ t("admin.settings.dingtalk.syncDeptHint") }}
                         </p>
-                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                          {{ t("admin.settings.dingtalk.syncDeptPermissionHint") }}
+                        <p
+                          class="text-xs text-amber-600 dark:text-amber-400 mt-1"
+                        >
+                          {{
+                            t("admin.settings.dingtalk.syncDeptPermissionHint")
+                          }}
                         </p>
                       </div>
                       <Toggle v-model="form.dingtalk_connect_sync_dept" />
                     </div>
-                    <div v-if="form.dingtalk_connect_sync_dept" class="space-y-2">
+                    <div
+                      v-if="form.dingtalk_connect_sync_dept"
+                      class="space-y-2"
+                    >
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
                           {{ t("admin.settings.dingtalk.syncDeptTarget") }}
                         </label>
                         <input
@@ -2623,7 +2756,9 @@
                         />
                       </div>
                       <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]">
+                        <label
+                          class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap min-w-[5rem]"
+                        >
                           {{ t("admin.settings.dingtalk.syncAttrDisplayName") }}
                         </label>
                         <input
@@ -2634,7 +2769,10 @@
                         />
                       </div>
                     </div>
-                    <p v-if="form.dingtalk_connect_sync_dept" class="text-xs text-gray-400 dark:text-gray-500">
+                    <p
+                      v-if="form.dingtalk_connect_sync_dept"
+                      class="text-xs text-gray-400 dark:text-gray-500"
+                    >
                       {{ t("admin.settings.dingtalk.syncDeptTargetHint") }}
                     </p>
                   </div>
@@ -3279,46 +3417,80 @@
                 <div class="overflow-x-auto">
                   <table class="min-w-full text-sm">
                     <thead>
-                      <tr class="text-left text-xs text-gray-500 dark:text-gray-400">
-                        <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.platform") }}</th>
-                        <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.daily") }}</th>
-                        <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.weekly") }}</th>
-                        <th class="pb-2 font-medium">{{ t("admin.settings.platformQuota.monthly") }}</th>
+                      <tr
+                        class="text-left text-xs text-gray-500 dark:text-gray-400"
+                      >
+                        <th class="pb-2 pr-4 font-medium">
+                          {{ t("admin.settings.platformQuota.platform") }}
+                        </th>
+                        <th class="pb-2 pr-4 font-medium">
+                          {{ t("admin.settings.platformQuota.daily") }}
+                        </th>
+                        <th class="pb-2 pr-4 font-medium">
+                          {{ t("admin.settings.platformQuota.weekly") }}
+                        </th>
+                        <th class="pb-2 font-medium">
+                          {{ t("admin.settings.platformQuota.monthly") }}
+                        </th>
                       </tr>
                     </thead>
                     <tbody class="space-y-2">
-                      <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity'] as const)" :key="p" class="align-top">
+                      <tr
+                        v-for="p in [
+                          'anthropic',
+                          'openai',
+                          'gemini',
+                          'antigravity',
+                        ] as const"
+                        :key="p"
+                        class="align-top"
+                      >
                         <td class="pr-4 py-1">
-                          <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
+                          <span
+                            class="font-mono text-xs text-gray-700 dark:text-gray-300"
+                            >{{ p }}</span
+                          >
                         </td>
                         <td class="pr-4 py-1">
                           <input
-                            v-model.number="form.default_platform_quotas[p]!.daily"
+                            v-model.number="
+                              form.default_platform_quotas[p]!.daily
+                            "
                             type="number"
                             step="0.01"
                             min="0"
                             class="input h-8 w-28 text-sm"
-                            :placeholder="t('admin.settings.platformQuota.placeholder')"
+                            :placeholder="
+                              t('admin.settings.platformQuota.placeholder')
+                            "
                           />
                         </td>
                         <td class="pr-4 py-1">
                           <input
-                            v-model.number="form.default_platform_quotas[p]!.weekly"
+                            v-model.number="
+                              form.default_platform_quotas[p]!.weekly
+                            "
                             type="number"
                             step="0.01"
                             min="0"
                             class="input h-8 w-28 text-sm"
-                            :placeholder="t('admin.settings.platformQuota.placeholder')"
+                            :placeholder="
+                              t('admin.settings.platformQuota.placeholder')
+                            "
                           />
                         </td>
                         <td class="py-1">
                           <input
-                            v-model.number="form.default_platform_quotas[p]!.monthly"
+                            v-model.number="
+                              form.default_platform_quotas[p]!.monthly
+                            "
                             type="number"
                             step="0.01"
                             min="0"
                             class="input h-8 w-28 text-sm"
-                            :placeholder="t('admin.settings.platformQuota.placeholder')"
+                            :placeholder="
+                              t('admin.settings.platformQuota.placeholder')
+                            "
                           />
                         </td>
                       </tr>
@@ -3347,10 +3519,14 @@
               >
                 <div>
                   <label class="font-medium text-gray-900 dark:text-white">
-                    {{ t("admin.settings.authSourceDefaults.requireEmailLabel") }}
+                    {{
+                      t("admin.settings.authSourceDefaults.requireEmailLabel")
+                    }}
                   </label>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ t("admin.settings.authSourceDefaults.requireEmailHint") }}
+                    {{
+                      t("admin.settings.authSourceDefaults.requireEmailHint")
+                    }}
                   </p>
                 </div>
                 <Toggle v-model="form.force_email_on_third_party_signup" />
@@ -3431,12 +3607,20 @@
                         <label
                           class="font-medium text-gray-900 dark:text-white"
                         >
-                          {{ t("admin.settings.authSourceDefaults.grantOnFirstBindLabel") }}
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.grantOnFirstBindLabel",
+                            )
+                          }}
                         </label>
                         <p
                           class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
                         >
-                          {{ t("admin.settings.authSourceDefaults.grantOnFirstBindHint") }}
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.grantOnFirstBindHint",
+                            )
+                          }}
                         </p>
                       </div>
                       <Toggle
@@ -3452,10 +3636,18 @@
                         <label
                           class="font-medium text-gray-900 dark:text-white"
                         >
-                          {{ t("admin.settings.authSourceDefaults.defaultSubscriptionsLabel") }}
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.defaultSubscriptionsLabel",
+                            )
+                          }}
                         </label>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                          {{ t("admin.settings.authSourceDefaults.defaultSubscriptionsHint") }}
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.defaultSubscriptionsHint",
+                            )
+                          }}
                         </p>
                       </div>
                       <button
@@ -3479,7 +3671,11 @@
                       "
                       class="rounded border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 dark:border-dark-600 dark:text-gray-400"
                     >
-                      {{ t("admin.settings.authSourceDefaults.noSourceSubscriptions") }}
+                      {{
+                        t(
+                          "admin.settings.authSourceDefaults.noSourceSubscriptions",
+                        )
+                      }}
                     </div>
 
                     <div v-else class="space-y-3">
@@ -3602,58 +3798,115 @@
                     </div>
 
                     <!-- ★ 新增：auth source 平台限额覆盖区块 -->
-                    <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                    <div
+                      class="border-t border-gray-100 pt-4 dark:border-dark-700"
+                    >
                       <div class="mb-3">
-                        <label class="font-medium text-gray-900 dark:text-white">
-                          {{ t("admin.settings.authSourceDefaults.platformQuotasOverride") }}
+                        <label
+                          class="font-medium text-gray-900 dark:text-white"
+                        >
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.platformQuotasOverride",
+                            )
+                          }}
                         </label>
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          {{ t("admin.settings.authSourceDefaults.platformQuotasOverrideHint") }}
+                        <p
+                          class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          {{
+                            t(
+                              "admin.settings.authSourceDefaults.platformQuotasOverrideHint",
+                            )
+                          }}
                         </p>
                       </div>
                       <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
                           <thead>
-                            <tr class="text-left text-xs text-gray-500 dark:text-gray-400">
-                              <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.platform") }}</th>
-                              <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.daily") }}</th>
-                              <th class="pb-2 pr-4 font-medium">{{ t("admin.settings.platformQuota.weekly") }}</th>
-                              <th class="pb-2 font-medium">{{ t("admin.settings.platformQuota.monthly") }}</th>
+                            <tr
+                              class="text-left text-xs text-gray-500 dark:text-gray-400"
+                            >
+                              <th class="pb-2 pr-4 font-medium">
+                                {{ t("admin.settings.platformQuota.platform") }}
+                              </th>
+                              <th class="pb-2 pr-4 font-medium">
+                                {{ t("admin.settings.platformQuota.daily") }}
+                              </th>
+                              <th class="pb-2 pr-4 font-medium">
+                                {{ t("admin.settings.platformQuota.weekly") }}
+                              </th>
+                              <th class="pb-2 font-medium">
+                                {{ t("admin.settings.platformQuota.monthly") }}
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-                            <tr v-for="p in (['anthropic', 'openai', 'gemini', 'antigravity'] as const)" :key="`${authSource.source}-pq-${p}`" class="align-top">
+                            <tr
+                              v-for="p in [
+                                'anthropic',
+                                'openai',
+                                'gemini',
+                                'antigravity',
+                              ] as const"
+                              :key="`${authSource.source}-pq-${p}`"
+                              class="align-top"
+                            >
                               <td class="pr-4 py-1">
-                                <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ p }}</span>
+                                <span
+                                  class="font-mono text-xs text-gray-700 dark:text-gray-300"
+                                  >{{ p }}</span
+                                >
                               </td>
                               <td class="pr-4 py-1">
                                 <input
-                                  v-model.number="authSourceDefaults[authSource.source].platform_quotas[p]!.daily"
+                                  v-model.number="
+                                    authSourceDefaults[authSource.source]
+                                      .platform_quotas[p]!.daily
+                                  "
                                   type="number"
                                   step="0.01"
                                   min="0"
                                   class="input h-8 w-28 text-sm"
-                                  :placeholder="t('admin.settings.platformQuota.placeholder')"
+                                  :placeholder="
+                                    t(
+                                      'admin.settings.platformQuota.placeholder',
+                                    )
+                                  "
                                 />
                               </td>
                               <td class="pr-4 py-1">
                                 <input
-                                  v-model.number="authSourceDefaults[authSource.source].platform_quotas[p]!.weekly"
+                                  v-model.number="
+                                    authSourceDefaults[authSource.source]
+                                      .platform_quotas[p]!.weekly
+                                  "
                                   type="number"
                                   step="0.01"
                                   min="0"
                                   class="input h-8 w-28 text-sm"
-                                  :placeholder="t('admin.settings.platformQuota.placeholder')"
+                                  :placeholder="
+                                    t(
+                                      'admin.settings.platformQuota.placeholder',
+                                    )
+                                  "
                                 />
                               </td>
                               <td class="py-1">
                                 <input
-                                  v-model.number="authSourceDefaults[authSource.source].platform_quotas[p]!.monthly"
+                                  v-model.number="
+                                    authSourceDefaults[authSource.source]
+                                      .platform_quotas[p]!.monthly
+                                  "
                                   type="number"
                                   step="0.01"
                                   min="0"
                                   class="input h-8 w-28 text-sm"
-                                  :placeholder="t('admin.settings.platformQuota.placeholder')"
+                                  :placeholder="
+                                    t(
+                                      'admin.settings.platformQuota.placeholder',
+                                    )
+                                  "
                                 />
                               </td>
                             </tr>
@@ -3760,7 +4013,9 @@
                   </label>
                   <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                     {{
-                      t("admin.settings.openaiExperimentalScheduler.description")
+                      t(
+                        "admin.settings.openaiExperimentalScheduler.description",
+                      )
                     }}
                   </p>
                 </div>
@@ -3839,6 +4094,241 @@
                   </p>
                 </div>
                 <Toggle v-model="form.enable_cch_signing" />
+              </div>
+
+              <!-- Claude OAuth System Prompt Injection -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.claudeOAuthSystemPromptInjection",
+                      )
+                    }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.claudeOAuthSystemPromptInjectionHint",
+                      )
+                    }}
+                  </p>
+                </div>
+                <Toggle
+                  v-model="form.enable_claude_oauth_system_prompt_injection"
+                />
+              </div>
+
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{
+                    t(
+                      "admin.settings.gatewayForwarding.claudeOAuthSystemPromptBlocks",
+                    )
+                  }}
+                </label>
+                <div class="space-y-3">
+                  <div
+                    v-for="(block, index) in claudeOAuthSystemPromptBlocks"
+                    :key="block.id"
+                    class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800/60"
+                  >
+                    <div
+                      :class="[
+                        'flex flex-wrap items-center justify-between gap-3',
+                        block.expanded && 'mb-3',
+                      ]"
+                    >
+                      <div class="min-w-0">
+                        <div
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          {{
+                            t(
+                              "admin.settings.gatewayForwarding.systemBlockTitle",
+                              { index: index + 1 },
+                            )
+                          }}
+                        </div>
+                        <div
+                          class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          {{ getClaudeOAuthPresetLabel(block.preset) }}
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm px-2"
+                          :title="
+                            block.expanded
+                              ? t(
+                                  'admin.settings.gatewayForwarding.systemBlockHide',
+                                )
+                              : t(
+                                  'admin.settings.gatewayForwarding.systemBlockShow',
+                                )
+                          "
+                          :aria-label="
+                            block.expanded
+                              ? t(
+                                  'admin.settings.gatewayForwarding.systemBlockHide',
+                                )
+                              : t(
+                                  'admin.settings.gatewayForwarding.systemBlockShow',
+                                )
+                          "
+                          @click="toggleClaudeOAuthSystemPromptBlock(index)"
+                        >
+                          <Icon
+                            :name="block.expanded ? 'eyeOff' : 'eye'"
+                            size="xs"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm px-2"
+                          :disabled="index === 0"
+                          @click="moveClaudeOAuthSystemPromptBlock(index, -1)"
+                        >
+                          <Icon name="arrowUp" size="xs" />
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm px-2"
+                          :disabled="
+                            index === claudeOAuthSystemPromptBlocks.length - 1
+                          "
+                          @click="moveClaudeOAuthSystemPromptBlock(index, 1)"
+                        >
+                          <Icon name="arrowDown" size="xs" />
+                        </button>
+                        <Toggle v-model="block.enabled" />
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm px-2 text-red-600 hover:text-red-700 dark:text-red-400"
+                          @click="removeClaudeOAuthSystemPromptBlock(index)"
+                        >
+                          <Icon name="trash" size="xs" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div v-show="block.expanded">
+                      <div class="grid gap-3 md:grid-cols-2">
+                        <div>
+                          <label
+                            class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300"
+                          >
+                            {{
+                              t(
+                                "admin.settings.gatewayForwarding.systemBlockPreset",
+                              )
+                            }}
+                          </label>
+                          <Select
+                            v-model="block.preset"
+                            :options="claudeOAuthSystemPromptPresetOptions"
+                            @change="
+                              (value) =>
+                                applyClaudeOAuthSystemPromptPreset(index, value)
+                            "
+                          />
+                        </div>
+                        <div>
+                          <label
+                            class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300"
+                          >
+                            {{
+                              t(
+                                "admin.settings.gatewayForwarding.systemBlockType",
+                              )
+                            }}
+                          </label>
+                          <Select
+                            v-model="block.type"
+                            :options="claudeOAuthSystemPromptBlockTypeOptions"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="mt-3">
+                        <label
+                          class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300"
+                        >
+                          {{
+                            t(
+                              "admin.settings.gatewayForwarding.systemBlockText",
+                            )
+                          }}
+                        </label>
+                        <textarea
+                          v-model="block.text"
+                          rows="6"
+                          class="input w-full resize-y font-mono text-xs leading-5"
+                          @input="markClaudeOAuthSystemPromptBlockCustom(block)"
+                        />
+                      </div>
+
+                      <div
+                        class="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]"
+                      >
+                        <div class="flex items-center justify-between gap-4">
+                          <div>
+                            <label
+                              class="text-xs font-medium text-gray-600 dark:text-gray-300"
+                            >
+                              {{
+                                t(
+                                  "admin.settings.gatewayForwarding.systemBlockCacheControl",
+                                )
+                              }}
+                            </label>
+                          </div>
+                          <Toggle v-model="block.cacheControlEnabled" />
+                        </div>
+                        <div v-if="block.cacheControlEnabled">
+                          <Select
+                            v-model="block.cacheControlTTL"
+                            :options="claudeOAuthSystemPromptCacheTTLOptions"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    @click="addClaudeOAuthSystemPromptBlock"
+                  >
+                    <Icon name="plus" size="xs" />
+                    {{ t("admin.settings.gatewayForwarding.addSystemBlock") }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    @click="resetClaudeOAuthSystemPromptBlocks"
+                  >
+                    <Icon name="refresh" size="xs" />
+                    {{
+                      t("admin.settings.gatewayForwarding.resetSystemBlocks")
+                    }}
+                  </button>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{
+                    t(
+                      "admin.settings.gatewayForwarding.claudeOAuthSystemPromptBlocksHint",
+                    )
+                  }}
+                </p>
               </div>
 
               <!-- Anthropic Cache TTL 1h Injection -->
@@ -3925,9 +4415,7 @@
                   class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
                   {{
-                    t(
-                      "admin.settings.gatewayForwarding.openaiCodexUserAgent",
-                    )
+                    t("admin.settings.gatewayForwarding.openaiCodexUserAgent")
                   }}
                 </label>
                 <input
@@ -3952,11 +4440,21 @@
               <!-- 是否允许在 Claude Code 中使用 Codex 插件（全局开关） -->
               <div class="flex items-center justify-between">
                 <div class="pr-4">
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {{ t("admin.settings.gatewayForwarding.openaiAllowClaudeCodeCodexPlugin") }}
+                  <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.openaiAllowClaudeCodeCodexPlugin",
+                      )
+                    }}
                   </label>
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {{ t("admin.settings.gatewayForwarding.openaiAllowClaudeCodeCodexPluginDesc") }}
+                    {{
+                      t(
+                        "admin.settings.gatewayForwarding.openaiAllowClaudeCodeCodexPluginDesc",
+                      )
+                    }}
                   </p>
                 </div>
                 <Toggle v-model="form.openai_allow_claude_code_codex_plugin" />
@@ -4399,34 +4897,41 @@
             </div>
           </div>
 
-        <!-- Usage Records Settings -->
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('admin.settings.usageRecords.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('admin.settings.usageRecords.description') }}
-            </p>
-          </div>
-          <div class="space-y-4 p-6">
-            <!-- User error requests visibility -->
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('admin.settings.user_error_view.label') }}
+          <!-- Usage Records Settings -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.usageRecords.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.usageRecords.description") }}
+              </p>
+            </div>
+            <div class="space-y-4 p-6">
+              <!-- User error requests visibility -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.user_error_view.label") }}
+                  </label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.user_error_view.description") }}
+                  </p>
+                </div>
+                <label class="toggle">
+                  <input
+                    v-model="form.allow_user_view_error_requests"
+                    type="checkbox"
+                  />
+                  <span class="toggle-slider"></span>
                 </label>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('admin.settings.user_error_view.description') }}
-                </p>
               </div>
-              <label class="toggle">
-                <input v-model="form.allow_user_view_error_requests" type="checkbox" />
-                <span class="toggle-slider"></span>
-              </label>
             </div>
           </div>
-        </div>
         </div>
         <!-- /Tab: Gateway — Claude Code, Scheduling -->
 
@@ -4456,11 +4961,11 @@
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {{ t("admin.settings.site.backendModeDescription") }}
                   </p>
-	                </div>
-	                <Toggle v-model="form.backend_mode_enabled" />
-	              </div>
+                </div>
+                <Toggle v-model="form.backend_mode_enabled" />
+              </div>
 
-	              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label
                     class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -4917,26 +5422,6 @@
                     </select>
                   </div>
 
-                  <!-- Open mode -->
-                  <div class="sm:col-span-2">
-                    <label
-                      class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
-                    >
-                      {{ t("admin.settings.customMenu.openMode") }}
-                    </label>
-                    <select v-model="item.open_mode" class="input text-sm">
-                      <option value="iframe">
-                        {{ t("admin.settings.customMenu.openModeIframe") }}
-                      </option>
-                      <option value="new_tab">
-                        {{ t("admin.settings.customMenu.openModeNewTab") }}
-                      </option>
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {{ t("admin.settings.customMenu.openModeHint") }}
-                    </p>
-                  </div>
-
                   <!-- URL (full width) -->
                   <div class="sm:col-span-2">
                     <label
@@ -4996,43 +5481,59 @@
               </button>
             </div>
           </div>
-	        </div>
-	        <!-- /Tab: General -->
+        </div>
+        <!-- /Tab: General -->
 
-	        <!-- Tab: Login Agreement -->
-	        <div v-show="activeTab === 'agreement'" class="space-y-6">
-	          <div class="card">
-	            <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-	              <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-	                <div>
-	                  <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-	                    {{ localText("登录条款确认", "Login agreement") }}
-	                  </h2>
-	                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-	                    {{
-	                      localText(
-	                        "控制登录页是否要求用户先阅读并同意服务条款、隐私政策或其他 Markdown 文档。",
-	                        "Control whether the login page requires users to accept Markdown policy documents first.",
-	                      )
-	                    }}
-	                  </p>
-	                </div>
-	                <div class="flex items-center gap-3">
-	                  <span class="text-sm text-gray-600 dark:text-gray-300">
-	                    {{ form.login_agreement_enabled ? localText("已启用", "Enabled") : localText("未启用", "Disabled") }}
-	                  </span>
-	                  <Toggle v-model="form.login_agreement_enabled" />
-	                </div>
-	              </div>
-	            </div>
+        <!-- Tab: Login Agreement -->
+        <div v-show="activeTab === 'agreement'" class="space-y-6">
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <div
+                class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+              >
+                <div>
+                  <h2
+                    class="text-lg font-semibold text-gray-900 dark:text-white"
+                  >
+                    {{ localText("登录条款确认", "Login agreement") }}
+                  </h2>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{
+                      localText(
+                        "控制登录页是否要求用户先阅读并同意服务条款、隐私政策或其他 Markdown 文档。",
+                        "Control whether the login page requires users to accept Markdown policy documents first.",
+                      )
+                    }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-sm text-gray-600 dark:text-gray-300">
+                    {{
+                      form.login_agreement_enabled
+                        ? localText("已启用", "Enabled")
+                        : localText("未启用", "Disabled")
+                    }}
+                  </span>
+                  <Toggle v-model="form.login_agreement_enabled" />
+                </div>
+              </div>
+            </div>
 
-	            <div class="space-y-6 p-6">
-	              <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
-	                <div>
-	                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-	                    {{ localText("展示形式", "Display mode") }}
-	                  </label>
-	                  <div class="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1 dark:bg-dark-700">
+            <div class="space-y-6 p-6">
+              <div
+                class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_220px]"
+              >
+                <div>
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ localText("展示形式", "Display mode") }}
+                  </label>
+                  <div
+                    class="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1 dark:bg-dark-700"
+                  >
                     <button
                       type="button"
                       class="inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition"
@@ -5063,14 +5564,22 @@
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {{
                       form.login_agreement_mode === "checkbox"
-                        ? localText("复选框会显示在登录按钮下方，未勾选前所有登录入口禁用。", "The checkbox appears below the login button and gates all login actions.")
-                        : localText("弹窗会在登录页打开，用户拒绝后所有登录入口保持禁用。", "The modal opens on the login page and gates all login actions until accepted.")
+                        ? localText(
+                            "复选框会显示在登录按钮下方，未勾选前所有登录入口禁用。",
+                            "The checkbox appears below the login button and gates all login actions.",
+                          )
+                        : localText(
+                            "弹窗会在登录页打开，用户拒绝后所有登录入口保持禁用。",
+                            "The modal opens on the login page and gates all login actions until accepted.",
+                          )
                     }}
                   </p>
                 </div>
 
                 <div>
-                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label
+                    class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
                     {{ localText("条款更新日期", "Updated date") }}
                   </label>
                   <input
@@ -5079,15 +5588,24 @@
                     class="input"
                   />
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {{ localText("日期或文档内容变化后，用户需要重新同意。", "Changing the date or content requires fresh consent.") }}
+                    {{
+                      localText(
+                        "日期或文档内容变化后，用户需要重新同意。",
+                        "Changing the date or content requires fresh consent.",
+                      )
+                    }}
                   </p>
                 </div>
               </div>
 
               <div>
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div>
-                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                    <h3
+                      class="text-sm font-medium text-gray-900 dark:text-white"
+                    >
                       {{ localText("协议文档", "Agreement documents") }}
                     </h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -5117,7 +5635,9 @@
                   >
                     <div class="mb-3 flex items-center justify-between gap-3">
                       <div class="flex min-w-0 items-center gap-3">
-                        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-dark-200">
+                        <span
+                          class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-700 dark:bg-dark-700 dark:text-dark-200"
+                        >
                           <Icon
                             :name="
                               index === 1
@@ -5132,10 +5652,17 @@
                           />
                         </span>
                         <div class="min-w-0">
-                          <p class="truncate text-sm font-semibold text-gray-900 dark:text-white">
-                            {{ doc.title || localText("未命名文档", "Untitled document") }}
+                          <p
+                            class="truncate text-sm font-semibold text-gray-900 dark:text-white"
+                          >
+                            {{
+                              doc.title ||
+                              localText("未命名文档", "Untitled document")
+                            }}
                           </p>
-                          <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                          <p
+                            class="truncate text-xs text-gray-500 dark:text-gray-400"
+                          >
                             {{ loginAgreementRoutePath(doc, index) }}
                           </p>
                         </div>
@@ -5155,22 +5682,35 @@
 
                     <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        <label
+                          class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+                        >
                           {{ localText("文档名称", "Document title") }}
                         </label>
                         <input
                           v-model="doc.title"
                           type="text"
                           class="input text-sm"
-                          :placeholder="localText('例如：服务条款', 'Example: Terms of Service')"
+                          :placeholder="
+                            localText(
+                              '例如：服务条款',
+                              'Example: Terms of Service',
+                            )
+                          "
                         />
                       </div>
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        <label
+                          class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+                        >
                           {{ localText("路由标识", "Route slug") }}
                         </label>
-                        <div class="flex overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 dark:border-dark-600 dark:bg-dark-900">
-                          <span class="inline-flex flex-shrink-0 items-center border-r border-gray-200 bg-gray-50 px-3 text-sm text-gray-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-400">
+                        <div
+                          class="flex overflow-hidden rounded-lg border border-gray-300 bg-white focus-within:border-primary-500 focus-within:ring-1 focus-within:ring-primary-500 dark:border-dark-600 dark:bg-dark-900"
+                        >
+                          <span
+                            class="inline-flex flex-shrink-0 items-center border-r border-gray-200 bg-gray-50 px-3 text-sm text-gray-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-400"
+                          >
                             /legal/
                           </span>
                           <input
@@ -5183,15 +5723,22 @@
                       </div>
                     </div>
                     <div class="mt-3">
-                      <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                      <label
+                        class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+                      >
                         {{ localText("Markdown 内容", "Markdown content") }}
                       </label>
-                        <textarea
-                          v-model="doc.content_md"
-                          rows="8"
-                          class="input font-mono text-sm"
-                          :placeholder="localText('在这里填写正式 Markdown 内容。', 'Write the final Markdown content here.')"
-                        ></textarea>
+                      <textarea
+                        v-model="doc.content_md"
+                        rows="8"
+                        class="input font-mono text-sm"
+                        :placeholder="
+                          localText(
+                            '在这里填写正式 Markdown 内容。',
+                            'Write the final Markdown content here.',
+                          )
+                        "
+                      ></textarea>
                     </div>
                   </div>
                 </div>
@@ -5201,589 +5748,811 @@
         </div>
         <!-- /Tab: Login Agreement -->
 
-	        <!-- Tab: Features (功能开关) -->
+        <!-- Tab: Features (功能开关) -->
         <div v-show="activeTab === 'features'" class="space-y-6">
-
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('admin.settings.features.channelMonitor.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('admin.settings.features.channelMonitor.description') }}
-            </p>
-            <p class="mt-1.5 text-xs">
-              <router-link
-                to="/admin/channels/monitor"
-                class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
-              >
-                {{ t('admin.settings.features.channelMonitor.configureLink') }}
-                <span aria-hidden="true">→</span>
-              </router-link>
-            </p>
-          </div>
-          <div class="space-y-5 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('admin.settings.features.channelMonitor.enabled') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('admin.settings.features.channelMonitor.enabledHint') }}
-                </p>
-              </div>
-              <Toggle v-model="form.channel_monitor_enabled" />
-            </div>
-
-            <div v-if="form.channel_monitor_enabled">
-              <label class="input-label">
-                {{ t('admin.settings.features.channelMonitor.defaultInterval') }}
-                <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model.number="form.channel_monitor_default_interval_seconds"
-                type="number"
-                min="15"
-                max="3600"
-                class="input"
-              />
-              <p class="mt-1 text-xs text-gray-400">
-                {{ t('admin.settings.features.channelMonitor.defaultIntervalHint') }}
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.features.channelMonitor.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.features.channelMonitor.description") }}
+              </p>
+              <p class="mt-1.5 text-xs">
+                <router-link
+                  to="/admin/channels/monitor"
+                  class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
+                >
+                  {{
+                    t("admin.settings.features.channelMonitor.configureLink")
+                  }}
+                  <span aria-hidden="true">→</span>
+                </router-link>
               </p>
             </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('admin.settings.features.availableChannels.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('admin.settings.features.availableChannels.description') }}
-            </p>
-            <p class="mt-1.5 text-xs">
-              <router-link
-                to="/admin/channels/pricing"
-                class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
-              >
-                {{ t('admin.settings.features.availableChannels.configureLink') }}
-                <span aria-hidden="true">→</span>
-              </router-link>
-            </p>
-          </div>
-          <div class="space-y-5 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('admin.settings.features.availableChannels.enabled') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('admin.settings.features.availableChannels.enabledHint') }}
-                </p>
-              </div>
-              <Toggle v-model="form.available_channels_enabled" />
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('admin.settings.features.riskControl.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('admin.settings.features.riskControl.description') }}
-            </p>
-            <p class="mt-1.5 text-xs">
-              <router-link
-                to="/admin/risk-control"
-                class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
-              >
-                {{ t('admin.settings.features.riskControl.configureLink') }}
-                <span aria-hidden="true">→</span>
-              </router-link>
-            </p>
-          </div>
-          <div class="space-y-5 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('admin.settings.features.riskControl.enabled') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('admin.settings.features.riskControl.enabledHint') }}
-                </p>
-              </div>
-              <Toggle v-model="form.risk_control_enabled" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Affiliate (邀请返利) feature card -->
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('admin.settings.features.affiliate.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('admin.settings.features.affiliate.description') }}
-            </p>
-          </div>
-          <div class="space-y-5 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('admin.settings.features.affiliate.enabled') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('admin.settings.features.affiliate.enabledHint') }}
-                </p>
-              </div>
-              <Toggle v-model="form.affiliate_enabled" />
-            </div>
-
-            <div v-if="form.affiliate_enabled" class="space-y-6">
-              <div>
-                <label class="input-label">
-                  {{ t('admin.settings.features.affiliate.rebateRate') }}
-                </label>
-                <div class="relative">
-                  <input
-                    v-model.number="form.affiliate_rebate_rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    class="input pr-8"
-                    placeholder="20"
-                  />
-                  <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-                </div>
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.rebateRateHint') }}
-                </p>
-              </div>
-
-              <div>
-                <label class="input-label">
-                  {{ t('admin.settings.features.affiliate.freezeHours') }}
-                </label>
-                <input
-                  v-model.number="form.affiliate_rebate_freeze_hours"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="720"
-                  class="input"
-                />
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.freezeHoursDesc') }}
-                </p>
-              </div>
-
-              <div>
-                <label class="input-label">
-                  {{ t('admin.settings.features.affiliate.durationDays') }}
-                </label>
-                <input
-                  v-model.number="form.affiliate_rebate_duration_days"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="3650"
-                  class="input"
-                />
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.durationDaysDesc') }}
-                </p>
-              </div>
-
-              <div>
-                <label class="input-label">
-                  {{ t('admin.settings.features.affiliate.perInviteeCap') }}
-                </label>
-                <input
-                  v-model.number="form.affiliate_rebate_per_invitee_cap"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="input"
-                />
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.perInviteeCapDesc') }}
-                </p>
-              </div>
-
-              <!-- 专属用户管理 -->
-              <div class="border-t border-gray-100 pt-6 dark:border-dark-700">
-                <div class="mb-3 flex items-center justify-between">
-                  <div>
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-                      {{ t('admin.settings.features.affiliate.customUsers.title') }}
-                    </h3>
-                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                      {{ t('admin.settings.features.affiliate.customUsers.description') }}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm"
-                    @click="openAffiliateModal(null)"
-                  >
-                    + {{ t('admin.settings.features.affiliate.customUsers.addButton') }}
-                  </button>
-                </div>
-
-                <div class="mb-3 flex items-center gap-2">
-                  <input
-                    v-model="affiliateState.search"
-                    type="text"
-                    class="input flex-1"
-                    :placeholder="t('admin.settings.features.affiliate.customUsers.searchPlaceholder')"
-                    @input="onAffiliateSearchInput"
-                  />
-                  <button
-                    v-if="affiliateState.selected.length > 0"
-                    type="button"
-                    class="btn btn-secondary btn-sm"
-                    @click="openAffiliateBatchModal"
-                  >
-                    {{ t('admin.settings.features.affiliate.customUsers.batchButton', { count: affiliateState.selected.length }) }}
-                  </button>
-                </div>
-
-                <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-700">
-                  <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                    <thead class="bg-gray-50 dark:bg-dark-800">
-                      <tr>
-                        <th class="px-3 py-2 text-left">
-                          <input
-                            type="checkbox"
-                            :checked="affiliateState.entries.length > 0 && affiliateState.selected.length === affiliateState.entries.length"
-                            @change="toggleAffiliateSelectAll"
-                          />
-                        </th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.email') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.username') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.code') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.rate') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.freeze') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.duration') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.hideInvitees') }}</th>
-                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.actions') }}</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
-                      <tr v-if="affiliateState.loading">
-                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
-                          {{ t('common.loading') }}
-                        </td>
-                      </tr>
-                      <tr v-else-if="affiliateState.entries.length === 0">
-                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
-                          {{ t('admin.settings.features.affiliate.customUsers.empty') }}
-                        </td>
-                      </tr>
-                      <tr v-for="entry in affiliateState.entries" :key="entry.user_id">
-                        <td class="px-3 py-2">
-                          <input
-                            type="checkbox"
-                            :checked="affiliateState.selected.includes(entry.user_id)"
-                            @change="toggleAffiliateSelect(entry.user_id)"
-                          />
-                        </td>
-                        <td class="px-3 py-2 text-sm text-gray-900 dark:text-white">{{ entry.email }}</td>
-                        <td class="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">{{ entry.username }}</td>
-                        <td class="px-3 py-2 text-sm font-mono">
-                          {{ entry.aff_code }}
-                          <span
-                            v-if="entry.aff_code_custom"
-                            class="ml-1 inline-block rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-                          >{{ t('admin.settings.features.affiliate.customUsers.customBadge') }}</span>
-                        </td>
-                        <td class="px-3 py-2 text-sm">
-                          <span v-if="entry.aff_rebate_rate_percent != null">{{ entry.aff_rebate_rate_percent }}%</span>
-                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
-                        </td>
-                        <td class="px-3 py-2 text-sm">
-                          <span v-if="entry.aff_rebate_freeze_hours != null">{{ entry.aff_rebate_freeze_hours }}h</span>
-                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
-                        </td>
-                        <td class="px-3 py-2 text-sm">
-                          <span v-if="entry.aff_rebate_duration_days != null">{{ entry.aff_rebate_duration_days === 0 ? t('admin.settings.features.affiliate.customUsers.forever') : `${entry.aff_rebate_duration_days}d` }}</span>
-                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
-                        </td>
-                        <td class="px-3 py-2 text-sm">
-                          <span
-                            v-if="entry.hide_affiliate_for_invitees"
-                            class="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                          >{{ t('admin.settings.features.affiliate.customUsers.hidden') }}</span>
-                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.notHidden') }}</span>
-                        </td>
-                        <td class="px-3 py-2 text-sm">
-                          <div class="flex items-center gap-2">
-                            <button type="button" class="text-primary-600 hover:underline" @click="openAffiliateModal(entry)">
-                              {{ t('common.edit') }}
-                            </button>
-                            <button
-                              type="button"
-                              class="text-red-600 hover:underline"
-                              @click="askResetAffiliateUser(entry)"
-                            >
-                              {{ t('common.delete') }}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div v-if="affiliateState.total > affiliateState.pageSize" class="mt-3 flex items-center justify-between text-sm">
-                  <span class="text-gray-500">
-                    {{ t('admin.settings.features.affiliate.customUsers.totalLabel', { total: affiliateState.total }) }}
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm"
-                      :disabled="affiliateState.page <= 1"
-                      @click="changeAffiliatePage(affiliateState.page - 1)"
-                    >
-                      {{ t('pagination.previous') }}
-                    </button>
-                    <span class="text-gray-500">{{ affiliateState.page }} / {{ Math.max(1, Math.ceil(affiliateState.total / affiliateState.pageSize)) }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-secondary btn-sm"
-                      :disabled="affiliateState.page >= Math.ceil(affiliateState.total / affiliateState.pageSize)"
-                      @click="changeAffiliatePage(affiliateState.page + 1)"
-                    >
-                      {{ t('pagination.next') }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Affiliate add/edit modal -->
-        <div
-          v-if="affiliateModal.open"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          @click.self="closeAffiliateModal"
-        >
-          <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-900">
-            <h3 class="mb-4 text-lg font-semibold">
-              {{ affiliateModal.mode === 'add' ? t('admin.settings.features.affiliate.modal.addTitle') : t('admin.settings.features.affiliate.modal.editTitle') }}
-            </h3>
-            <div class="space-y-4">
-              <div v-if="affiliateModal.mode === 'add'">
-                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.userLabel') }}</label>
-                <!-- Chip showing the picked user; clicking it re-opens the search -->
-                <div
-                  v-if="affiliateModal.selectedUser"
-                  class="flex items-center justify-between rounded-md border border-primary-200 bg-primary-50 px-3 py-2 dark:border-primary-700/50 dark:bg-primary-900/20"
-                >
-                  <div class="text-sm">
-                    <span class="font-medium text-gray-900 dark:text-white">{{ affiliateModal.selectedUser.email }}</span>
-                    <span class="ml-1 text-xs text-gray-500">({{ affiliateModal.selectedUser.username }})</span>
-                  </div>
-                  <button
-                    type="button"
-                    class="text-lg leading-none text-gray-400 hover:text-red-600"
-                    :title="t('admin.settings.features.affiliate.modal.changeUser')"
-                    @click="clearSelectedAffiliateUser"
-                  >
-                    ×
-                  </button>
-                </div>
-                <!-- Search input + result dropdown — hidden once a selection is made -->
-                <template v-else>
-                  <input
-                    v-model="affiliateModal.userQuery"
-                    type="text"
-                    class="input"
-                    :placeholder="t('admin.settings.features.affiliate.modal.userPlaceholder')"
-                    @input="onAffiliateUserSearchInput"
-                  />
-                  <div
-                    v-if="affiliateModal.userResults.length > 0"
-                    class="mt-1 max-h-40 overflow-y-auto rounded border border-gray-200 dark:border-dark-700"
-                  >
-                    <button
-                      v-for="u in affiliateModal.userResults"
-                      :key="u.id"
-                      type="button"
-                      class="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-800"
-                      @click="selectAffiliateUser(u)"
-                    >
-                      {{ u.email }} <span class="text-xs text-gray-500">({{ u.username }})</span>
-                    </button>
-                  </div>
-                </template>
-              </div>
-              <div v-else>
-                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.userLabel') }}</label>
-                <input
-                  type="text"
-                  class="input"
-                  :value="affiliateModal.editingEntry ? affiliateModal.editingEntry.email : ''"
-                  disabled
-                />
-              </div>
-
-              <div>
-                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.codeLabel') }}</label>
-                <input
-                  v-model="affiliateModal.code"
-                  type="text"
-                  class="input font-mono"
-                  :placeholder="t('admin.settings.features.affiliate.modal.codePlaceholder')"
-                  maxlength="32"
-                />
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.modal.codeHint') }}
-                </p>
-              </div>
-
-              <div>
-                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.rateLabel') }}</label>
-                <div class="relative">
-                  <input
-                    v-model="affiliateModal.rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    class="input pr-8"
-                    :placeholder="t('admin.settings.features.affiliate.modal.ratePlaceholder')"
-                  />
-                  <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-                </div>
-                <p class="mt-1 text-xs text-gray-400">
-                  {{ t('admin.settings.features.affiliate.modal.rateHint') }}
-                </p>
-              </div>
-
-              <div class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
                 <div>
-                  <label class="input-label">{{ t('admin.settings.features.affiliate.modal.freezeLabel') }}</label>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.features.channelMonitor.enabled") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t("admin.settings.features.channelMonitor.enabledHint")
+                    }}
+                  </p>
+                </div>
+                <Toggle v-model="form.channel_monitor_enabled" />
+              </div>
+
+              <div v-if="form.channel_monitor_enabled">
+                <label class="input-label">
+                  {{
+                    t("admin.settings.features.channelMonitor.defaultInterval")
+                  }}
+                  <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model.number="form.channel_monitor_default_interval_seconds"
+                  type="number"
+                  min="15"
+                  max="3600"
+                  class="input"
+                />
+                <p class="mt-1 text-xs text-gray-400">
+                  {{
+                    t(
+                      "admin.settings.features.channelMonitor.defaultIntervalHint",
+                    )
+                  }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.features.availableChannels.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.features.availableChannels.description") }}
+              </p>
+              <p class="mt-1.5 text-xs">
+                <router-link
+                  to="/admin/channels/pricing"
+                  class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
+                >
+                  {{
+                    t("admin.settings.features.availableChannels.configureLink")
+                  }}
+                  <span aria-hidden="true">→</span>
+                </router-link>
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.features.availableChannels.enabled") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t("admin.settings.features.availableChannels.enabledHint")
+                    }}
+                  </p>
+                </div>
+                <Toggle v-model="form.available_channels_enabled" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.features.riskControl.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.features.riskControl.description") }}
+              </p>
+              <p class="mt-1.5 text-xs">
+                <router-link
+                  to="/admin/risk-control"
+                  class="inline-flex items-center gap-1 text-primary-600 hover:underline dark:text-primary-400"
+                >
+                  {{ t("admin.settings.features.riskControl.configureLink") }}
+                  <span aria-hidden="true">→</span>
+                </router-link>
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.features.riskControl.enabled") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.features.riskControl.enabledHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.risk_control_enabled" />
+              </div>
+
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{
+                      t("admin.settings.features.riskControl.cyberSessionBlock")
+                    }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{
+                      t(
+                        "admin.settings.features.riskControl.cyberSessionBlockHint",
+                      )
+                    }}
+                  </p>
+                </div>
+                <Toggle v-model="form.cyber_session_block_enabled" />
+              </div>
+
+              <div v-if="form.cyber_session_block_enabled">
+                <label class="input-label">
+                  {{
+                    t(
+                      "admin.settings.features.riskControl.cyberSessionBlockTTL",
+                    )
+                  }}
+                  <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model.number="form.cyber_session_block_ttl_seconds"
+                  type="number"
+                  min="1"
+                  class="input"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Affiliate (邀请返利) feature card -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.features.affiliate.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.features.affiliate.description") }}
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.features.affiliate.enabled") }}
+                  </label>
+                  <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.features.affiliate.enabledHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.affiliate_enabled" />
+              </div>
+
+              <div v-if="form.affiliate_enabled" class="space-y-6">
+                <div>
+                  <label class="input-label">
+                    {{ t("admin.settings.features.affiliate.rebateRate") }}
+                  </label>
+                  <div class="relative">
+                    <input
+                      v-model.number="form.affiliate_rebate_rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      class="input pr-8"
+                      placeholder="20"
+                    />
+                    <span
+                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      >%</span
+                    >
+                  </div>
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t("admin.settings.features.affiliate.rebateRateHint") }}
+                  </p>
+                </div>
+
+                <div>
+                  <label class="input-label">
+                    {{ t("admin.settings.features.affiliate.freezeHours") }}
+                  </label>
                   <input
-                    v-model="affiliateModal.freezeHours"
+                    v-model.number="form.affiliate_rebate_freeze_hours"
                     type="number"
                     step="1"
                     min="0"
                     max="720"
                     class="input"
-                    :placeholder="t('admin.settings.features.affiliate.modal.freezePlaceholder')"
                   />
                   <p class="mt-1 text-xs text-gray-400">
-                    {{ t('admin.settings.features.affiliate.modal.freezeHint') }}
+                    {{ t("admin.settings.features.affiliate.freezeHoursDesc") }}
                   </p>
                 </div>
+
                 <div>
-                  <label class="input-label">{{ t('admin.settings.features.affiliate.modal.durationLabel') }}</label>
+                  <label class="input-label">
+                    {{ t("admin.settings.features.affiliate.durationDays") }}
+                  </label>
                   <input
-                    v-model="affiliateModal.durationDays"
+                    v-model.number="form.affiliate_rebate_duration_days"
                     type="number"
                     step="1"
                     min="0"
                     max="3650"
                     class="input"
-                    :placeholder="t('admin.settings.features.affiliate.modal.durationPlaceholder')"
                   />
                   <p class="mt-1 text-xs text-gray-400">
-                    {{ t('admin.settings.features.affiliate.modal.durationHint') }}
+                    {{
+                      t("admin.settings.features.affiliate.durationDaysDesc")
+                    }}
+                  </p>
+                </div>
+
+                <div>
+                  <label class="input-label">
+                    {{ t("admin.settings.features.affiliate.perInviteeCap") }}
+                  </label>
+                  <input
+                    v-model.number="form.affiliate_rebate_per_invitee_cap"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="input"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{
+                      t("admin.settings.features.affiliate.perInviteeCapDesc")
+                    }}
+                  </p>
+                </div>
+
+                <!-- 专属用户管理 -->
+                <div class="border-t border-gray-100 pt-6 dark:border-dark-700">
+                  <div class="mb-3 flex items-center justify-between">
+                    <div>
+                      <h3
+                        class="text-sm font-semibold text-gray-900 dark:text-white"
+                      >
+                        {{
+                          t(
+                            "admin.settings.features.affiliate.customUsers.title",
+                          )
+                        }}
+                      </h3>
+                      <p
+                        class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                      >
+                        {{
+                          t(
+                            "admin.settings.features.affiliate.customUsers.description",
+                          )
+                        }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn-sm"
+                      @click="openAffiliateModal(null)"
+                    >
+                      +
+                      {{
+                        t(
+                          "admin.settings.features.affiliate.customUsers.addButton",
+                        )
+                      }}
+                    </button>
+                  </div>
+
+                  <div class="mb-3 flex items-center gap-2">
+                    <input
+                      v-model="affiliateState.search"
+                      type="text"
+                      class="input flex-1"
+                      :placeholder="
+                        t(
+                          'admin.settings.features.affiliate.customUsers.searchPlaceholder',
+                        )
+                      "
+                      @input="onAffiliateSearchInput"
+                    />
+                    <button
+                      v-if="affiliateState.selected.length > 0"
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      @click="openAffiliateBatchModal"
+                    >
+                      {{
+                        t(
+                          "admin.settings.features.affiliate.customUsers.batchButton",
+                          { count: affiliateState.selected.length },
+                        )
+                      }}
+                    </button>
+                  </div>
+
+                  <div
+                    class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-700"
+                  >
+                    <table
+                      class="min-w-full divide-y divide-gray-200 dark:divide-dark-700"
+                    >
+                      <thead class="bg-gray-50 dark:bg-dark-800">
+                        <tr>
+                          <th class="px-3 py-2 text-left">
+                            <input
+                              type="checkbox"
+                              :checked="
+                                affiliateState.entries.length > 0 &&
+                                affiliateState.selected.length ===
+                                  affiliateState.entries.length
+                              "
+                              @change="toggleAffiliateSelectAll"
+                            />
+                          </th>
+                          <th
+                            class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.col.email",
+                              )
+                            }}
+                          </th>
+                          <th
+                            class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.col.username",
+                              )
+                            }}
+                          </th>
+                          <th
+                            class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.col.code",
+                              )
+                            }}
+                          </th>
+                          <th
+                            class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.col.rate",
+                              )
+                            }}
+                          </th>
+                          <th
+                            class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.col.actions",
+                              )
+                            }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody
+                        class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900"
+                      >
+                        <tr v-if="affiliateState.loading">
+                          <td
+                            colspan="6"
+                            class="px-3 py-6 text-center text-sm text-gray-500"
+                          >
+                            {{ t("common.loading") }}
+                          </td>
+                        </tr>
+                        <tr v-else-if="affiliateState.entries.length === 0">
+                          <td
+                            colspan="6"
+                            class="px-3 py-6 text-center text-sm text-gray-500"
+                          >
+                            {{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.empty",
+                              )
+                            }}
+                          </td>
+                        </tr>
+                        <tr
+                          v-for="entry in affiliateState.entries"
+                          :key="entry.user_id"
+                        >
+                          <td class="px-3 py-2">
+                            <input
+                              type="checkbox"
+                              :checked="
+                                affiliateState.selected.includes(entry.user_id)
+                              "
+                              @change="toggleAffiliateSelect(entry.user_id)"
+                            />
+                          </td>
+                          <td
+                            class="px-3 py-2 text-sm text-gray-900 dark:text-white"
+                          >
+                            {{ entry.email }}
+                          </td>
+                          <td
+                            class="px-3 py-2 text-sm text-gray-600 dark:text-gray-300"
+                          >
+                            {{ entry.username }}
+                          </td>
+                          <td class="px-3 py-2 text-sm font-mono">
+                            {{ entry.aff_code }}
+                            <span
+                              v-if="entry.aff_code_custom"
+                              class="ml-1 inline-block rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                              >{{
+                                t(
+                                  "admin.settings.features.affiliate.customUsers.customBadge",
+                                )
+                              }}</span
+                            >
+                          </td>
+                          <td class="px-3 py-2 text-sm">
+                            <span v-if="entry.aff_rebate_rate_percent != null"
+                              >{{ entry.aff_rebate_rate_percent }}%</span
+                            >
+                            <span v-else class="text-gray-400">{{
+                              t(
+                                "admin.settings.features.affiliate.customUsers.useGlobal",
+                              )
+                            }}</span>
+                          </td>
+                          <td class="px-3 py-2 text-sm">
+                            <div class="flex items-center gap-2">
+                              <button
+                                type="button"
+                                class="text-primary-600 hover:underline"
+                                @click="openAffiliateModal(entry)"
+                              >
+                                {{ t("common.edit") }}
+                              </button>
+                              <button
+                                type="button"
+                                class="text-red-600 hover:underline"
+                                @click="askResetAffiliateUser(entry)"
+                              >
+                                {{ t("common.delete") }}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div
+                    v-if="affiliateState.total > affiliateState.pageSize"
+                    class="mt-3 flex items-center justify-between text-sm"
+                  >
+                    <span class="text-gray-500">
+                      {{
+                        t(
+                          "admin.settings.features.affiliate.customUsers.totalLabel",
+                          { total: affiliateState.total },
+                        )
+                      }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm"
+                        :disabled="affiliateState.page <= 1"
+                        @click="changeAffiliatePage(affiliateState.page - 1)"
+                      >
+                        {{ t("pagination.previous") }}
+                      </button>
+                      <span class="text-gray-500"
+                        >{{ affiliateState.page }} /
+                        {{
+                          Math.max(
+                            1,
+                            Math.ceil(
+                              affiliateState.total / affiliateState.pageSize,
+                            ),
+                          )
+                        }}</span
+                      >
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn-sm"
+                        :disabled="
+                          affiliateState.page >=
+                          Math.ceil(
+                            affiliateState.total / affiliateState.pageSize,
+                          )
+                        "
+                        @click="changeAffiliatePage(affiliateState.page + 1)"
+                      >
+                        {{ t("pagination.next") }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Affiliate add/edit modal -->
+          <div
+            v-if="affiliateModal.open"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            @click.self="closeAffiliateModal"
+          >
+            <div
+              class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-900"
+            >
+              <h3 class="mb-4 text-lg font-semibold">
+                {{
+                  affiliateModal.mode === "add"
+                    ? t("admin.settings.features.affiliate.modal.addTitle")
+                    : t("admin.settings.features.affiliate.modal.editTitle")
+                }}
+              </h3>
+              <div class="space-y-4">
+                <div v-if="affiliateModal.mode === 'add'">
+                  <label class="input-label">{{
+                    t("admin.settings.features.affiliate.modal.userLabel")
+                  }}</label>
+                  <!-- Chip showing the picked user; clicking it re-opens the search -->
+                  <div
+                    v-if="affiliateModal.selectedUser"
+                    class="flex items-center justify-between rounded-md border border-primary-200 bg-primary-50 px-3 py-2 dark:border-primary-700/50 dark:bg-primary-900/20"
+                  >
+                    <div class="text-sm">
+                      <span class="font-medium text-gray-900 dark:text-white">{{
+                        affiliateModal.selectedUser.email
+                      }}</span>
+                      <span class="ml-1 text-xs text-gray-500"
+                        >({{ affiliateModal.selectedUser.username }})</span
+                      >
+                    </div>
+                    <button
+                      type="button"
+                      class="text-lg leading-none text-gray-400 hover:text-red-600"
+                      :title="
+                        t('admin.settings.features.affiliate.modal.changeUser')
+                      "
+                      @click="clearSelectedAffiliateUser"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <!-- Search input + result dropdown — hidden once a selection is made -->
+                  <template v-else>
+                    <input
+                      v-model="affiliateModal.userQuery"
+                      type="text"
+                      class="input"
+                      :placeholder="
+                        t(
+                          'admin.settings.features.affiliate.modal.userPlaceholder',
+                        )
+                      "
+                      @input="onAffiliateUserSearchInput"
+                    />
+                    <div
+                      v-if="affiliateModal.userResults.length > 0"
+                      class="mt-1 max-h-40 overflow-y-auto rounded border border-gray-200 dark:border-dark-700"
+                    >
+                      <button
+                        v-for="u in affiliateModal.userResults"
+                        :key="u.id"
+                        type="button"
+                        class="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-800"
+                        @click="selectAffiliateUser(u)"
+                      >
+                        {{ u.email }}
+                        <span class="text-xs text-gray-500"
+                          >({{ u.username }})</span
+                        >
+                      </button>
+                    </div>
+                  </template>
+                </div>
+                <div v-else>
+                  <label class="input-label">{{
+                    t("admin.settings.features.affiliate.modal.userLabel")
+                  }}</label>
+                  <input
+                    type="text"
+                    class="input"
+                    :value="
+                      affiliateModal.editingEntry
+                        ? affiliateModal.editingEntry.email
+                        : ''
+                    "
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <label class="input-label">{{
+                    t("admin.settings.features.affiliate.modal.codeLabel")
+                  }}</label>
+                  <input
+                    v-model="affiliateModal.code"
+                    type="text"
+                    class="input font-mono"
+                    :placeholder="
+                      t(
+                        'admin.settings.features.affiliate.modal.codePlaceholder',
+                      )
+                    "
+                    maxlength="32"
+                  />
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t("admin.settings.features.affiliate.modal.codeHint") }}
+                  </p>
+                </div>
+
+                <div>
+                  <label class="input-label">{{
+                    t("admin.settings.features.affiliate.modal.rateLabel")
+                  }}</label>
+                  <div class="relative">
+                    <input
+                      v-model="affiliateModal.rate"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      class="input pr-8"
+                      :placeholder="
+                        t(
+                          'admin.settings.features.affiliate.modal.ratePlaceholder',
+                        )
+                      "
+                    />
+                    <span
+                      class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      >%</span
+                    >
+                  </div>
+                  <p class="mt-1 text-xs text-gray-400">
+                    {{ t("admin.settings.features.affiliate.modal.rateHint") }}
                   </p>
                 </div>
               </div>
 
-              <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-dark-700">
-                <input
-                  v-model="affiliateModal.hideInvitees"
-                  type="checkbox"
-                  class="mt-1"
-                />
-                <span>
-                  <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.settings.features.affiliate.modal.hideInviteesLabel') }}</span>
-                  <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('admin.settings.features.affiliate.modal.hideInviteesHint') }}</span>
-                </span>
-              </label>
+              <div class="mt-6 flex items-center justify-between gap-3">
+                <p
+                  v-if="!affiliateModalCanSubmit"
+                  class="text-xs text-gray-500 dark:text-gray-400"
+                >
+                  {{ t("admin.settings.features.affiliate.modal.errorEmpty") }}
+                </p>
+                <span v-else></span>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    @click="closeAffiliateModal"
+                  >
+                    {{ t("common.cancel") }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    :disabled="
+                      affiliateModal.saving || !affiliateModalCanSubmit
+                    "
+                    @click="submitAffiliateModal"
+                  >
+                    {{
+                      affiliateModal.saving
+                        ? t("common.saving")
+                        : t("common.save")
+                    }}
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="mt-6 flex items-center justify-between gap-3">
-              <p
-                v-if="!affiliateModalCanSubmit"
-                class="text-xs text-gray-500 dark:text-gray-400"
-              >
-                {{ t('admin.settings.features.affiliate.modal.errorEmpty') }}
+          <!-- Affiliate batch rate modal -->
+          <div
+            v-if="affiliateBatchModal.open"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            @click.self="affiliateBatchModal.open = false"
+          >
+            <div
+              class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-900"
+            >
+              <h3 class="mb-4 text-lg font-semibold">
+                {{
+                  t("admin.settings.features.affiliate.batchModal.title", {
+                    count: affiliateState.selected.length,
+                  })
+                }}
+              </h3>
+              <p class="mb-4 text-sm text-gray-500">
+                {{ t("admin.settings.features.affiliate.batchModal.hint") }}
               </p>
-              <span v-else></span>
-              <div class="flex gap-2">
-                <button type="button" class="btn btn-secondary" @click="closeAffiliateModal">
-                  {{ t('common.cancel') }}
+              <div class="relative">
+                <input
+                  v-model="affiliateBatchModal.rate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  class="input pr-8"
+                  :placeholder="
+                    t(
+                      'admin.settings.features.affiliate.batchModal.placeholder',
+                    )
+                  "
+                />
+                <span
+                  class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  >%</span
+                >
+              </div>
+              <p class="mt-2 text-xs text-gray-400">
+                {{
+                  t("admin.settings.features.affiliate.batchModal.clearHint")
+                }}
+              </p>
+              <div class="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  @click="affiliateBatchModal.open = false"
+                >
+                  {{ t("common.cancel") }}
                 </button>
                 <button
                   type="button"
                   class="btn btn-primary"
-                  :disabled="affiliateModal.saving || !affiliateModalCanSubmit"
-                  @click="submitAffiliateModal"
+                  :disabled="affiliateBatchModal.saving"
+                  @click="submitAffiliateBatchModal"
                 >
-                  {{ affiliateModal.saving ? t('common.saving') : t('common.save') }}
+                  {{
+                    affiliateBatchModal.saving
+                      ? t("common.saving")
+                      : t("common.save")
+                  }}
                 </button>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Affiliate batch rate modal -->
-        <div
-          v-if="affiliateBatchModal.open"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          @click.self="affiliateBatchModal.open = false"
-        >
-          <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-900">
-            <h3 class="mb-4 text-lg font-semibold">
-              {{ t('admin.settings.features.affiliate.batchModal.title', { count: affiliateState.selected.length }) }}
-            </h3>
-            <p class="mb-4 text-sm text-gray-500">
-              {{ t('admin.settings.features.affiliate.batchModal.hint') }}
-            </p>
-            <div class="relative">
-              <input
-                v-model="affiliateBatchModal.rate"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                class="input pr-8"
-                :placeholder="t('admin.settings.features.affiliate.batchModal.placeholder')"
-              />
-              <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
-            </div>
-            <p class="mt-2 text-xs text-gray-400">
-              {{ t('admin.settings.features.affiliate.batchModal.clearHint') }}
-            </p>
-            <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="btn btn-secondary" @click="affiliateBatchModal.open = false">
-                {{ t('common.cancel') }}
-              </button>
-              <button
-                type="button"
-                class="btn btn-primary"
-                :disabled="affiliateBatchModal.saving"
-                @click="submitAffiliateBatchModal"
-              >
-                {{ affiliateBatchModal.saving ? t('common.saving') : t('common.save') }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        </div><!-- /Tab: Features -->
+        <!-- /Tab: Features -->
 
         <!-- Tab: Email -->
         <!-- Tab: Payment -->
@@ -6551,7 +7320,9 @@
                     {{ t("admin.settings.subscriptionExpiryNotify.enabled") }}
                   </label>
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {{ t("admin.settings.subscriptionExpiryNotify.enabledHint") }}
+                    {{
+                      t("admin.settings.subscriptionExpiryNotify.enabledHint")
+                    }}
                   </p>
                 </div>
                 <Toggle v-model="form.subscription_expiry_notify_enabled" />
@@ -6823,8 +7594,15 @@ import ImageUpload from "@/components/common/ImageUpload.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
 import { useClipboard } from "@/composables/useClipboard";
-import { affiliatesAPI, type AffiliateAdminEntry, type SimpleUser as AffiliateSimpleUser } from "@/api/admin/affiliates";
-import { extractApiErrorMessage, extractI18nErrorMessage } from "@/utils/apiError";
+import {
+  affiliatesAPI,
+  type AffiliateAdminEntry,
+  type SimpleUser as AffiliateSimpleUser,
+} from "@/api/admin/affiliates";
+import {
+  extractApiErrorMessage,
+  extractI18nErrorMessage,
+} from "@/utils/apiError";
 import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
 import { normalizeVisibleMethod } from "@/components/payment/paymentFlow";
@@ -6898,7 +7676,10 @@ function focusSettingsTab(tab: SettingsTab): void {
   });
 }
 
-function handleSettingsTabKeydown(event: KeyboardEvent, tab: SettingsTab): void {
+function handleSettingsTabKeydown(
+  event: KeyboardEvent,
+  tab: SettingsTab,
+): void {
   const action =
     settingsTabKeyboardActions[
       event.key as keyof typeof settingsTabKeyboardActions
@@ -7054,8 +7835,379 @@ function loginAgreementRoutePath(
   index: number,
 ): string {
   const id =
-    normalizeLoginAgreementDocumentId(doc.id || doc.title) || `doc-${index + 1}`;
+    normalizeLoginAgreementDocumentId(doc.id || doc.title) ||
+    `doc-${index + 1}`;
   return `/legal/${id}`;
+}
+
+type ClaudeOAuthSystemPromptPreset =
+  | "billing"
+  | "system"
+  | "expansion"
+  | "custom";
+
+interface ClaudeOAuthSystemPromptBlock {
+  id: string;
+  enabled: boolean;
+  expanded: boolean;
+  type: "text";
+  preset: ClaudeOAuthSystemPromptPreset;
+  text: string;
+  cacheControlEnabled: boolean;
+  cacheControlTTL: string;
+}
+
+interface ClaudeOAuthSystemPromptRawBlock {
+  enabled?: boolean;
+  type?: string;
+  text?: string;
+  cache_control?: unknown;
+}
+
+const defaultClaudeCodeSystemPrompt =
+  "You are Claude Code, Anthropic's official CLI for Claude.";
+
+const defaultClaudeCodeExpansionPrompt = `You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.
+
+IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.
+IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
+
+# Tone and style
+ - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
+ - Your responses should be short and concise.
+ - When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.
+ - When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.
+ - Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.`;
+
+let claudeOAuthSystemPromptBlockID = 0;
+
+function nextClaudeOAuthSystemPromptBlockID(): string {
+  claudeOAuthSystemPromptBlockID += 1;
+  return `claude-oauth-system-prompt-block-${claudeOAuthSystemPromptBlockID}`;
+}
+
+function normalizeClaudeOAuthSystemPromptCacheTTL(value: unknown): string {
+  return typeof value === "string" && value.trim() ? value.trim() : "5m";
+}
+
+function detectClaudeOAuthSystemPromptPreset(
+  text: string,
+): ClaudeOAuthSystemPromptPreset {
+  const trimmed = text.trim();
+  if (trimmed === "{billing_header}") {
+    return "billing";
+  }
+  if (
+    trimmed === "{claude_code_system_prompt}" ||
+    trimmed === defaultClaudeCodeSystemPrompt
+  ) {
+    return "system";
+  }
+  if (
+    trimmed === "{claude_code_expansion_prompt}" ||
+    trimmed === defaultClaudeCodeExpansionPrompt
+  ) {
+    return "expansion";
+  }
+  return "custom";
+}
+
+function normalizeClaudeOAuthSystemPromptBlockText(
+  text: string,
+  expansionPrompt = "",
+): string {
+  const trimmed = text.trim();
+  if (trimmed === "{claude_code_system_prompt}") {
+    return defaultClaudeCodeSystemPrompt;
+  }
+  if (trimmed === "{claude_code_expansion_prompt}") {
+    return expansionPrompt.trim() || defaultClaudeCodeExpansionPrompt;
+  }
+  return text;
+}
+
+function createClaudeOAuthSystemPromptBlock(
+  overrides: Partial<ClaudeOAuthSystemPromptBlock> = {},
+): ClaudeOAuthSystemPromptBlock {
+  const text = overrides.text ?? "";
+  return {
+    id: nextClaudeOAuthSystemPromptBlockID(),
+    enabled: overrides.enabled ?? true,
+    expanded: overrides.expanded ?? true,
+    type: "text",
+    preset: overrides.preset ?? detectClaudeOAuthSystemPromptPreset(text),
+    text,
+    cacheControlEnabled: overrides.cacheControlEnabled ?? false,
+    cacheControlTTL: overrides.cacheControlTTL ?? "5m",
+  };
+}
+
+function createDefaultClaudeOAuthSystemPromptBlocks(
+  expansionPrompt = "",
+): ClaudeOAuthSystemPromptBlock[] {
+  const normalizedExpansionPrompt = expansionPrompt.trim();
+  const expansionText =
+    normalizedExpansionPrompt || defaultClaudeCodeExpansionPrompt;
+
+  return [
+    createClaudeOAuthSystemPromptBlock({
+      preset: "billing",
+      text: "{billing_header}",
+    }),
+    createClaudeOAuthSystemPromptBlock({
+      preset: "system",
+      text: defaultClaudeCodeSystemPrompt,
+    }),
+    createClaudeOAuthSystemPromptBlock({
+      preset:
+        expansionText === defaultClaudeCodeExpansionPrompt
+          ? "expansion"
+          : "custom",
+      text: expansionText,
+      cacheControlEnabled: true,
+      cacheControlTTL: "5m",
+    }),
+  ];
+}
+
+function parseClaudeOAuthSystemPromptCacheControl(cacheControl: unknown): {
+  enabled: boolean;
+  ttl: string;
+} {
+  if (cacheControl === true) {
+    return { enabled: true, ttl: "5m" };
+  }
+  if (
+    cacheControl &&
+    typeof cacheControl === "object" &&
+    !Array.isArray(cacheControl)
+  ) {
+    return {
+      enabled: true,
+      ttl: normalizeClaudeOAuthSystemPromptCacheTTL(
+        (cacheControl as Record<string, unknown>).ttl,
+      ),
+    };
+  }
+  return { enabled: false, ttl: "5m" };
+}
+
+function parseClaudeOAuthSystemPromptBlocks(
+  raw: string,
+  expansionPrompt = "",
+): ClaudeOAuthSystemPromptBlock[] {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return createDefaultClaudeOAuthSystemPromptBlocks(expansionPrompt);
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as
+      | ClaudeOAuthSystemPromptRawBlock[]
+      | { blocks?: ClaudeOAuthSystemPromptRawBlock[] };
+    const rawBlocks = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed.blocks)
+        ? parsed.blocks
+        : [];
+
+    if (rawBlocks.length === 0) {
+      return createDefaultClaudeOAuthSystemPromptBlocks(expansionPrompt);
+    }
+
+    return rawBlocks.map((block) => {
+      const cacheControl = parseClaudeOAuthSystemPromptCacheControl(
+        block.cache_control,
+      );
+      const text = normalizeClaudeOAuthSystemPromptBlockText(
+        typeof block.text === "string" ? block.text : "",
+        expansionPrompt,
+      );
+      return createClaudeOAuthSystemPromptBlock({
+        enabled: block.enabled !== false,
+        type: "text",
+        text,
+        preset: detectClaudeOAuthSystemPromptPreset(text),
+        cacheControlEnabled: cacheControl.enabled,
+        cacheControlTTL: cacheControl.ttl,
+      });
+    });
+  } catch (_error) {
+    return createDefaultClaudeOAuthSystemPromptBlocks(expansionPrompt);
+  }
+}
+
+function serializeClaudeOAuthSystemPromptBlocksToJSON(
+  blocks: ClaudeOAuthSystemPromptBlock[],
+): string {
+  const source =
+    blocks.length > 0
+      ? blocks
+      : [
+          createClaudeOAuthSystemPromptBlock({
+            enabled: false,
+            preset: "custom",
+            text: "",
+          }),
+        ];
+
+  const rawBlocks = source.map((block) => {
+    const raw: ClaudeOAuthSystemPromptRawBlock = {
+      enabled: block.enabled,
+      type: block.type || "text",
+      text: block.text,
+    };
+    if (block.cacheControlEnabled) {
+      raw.cache_control = {
+        type: "ephemeral",
+        ttl: normalizeClaudeOAuthSystemPromptCacheTTL(block.cacheControlTTL),
+      };
+    }
+    return raw;
+  });
+
+  return JSON.stringify(rawBlocks, null, 2);
+}
+
+const defaultClaudeOAuthSystemPromptBlocks =
+  serializeClaudeOAuthSystemPromptBlocksToJSON(
+    createDefaultClaudeOAuthSystemPromptBlocks(),
+  );
+
+const claudeOAuthSystemPromptBlocks = ref<ClaudeOAuthSystemPromptBlock[]>(
+  createDefaultClaudeOAuthSystemPromptBlocks(),
+);
+
+const claudeOAuthSystemPromptPresetOptions = computed(() => [
+  {
+    value: "billing",
+    label: t("admin.settings.gatewayForwarding.systemBlockPresetBilling"),
+  },
+  {
+    value: "system",
+    label: t("admin.settings.gatewayForwarding.systemBlockPresetIdentity"),
+  },
+  {
+    value: "expansion",
+    label: t("admin.settings.gatewayForwarding.systemBlockPresetExpansion"),
+  },
+  {
+    value: "custom",
+    label: t("admin.settings.gatewayForwarding.systemBlockPresetCustom"),
+  },
+]);
+
+const claudeOAuthSystemPromptBlockTypeOptions = computed(() => [
+  {
+    value: "text",
+    label: t("admin.settings.gatewayForwarding.systemBlockTypeText"),
+  },
+]);
+
+const claudeOAuthSystemPromptCacheTTLOptions = computed(() => [
+  { value: "5m", label: t("admin.settings.gatewayForwarding.cacheTTL5m") },
+  { value: "1h", label: t("admin.settings.gatewayForwarding.cacheTTL1h") },
+]);
+
+function getClaudeOAuthPresetLabel(
+  preset: ClaudeOAuthSystemPromptPreset,
+): string {
+  return (
+    claudeOAuthSystemPromptPresetOptions.value.find(
+      (option) => option.value === preset,
+    )?.label || t("admin.settings.gatewayForwarding.systemBlockPresetCustom")
+  );
+}
+
+function syncClaudeOAuthSystemPromptBlocksFormField(): void {
+  form.claude_oauth_system_prompt_blocks =
+    serializeClaudeOAuthSystemPromptBlocksToJSON(
+      claudeOAuthSystemPromptBlocks.value,
+    );
+}
+
+function addClaudeOAuthSystemPromptBlock(): void {
+  claudeOAuthSystemPromptBlocks.value.push(
+    createClaudeOAuthSystemPromptBlock({
+      expanded: true,
+      preset: "custom",
+      text: "",
+    }),
+  );
+  syncClaudeOAuthSystemPromptBlocksFormField();
+}
+
+function toggleClaudeOAuthSystemPromptBlock(index: number): void {
+  const block = claudeOAuthSystemPromptBlocks.value[index];
+  if (!block) {
+    return;
+  }
+  block.expanded = !block.expanded;
+}
+
+function removeClaudeOAuthSystemPromptBlock(index: number): void {
+  claudeOAuthSystemPromptBlocks.value.splice(index, 1);
+  syncClaudeOAuthSystemPromptBlocksFormField();
+}
+
+function moveClaudeOAuthSystemPromptBlock(
+  index: number,
+  direction: -1 | 1,
+): void {
+  const targetIndex = index + direction;
+  if (
+    targetIndex < 0 ||
+    targetIndex >= claudeOAuthSystemPromptBlocks.value.length
+  ) {
+    return;
+  }
+  const blocks = claudeOAuthSystemPromptBlocks.value;
+  const current = blocks[index];
+  blocks[index] = blocks[targetIndex];
+  blocks[targetIndex] = current;
+  syncClaudeOAuthSystemPromptBlocksFormField();
+}
+
+function applyClaudeOAuthSystemPromptPreset(
+  index: number,
+  value: string | number | boolean | null,
+): void {
+  const block = claudeOAuthSystemPromptBlocks.value[index];
+  if (!block) {
+    return;
+  }
+  const preset = String(value || "custom") as ClaudeOAuthSystemPromptPreset;
+  block.preset = preset;
+  block.type = "text";
+  if (preset === "billing") {
+    block.text = "{billing_header}";
+    block.cacheControlEnabled = false;
+    block.cacheControlTTL = "5m";
+  } else if (preset === "system") {
+    block.text = defaultClaudeCodeSystemPrompt;
+    block.cacheControlEnabled = false;
+    block.cacheControlTTL = "5m";
+  } else if (preset === "expansion") {
+    block.text =
+      form.claude_oauth_system_prompt.trim() ||
+      defaultClaudeCodeExpansionPrompt;
+    block.cacheControlEnabled = true;
+    block.cacheControlTTL = "5m";
+  }
+  syncClaudeOAuthSystemPromptBlocksFormField();
+}
+
+function markClaudeOAuthSystemPromptBlockCustom(
+  block: ClaudeOAuthSystemPromptBlock,
+): void {
+  block.preset = detectClaudeOAuthSystemPromptPreset(block.text);
+  syncClaudeOAuthSystemPromptBlocksFormField();
+}
+
+function resetClaudeOAuthSystemPromptBlocks(): void {
+  claudeOAuthSystemPromptBlocks.value =
+    createDefaultClaudeOAuthSystemPromptBlocks(form.claude_oauth_system_prompt);
+  syncClaudeOAuthSystemPromptBlocksFormField();
 }
 
 interface DefaultSubscriptionGroupOption {
@@ -7094,8 +8246,6 @@ type SettingsForm = Omit<
   default_platform_quotas: DefaultPlatformQuotasMap;
 };
 
-type CustomMenuOpenMode = "iframe" | "new_tab";
-
 const form = reactive<SettingsForm>({
   registration_enabled: true,
   email_verify_enabled: false,
@@ -7110,7 +8260,8 @@ const form = reactive<SettingsForm>({
   login_agreement_updated_at: "2026-03-31",
   login_agreement_documents: defaultLoginAgreementDocuments(),
   default_balance: 0,
-  default_platform_quotas: normalizePlatformQuotasMap() as DefaultPlatformQuotasMap,
+  default_platform_quotas:
+    normalizePlatformQuotasMap() as DefaultPlatformQuotasMap,
   affiliate_rebate_rate: 20,
   affiliate_rebate_freeze_hours: 0,
   affiliate_rebate_duration_days: 0,
@@ -7130,6 +8281,8 @@ const form = reactive<SettingsForm>({
   hide_ccs_import_button: false,
   payment_enabled: false,
   risk_control_enabled: false,
+  cyber_session_block_enabled: false,
+  cyber_session_block_ttl_seconds: 3600,
   payment_min_amount: 1,
   payment_max_amount: 10000,
   payment_daily_limit: 50000,
@@ -7157,7 +8310,6 @@ const form = reactive<SettingsForm>({
     label: string;
     icon_svg: string;
     url: string;
-    open_mode?: CustomMenuOpenMode;
     visibility: "user" | "admin";
     sort_order: number;
   }>,
@@ -7286,6 +8438,9 @@ const form = reactive<SettingsForm>({
   enable_fingerprint_unification: true,
   enable_metadata_passthrough: false,
   enable_cch_signing: false,
+  enable_claude_oauth_system_prompt_injection: true,
+  claude_oauth_system_prompt: "",
+  claude_oauth_system_prompt_blocks: defaultClaudeOAuthSystemPromptBlocks,
   enable_anthropic_cache_ttl_1h_injection: false,
   rewrite_message_cache_control: false,
   antigravity_user_agent_version: "",
@@ -7317,22 +8472,30 @@ const authSourceDefaultsMeta = computed(() => [
   {
     source: "email" as AuthSourceType,
     title: t("admin.settings.authSourceDefaults.sources.email.title"),
-    description: t("admin.settings.authSourceDefaults.sources.email.description"),
+    description: t(
+      "admin.settings.authSourceDefaults.sources.email.description",
+    ),
   },
   {
     source: "linuxdo" as AuthSourceType,
     title: t("admin.settings.authSourceDefaults.sources.linuxdo.title"),
-    description: t("admin.settings.authSourceDefaults.sources.linuxdo.description"),
+    description: t(
+      "admin.settings.authSourceDefaults.sources.linuxdo.description",
+    ),
   },
   {
     source: "oidc" as AuthSourceType,
     title: t("admin.settings.authSourceDefaults.sources.oidc.title"),
-    description: t("admin.settings.authSourceDefaults.sources.oidc.description"),
+    description: t(
+      "admin.settings.authSourceDefaults.sources.oidc.description",
+    ),
   },
   {
     source: "wechat" as AuthSourceType,
     title: t("admin.settings.authSourceDefaults.sources.wechat.title"),
-    description: t("admin.settings.authSourceDefaults.sources.wechat.description"),
+    description: t(
+      "admin.settings.authSourceDefaults.sources.wechat.description",
+    ),
   },
   {
     source: "github" as AuthSourceType,
@@ -7793,7 +8956,6 @@ function addMenuItem() {
     label: "",
     icon_svg: "",
     url: "",
-    open_mode: "iframe",
     visibility: "user",
     sort_order: form.custom_menu_items.length,
   });
@@ -7916,6 +9078,15 @@ async function loadSettings() {
           open_mode: item.open_mode === "new_tab" ? "new_tab" : "iframe",
         }))
       : [];
+    if (!form.claude_oauth_system_prompt_blocks?.trim()) {
+      form.claude_oauth_system_prompt_blocks =
+        defaultClaudeOAuthSystemPromptBlocks;
+    }
+    claudeOAuthSystemPromptBlocks.value = parseClaudeOAuthSystemPromptBlocks(
+      form.claude_oauth_system_prompt_blocks,
+      form.claude_oauth_system_prompt,
+    );
+    syncClaudeOAuthSystemPromptBlocksFormField();
     form.login_agreement_mode =
       settings.login_agreement_mode === "checkbox" ? "checkbox" : "modal";
     form.login_agreement_updated_at =
@@ -7930,7 +9101,9 @@ async function loadSettings() {
           }))
         : defaultLoginAgreementDocuments();
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(settings));
-    form.default_platform_quotas = normalizePlatformQuotasMap(settings.default_platform_quotas);
+    form.default_platform_quotas = normalizePlatformQuotasMap(
+      settings.default_platform_quotas,
+    );
     form.backend_mode_enabled = settings.backend_mode_enabled;
     form.default_subscriptions = normalizeDefaultSubscriptionSettings(
       settings.default_subscriptions,
@@ -7971,7 +9144,9 @@ async function loadSettings() {
       wechatCapabilities.mobileEnabled,
       settings.wechat_connect_mode,
     );
-    const legacyWeChatAppID = String(settings.wechat_connect_app_id || "").trim();
+    const legacyWeChatAppID = String(
+      settings.wechat_connect_app_id || "",
+    ).trim();
     const legacyWeChatSecretConfigured = Boolean(
       settings.wechat_connect_app_secret_configured,
     );
@@ -7981,7 +9156,10 @@ async function loadSettings() {
     if (!form.wechat_connect_mp_app_id && wechatCapabilities.mpEnabled) {
       form.wechat_connect_mp_app_id = legacyWeChatAppID;
     }
-    if (!form.wechat_connect_mobile_app_id && wechatCapabilities.mobileEnabled) {
+    if (
+      !form.wechat_connect_mobile_app_id &&
+      wechatCapabilities.mobileEnabled
+    ) {
       form.wechat_connect_mobile_app_id = legacyWeChatAppID;
     }
     if (
@@ -7995,7 +9173,8 @@ async function loadSettings() {
       !form.wechat_connect_mp_app_secret_configured &&
       wechatCapabilities.mpEnabled
     ) {
-      form.wechat_connect_mp_app_secret_configured = legacyWeChatSecretConfigured;
+      form.wechat_connect_mp_app_secret_configured =
+        legacyWeChatSecretConfigured;
     }
     if (
       !form.wechat_connect_mobile_app_secret_configured &&
@@ -8144,7 +9323,10 @@ async function saveSettings() {
 
     const normalizedLoginAgreementDocuments =
       normalizeLoginAgreementDocumentsForSave();
-    if (form.login_agreement_enabled && normalizedLoginAgreementDocuments.length === 0) {
+    if (
+      form.login_agreement_enabled &&
+      normalizedLoginAgreementDocuments.length === 0
+    ) {
       appStore.showError(
         localText(
           "启用登录条款确认时，至少需要保留一份文档。",
@@ -8245,6 +9427,11 @@ async function saveSettings() {
       form.wechat_connect_mobile_enabled,
       form.wechat_connect_mode,
     );
+    const claudeOAuthSystemPromptBlocksJSON =
+      serializeClaudeOAuthSystemPromptBlocksToJSON(
+        claudeOAuthSystemPromptBlocks.value,
+      );
+    form.claude_oauth_system_prompt_blocks = claudeOAuthSystemPromptBlocksJSON;
 
     const payload: UpdateSettingsRequest = {
       registration_enabled: form.registration_enabled,
@@ -8266,9 +9453,21 @@ async function saveSettings() {
         100,
         Math.max(0, Number(form.affiliate_rebate_rate) || 0),
       ),
-      affiliate_rebate_freeze_hours: Math.max(0, Math.min(720, Number(form.affiliate_rebate_freeze_hours) || 0)),
-      affiliate_rebate_duration_days: Math.max(0, Math.min(3650, Math.floor(Number(form.affiliate_rebate_duration_days) || 0))),
-      affiliate_rebate_per_invitee_cap: Math.max(0, Number(form.affiliate_rebate_per_invitee_cap) || 0),
+      affiliate_rebate_freeze_hours: Math.max(
+        0,
+        Math.min(720, Number(form.affiliate_rebate_freeze_hours) || 0),
+      ),
+      affiliate_rebate_duration_days: Math.max(
+        0,
+        Math.min(
+          3650,
+          Math.floor(Number(form.affiliate_rebate_duration_days) || 0),
+        ),
+      ),
+      affiliate_rebate_per_invitee_cap: Math.max(
+        0,
+        Number(form.affiliate_rebate_per_invitee_cap) || 0,
+      ),
       default_concurrency: form.default_concurrency,
       default_subscriptions: normalizedDefaultSubscriptions,
       force_email_on_third_party_signup: form.force_email_on_third_party_signup,
@@ -8311,16 +9510,24 @@ async function saveSettings() {
       dingtalk_connect_corp_restriction_policy:
         form.dingtalk_connect_corp_restriction_policy,
       dingtalk_connect_internal_corp_id: form.dingtalk_connect_internal_corp_id,
-      dingtalk_connect_bypass_registration: form.dingtalk_connect_bypass_registration,
+      dingtalk_connect_bypass_registration:
+        form.dingtalk_connect_bypass_registration,
       dingtalk_connect_sync_corp_email: form.dingtalk_connect_sync_corp_email,
-      dingtalk_connect_sync_display_name: form.dingtalk_connect_sync_display_name,
+      dingtalk_connect_sync_display_name:
+        form.dingtalk_connect_sync_display_name,
       dingtalk_connect_sync_dept: form.dingtalk_connect_sync_dept,
-      dingtalk_connect_sync_corp_email_attr_key: form.dingtalk_connect_sync_corp_email_attr_key,
-      dingtalk_connect_sync_display_name_attr_key: form.dingtalk_connect_sync_display_name_attr_key,
-      dingtalk_connect_sync_dept_attr_key: form.dingtalk_connect_sync_dept_attr_key,
-      dingtalk_connect_sync_corp_email_attr_name: form.dingtalk_connect_sync_corp_email_attr_name,
-      dingtalk_connect_sync_display_name_attr_name: form.dingtalk_connect_sync_display_name_attr_name,
-      dingtalk_connect_sync_dept_attr_name: form.dingtalk_connect_sync_dept_attr_name,
+      dingtalk_connect_sync_corp_email_attr_key:
+        form.dingtalk_connect_sync_corp_email_attr_key,
+      dingtalk_connect_sync_display_name_attr_key:
+        form.dingtalk_connect_sync_display_name_attr_key,
+      dingtalk_connect_sync_dept_attr_key:
+        form.dingtalk_connect_sync_dept_attr_key,
+      dingtalk_connect_sync_corp_email_attr_name:
+        form.dingtalk_connect_sync_corp_email_attr_name,
+      dingtalk_connect_sync_display_name_attr_name:
+        form.dingtalk_connect_sync_display_name_attr_name,
+      dingtalk_connect_sync_dept_attr_name:
+        form.dingtalk_connect_sync_dept_attr_name,
       wechat_connect_enabled: form.wechat_connect_enabled,
       wechat_connect_app_id:
         form.wechat_connect_open_app_id ||
@@ -8373,15 +9580,13 @@ async function saveSettings() {
         form.oidc_connect_userinfo_username_path,
       github_oauth_enabled: form.github_oauth_enabled,
       github_oauth_client_id: form.github_oauth_client_id,
-      github_oauth_client_secret:
-        form.github_oauth_client_secret || undefined,
+      github_oauth_client_secret: form.github_oauth_client_secret || undefined,
       github_oauth_redirect_url: form.github_oauth_redirect_url,
       github_oauth_frontend_redirect_url:
         form.github_oauth_frontend_redirect_url,
       google_oauth_enabled: form.google_oauth_enabled,
       google_oauth_client_id: form.google_oauth_client_id,
-      google_oauth_client_secret:
-        form.google_oauth_client_secret || undefined,
+      google_oauth_client_secret: form.google_oauth_client_secret || undefined,
       google_oauth_redirect_url: form.google_oauth_redirect_url,
       google_oauth_frontend_redirect_url:
         form.google_oauth_frontend_redirect_url,
@@ -8398,17 +9603,26 @@ async function saveSettings() {
       enable_fingerprint_unification: form.enable_fingerprint_unification,
       enable_metadata_passthrough: form.enable_metadata_passthrough,
       enable_cch_signing: form.enable_cch_signing,
+      enable_claude_oauth_system_prompt_injection:
+        form.enable_claude_oauth_system_prompt_injection,
+      claude_oauth_system_prompt: form.claude_oauth_system_prompt?.trim()
+        ? form.claude_oauth_system_prompt
+        : "",
+      claude_oauth_system_prompt_blocks: claudeOAuthSystemPromptBlocksJSON,
       enable_anthropic_cache_ttl_1h_injection:
         form.enable_anthropic_cache_ttl_1h_injection,
       rewrite_message_cache_control: form.rewrite_message_cache_control,
       antigravity_user_agent_version:
         form.antigravity_user_agent_version?.trim() || "",
-      openai_codex_user_agent:
-        form.openai_codex_user_agent?.trim() || "",
-      openai_allow_claude_code_codex_plugin: form.openai_allow_claude_code_codex_plugin,
+      openai_codex_user_agent: form.openai_codex_user_agent?.trim() || "",
+      openai_allow_claude_code_codex_plugin:
+        form.openai_allow_claude_code_codex_plugin,
       // Payment configuration
       payment_enabled: form.payment_enabled,
       risk_control_enabled: form.risk_control_enabled,
+      cyber_session_block_enabled: form.cyber_session_block_enabled,
+      cyber_session_block_ttl_seconds:
+        Number(form.cyber_session_block_ttl_seconds) || 3600,
       payment_min_amount: Number(form.payment_min_amount) || 0,
       payment_max_amount: Number(form.payment_max_amount) || 0,
       payment_daily_limit: Number(form.payment_daily_limit) || 0,
@@ -8486,7 +9700,9 @@ async function saveSettings() {
       };
     }
 
-    payload.default_platform_quotas = sanitizePlatformQuotasMap(form.default_platform_quotas);
+    payload.default_platform_quotas = sanitizePlatformQuotasMap(
+      form.default_platform_quotas,
+    );
     appendAuthSourceDefaultsToUpdateRequest(payload, authSourceDefaults);
 
     const updated = await adminAPI.settings.updateSettings(payload);
@@ -8497,7 +9713,9 @@ async function saveSettings() {
       }
     }
     Object.assign(authSourceDefaults, buildAuthSourceDefaultsState(updated));
-    form.default_platform_quotas = normalizePlatformQuotasMap(updated.default_platform_quotas);
+    form.default_platform_quotas = normalizePlatformQuotasMap(
+      updated.default_platform_quotas,
+    );
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
         updated.registration_email_suffix_whitelist,
@@ -9198,9 +10416,10 @@ function findProviderEnablementConflict(
   return null;
 }
 
-function showProviderEnablementConflict(
-  conflict: { method: "alipay" | "wxpay"; conflicting: ProviderInstance },
-) {
+function showProviderEnablementConflict(conflict: {
+  method: "alipay" | "wxpay";
+  conflicting: ProviderInstance;
+}) {
   appStore.showError(
     t("admin.settings.payment.enableConflict", {
       method: t(`payment.methods.${conflict.method}`),
@@ -9215,7 +10434,9 @@ async function loadProviders() {
     const res = await adminAPI.payment.getProviders();
     providers.value = res.data || [];
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
   } finally {
     providersLoading.value = false;
   }
@@ -9264,7 +10485,9 @@ async function handleSaveProvider(payload: Partial<ProviderInstance>) {
     // Auto-save settings so provider changes take effect immediately
     await saveSettings();
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
   } finally {
     providerSaving.value = false;
   }
@@ -9302,7 +10525,9 @@ async function handleToggleField(
     await adminAPI.payment.updateProvider(provider.id, payload);
     await loadProviders();
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
   }
 }
 
@@ -9327,7 +10552,9 @@ async function handleToggleType(provider: ProviderInstance, type: string) {
     } as any);
     await loadProviders();
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
   }
 }
 
@@ -9349,7 +10576,9 @@ async function handleReorderProviders(
     );
     await loadProviders();
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
     loadProviders();
   }
 }
@@ -9362,7 +10591,9 @@ async function handleDeleteProvider() {
     showDeleteProviderDialog.value = false;
     loadProviders();
   } catch (err: unknown) {
-    appStore.showError(extractI18nErrorMessage(err, t, "payment.errors", t("common.error")));
+    appStore.showError(
+      extractI18nErrorMessage(err, t, "payment.errors", t("common.error")),
+    );
   }
 }
 
@@ -9417,9 +10648,6 @@ interface AffiliateModalState {
   editingEntry: AffiliateAdminEntry | null;
   code: string;
   rate: string | number;
-  freezeHours: string | number;
-  durationDays: string | number;
-  hideInvitees: boolean;
   searchTimer: number | null;
 }
 
@@ -9433,9 +10661,6 @@ const affiliateModal = reactive<AffiliateModalState>({
   editingEntry: null,
   code: "",
   rate: "",
-  freezeHours: "",
-  durationDays: "",
-  hideInvitees: false,
   searchTimer: null,
 });
 
@@ -9501,7 +10726,11 @@ function cancelAffiliateConfirm() {
 
 // debounceTimer wires a single timer slot to a callback with a delay,
 // canceling any pending invocation. Used for type-as-you-go search inputs.
-function debounceTimer(slot: { searchTimer: number | null }, delayMs: number, run: () => void) {
+function debounceTimer(
+  slot: { searchTimer: number | null },
+  delayMs: number,
+  run: () => void,
+) {
   if (slot.searchTimer != null) window.clearTimeout(slot.searchTimer);
   slot.searchTimer = window.setTimeout(run, delayMs);
 }
@@ -9519,18 +10748,9 @@ function parseRebateRate(raw: unknown): number | null | undefined {
   if (s === "") return null;
   const parsed = Number(s);
   if (Number.isNaN(parsed) || parsed < 0 || parsed > 100) {
-    appStore.showError(t("admin.settings.features.affiliate.modal.errorBadRate"));
-    return undefined;
-  }
-  return parsed;
-}
-
-function parseAffiliateInteger(raw: unknown, min: number, max: number, errorKey: string): number | null | undefined {
-  const s = String(raw ?? "").trim();
-  if (s === "") return null;
-  const parsed = Number(s);
-  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
-    appStore.showError(t(errorKey));
+    appStore.showError(
+      t("admin.settings.features.affiliate.modal.errorBadRate"),
+    );
     return undefined;
   }
   return parsed;
@@ -9548,7 +10768,9 @@ async function loadAffiliateUsers() {
     affiliateState.total = res.total ?? 0;
     // Drop selections that are no longer visible.
     const visibleIds = new Set(affiliateState.entries.map((e) => e.user_id));
-    affiliateState.selected = affiliateState.selected.filter((id) => visibleIds.has(id));
+    affiliateState.selected = affiliateState.selected.filter((id) =>
+      visibleIds.has(id),
+    );
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t("common.error")));
   } finally {
@@ -9571,7 +10793,9 @@ function changeAffiliatePage(page: number) {
 
 function toggleAffiliateSelectAll(e: Event) {
   const checked = (e.target as HTMLInputElement).checked;
-  affiliateState.selected = checked ? affiliateState.entries.map((entry) => entry.user_id) : [];
+  affiliateState.selected = checked
+    ? affiliateState.entries.map((entry) => entry.user_id)
+    : [];
 }
 
 function toggleAffiliateSelect(userId: number) {
@@ -9591,12 +10815,9 @@ function openAffiliateModal(entry: AffiliateAdminEntry | null) {
   affiliateModal.editingEntry = entry;
   affiliateModal.code = entry?.aff_code_custom ? entry.aff_code : "";
   affiliateModal.rate =
-    entry?.aff_rebate_rate_percent != null ? String(entry.aff_rebate_rate_percent) : "";
-  affiliateModal.freezeHours =
-    entry?.aff_rebate_freeze_hours != null ? String(entry.aff_rebate_freeze_hours) : "";
-  affiliateModal.durationDays =
-    entry?.aff_rebate_duration_days != null ? String(entry.aff_rebate_duration_days) : "";
-  affiliateModal.hideInvitees = Boolean(entry?.hide_affiliate_for_invitees);
+    entry?.aff_rebate_rate_percent != null
+      ? String(entry.aff_rebate_rate_percent)
+      : "";
 }
 
 function closeAffiliateModal() {
@@ -9646,18 +10867,12 @@ const affiliateModalCanSubmit = computed(() => {
   }
   const codeFilled = affiliateModal.code.trim() !== "";
   const rateFilled = String(affiliateModal.rate ?? "").trim() !== "";
-  const freezeFilled = String(affiliateModal.freezeHours ?? "").trim() !== "";
-  const durationFilled = String(affiliateModal.durationDays ?? "").trim() !== "";
-  const hideInviteesChanged = affiliateModal.hideInvitees !== Boolean(affiliateModal.editingEntry?.hide_affiliate_for_invitees);
-  if (codeFilled || rateFilled || freezeFilled || durationFilled || hideInviteesChanged) return true;
-  // Edit mode + empty inputs are meaningful "clear" actions only when the user
-  // currently has corresponding exclusive settings.
+  if (codeFilled || rateFilled) return true;
+  // Edit mode + empty rate input is a meaningful "clear" only if the user
+  // currently has an exclusive rate to clear.
   return (
     affiliateModal.mode === "edit" &&
-    (affiliateModal.editingEntry?.aff_rebate_rate_percent != null ||
-      affiliateModal.editingEntry?.aff_rebate_freeze_hours != null ||
-      affiliateModal.editingEntry?.aff_rebate_duration_days != null ||
-      affiliateModal.editingEntry?.hide_affiliate_for_invitees)
+    affiliateModal.editingEntry?.aff_rebate_rate_percent != null
   );
 });
 
@@ -9682,45 +10897,14 @@ async function submitAffiliateModal() {
   const rateInput = parseRebateRate(affiliateModal.rate);
   if (rateInput === undefined) return; // toast already shown
   if (rateInput === null) {
-    if (affiliateModal.mode === "edit" && affiliateModal.editingEntry?.aff_rebate_rate_percent != null) {
+    if (
+      affiliateModal.mode === "edit" &&
+      affiliateModal.editingEntry?.aff_rebate_rate_percent != null
+    ) {
       payload.clear_rebate_rate = true;
     }
   } else {
     payload.aff_rebate_rate_percent = rateInput;
-  }
-
-  const freezeInput = parseAffiliateInteger(
-    affiliateModal.freezeHours,
-    0,
-    720,
-    "admin.settings.features.affiliate.modal.errorBadFreeze",
-  );
-  if (freezeInput === undefined) return;
-  if (freezeInput === null) {
-    if (affiliateModal.mode === "edit" && affiliateModal.editingEntry?.aff_rebate_freeze_hours != null) {
-      payload.clear_rebate_freeze_hours = true;
-    }
-  } else {
-    payload.aff_rebate_freeze_hours = freezeInput;
-  }
-
-  const durationInput = parseAffiliateInteger(
-    affiliateModal.durationDays,
-    0,
-    3650,
-    "admin.settings.features.affiliate.modal.errorBadDuration",
-  );
-  if (durationInput === undefined) return;
-  if (durationInput === null) {
-    if (affiliateModal.mode === "edit" && affiliateModal.editingEntry?.aff_rebate_duration_days != null) {
-      payload.clear_rebate_duration_days = true;
-    }
-  } else {
-    payload.aff_rebate_duration_days = durationInput;
-  }
-
-  if (affiliateModal.hideInvitees !== Boolean(affiliateModal.editingEntry?.hide_affiliate_for_invitees)) {
-    payload.hide_affiliate_for_invitees = affiliateModal.hideInvitees;
   }
 
   affiliateModal.saving = true;
@@ -9800,10 +10984,14 @@ watch(
   () => form.dingtalk_connect_corp_restriction_policy,
   (policy) => {
     if (policy !== "internal_only") {
-      if (form.dingtalk_connect_bypass_registration) form.dingtalk_connect_bypass_registration = false;
-      if (form.dingtalk_connect_sync_corp_email) form.dingtalk_connect_sync_corp_email = false;
-      if (form.dingtalk_connect_sync_display_name) form.dingtalk_connect_sync_display_name = false;
-      if (form.dingtalk_connect_sync_dept) form.dingtalk_connect_sync_dept = false;
+      if (form.dingtalk_connect_bypass_registration)
+        form.dingtalk_connect_bypass_registration = false;
+      if (form.dingtalk_connect_sync_corp_email)
+        form.dingtalk_connect_sync_corp_email = false;
+      if (form.dingtalk_connect_sync_display_name)
+        form.dingtalk_connect_sync_display_name = false;
+      if (form.dingtalk_connect_sync_dept)
+        form.dingtalk_connect_sync_dept = false;
     }
   },
 );
@@ -9862,7 +11050,11 @@ watch(
 .settings-tab::before {
   @apply absolute inset-0 -z-10 rounded-xl opacity-0 transition-opacity duration-200;
   content: "";
-  background: linear-gradient(135deg, rgb(248 250 252 / 0.95), rgb(241 245 249 / 0.8));
+  background: linear-gradient(
+    135deg,
+    rgb(248 250 252 / 0.95),
+    rgb(241 245 249 / 0.8)
+  );
 }
 
 .settings-tab:hover::before,
@@ -9927,7 +11119,11 @@ watch(
 }
 
 .dark .settings-tab::before {
-  background: linear-gradient(135deg, rgb(30 41 59 / 0.9), rgb(51 65 85 / 0.62));
+  background: linear-gradient(
+    135deg,
+    rgb(30 41 59 / 0.9),
+    rgb(51 65 85 / 0.62)
+  );
 }
 
 .dark .settings-tab-active {
