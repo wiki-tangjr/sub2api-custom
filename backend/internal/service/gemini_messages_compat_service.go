@@ -579,6 +579,40 @@ func (s *GeminiMessagesCompatService) SelectAccountForAIStudioEndpoints(ctx cont
 	return s.hydrateSelectedAccount(ctx, selected)
 }
 
+// ForwardAIStudioOperationGET forwards Gemini long-running operation polling
+// requests such as /v1beta/models/{model}/operations/{operation}. Veo video
+// generation returns these operation names after predictLongRunning.
+func (s *GeminiMessagesCompatService) ForwardAIStudioOperationGET(ctx context.Context, account *Account, modelName, operationID string) (*UpstreamHTTPResult, error) {
+	modelName = strings.TrimSpace(modelName)
+	operationID = strings.TrimSpace(operationID)
+	if modelName == "" || operationID == "" {
+		return nil, errors.New("missing model or operation")
+	}
+	if strings.Contains(operationID, "/") || strings.Contains(operationID, "..") {
+		return nil, errors.New("invalid operation id")
+	}
+
+	return s.ForwardAIStudioGET(ctx, account, fmt.Sprintf("/v1beta/models/%s/operations/%s", modelName, operationID))
+}
+
+// ForwardAIStudioFileGET forwards generated media file downloads such as
+// /v1beta/files/{file}:download?alt=media.
+func (s *GeminiMessagesCompatService) ForwardAIStudioFileGET(ctx context.Context, account *Account, fileAction, rawQuery string) (*UpstreamHTTPResult, error) {
+	fileAction = strings.TrimSpace(strings.TrimPrefix(fileAction, "/"))
+	if fileAction == "" {
+		return nil, errors.New("missing file")
+	}
+	if strings.Contains(fileAction, "/") || strings.Contains(fileAction, "..") {
+		return nil, errors.New("invalid file path")
+	}
+
+	path := "/v1beta/files/" + fileAction
+	if strings.TrimSpace(rawQuery) != "" {
+		path += "?" + rawQuery
+	}
+	return s.ForwardAIStudioGET(ctx, account, path)
+}
+
 func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Context, account *Account, body []byte) (*ForwardResult, error) {
 	startTime := time.Now()
 
@@ -1125,7 +1159,7 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 	}
 
 	switch action {
-	case "generateContent", "streamGenerateContent", "countTokens":
+	case "generateContent", "streamGenerateContent", "countTokens", "predictLongRunning":
 		// ok
 	default:
 		return nil, s.writeGoogleError(c, http.StatusNotFound, "Unsupported action: "+action)
@@ -2685,7 +2719,7 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256<<20))
 	wwwAuthenticate := resp.Header.Get("Www-Authenticate")
 	filteredHeaders := responseheaders.FilterHeaders(resp.Header, s.responseHeaderFilter)
 	if wwwAuthenticate != "" {

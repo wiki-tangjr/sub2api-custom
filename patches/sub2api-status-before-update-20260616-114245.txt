@@ -1,0 +1,32 @@
+== status before update ==
+ M backend/internal/handler/gemini_v1beta_handler.go
+ M backend/internal/server/routes/gateway.go
+ M backend/internal/service/gemini_messages_compat_service.go
+?? backups/sub2api-src-before-update-20260612-004015.tar.gz
+?? patches/pre-full-veo-media-20260616-051630.diff
+?? patches/pre-full-veo-media-v2-20260616-052156.diff
+?? patches/pre-veo-patch-20260616-050155.diff
+?? patches/pre-veo-v3-20260616-072539.diff
+?? patches/sub2api-status-before-update-20260612-004015.txt
+?? patches/sub2api-status-before-update-20260616-114245.txt
+?? patches/sub2api-veo-full-media-20260616.patch
+?? patches/sub2api-veo-full-media-v2-20260616.patch
+?? patches/sub2api-veo-full-media-v3-20260616.patch
+?? patches/sub2api-veo-predictlongrunning-20260616.patch
+?? patches/sub2api-worktree-staged-before-update-20260612-004015.patch
+?? patches/sub2api-worktree-unstaged-before-update-20260612-004015.patch
+
+== branch ==
+image-latency-aware-scheduler-20260603
+
+== head ==
+cadfbe89 Merge remote-tracking branch 'origin/main' into image-latency-aware-scheduler-20260603
+dfb44101 protect local image scheduler and home customizations before upstream update 20260612-004015
+e34ad2b1 chore: sync VERSION to 0.1.136 [skip ci]
+0acf00c4 Add admin compliance acknowledgement gate
+3be22e11 Merge remote-tracking branch 'origin/main' into image-latency-aware-scheduler-20260603
+c32e29ba Merge pull request #3187 from jianjianai/fix/gateway-debug-log-loop
+2b1c5f85 Merge pull request #3186 from jianjianai/fix/account-group-scheduler-indexes
+0c997d41 Merge pull request #3176 from jianjianai/fix/precompute-model-body-replacement
+f0748b98 Merge pull request #3173 from jianjianai/fix/idempotency-utf8-truncation
+dd709f59 Merge pull request #3181 from codeQuest-fly/fix/gateway-upstream-error-double-write

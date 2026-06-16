@@ -1,0 +1,159 @@
+diff --git a/backend/internal/handler/gemini_v1beta_handler.go b/backend/internal/handler/gemini_v1beta_handler.go
+index b7781eec..8fe9e483 100644
+--- a/backend/internal/handler/gemini_v1beta_handler.go
++++ b/backend/internal/handler/gemini_v1beta_handler.go
+@@ -131,6 +131,77 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
+ 	writeUpstreamResponse(c, res)
+ }
+ 
++// GeminiV1BetaOperation proxies Veo/Gemini long-running operation polling:
++// GET /v1beta/models/{model}/operations/{operation}
++func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
++	apiKey, ok := middleware.GetAPIKeyFromContext(c)
++	if !ok || apiKey == nil {
++		googleError(c, http.StatusUnauthorized, "Invalid API key")
++		return
++	}
++	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
++		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
++		return
++	}
++
++	modelName := strings.TrimSpace(c.Param("model"))
++	operationID := strings.TrimSpace(c.Param("operation"))
++	if modelName == "" || operationID == "" {
++		googleError(c, http.StatusBadRequest, "Missing model or operation in URL")
++		return
++	}
++
++	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
++	if err != nil {
++		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
++		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
++		return
++	}
++
++	res, err := h.geminiCompatService.ForwardAIStudioOperationGET(c.Request.Context(), account, modelName, operationID)
++	if err != nil {
++		googleError(c, http.StatusBadGateway, err.Error())
++		return
++	}
++	writeUpstreamResponse(c, res)
++}
++
++// GeminiV1BetaFile proxies generated media file downloads:
++// GET /v1beta/files/{file}:download?alt=media
++func (h *GatewayHandler) GeminiV1BetaFile(c *gin.Context) {
++	apiKey, ok := middleware.GetAPIKeyFromContext(c)
++	if !ok || apiKey == nil {
++		googleError(c, http.StatusUnauthorized, "Invalid API key")
++		return
++	}
++	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
++		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
++		return
++	}
++
++	fileAction := strings.TrimSpace(strings.TrimPrefix(c.Param("fileAction"), "/"))
++	if fileAction == "" {
++		googleError(c, http.StatusBadRequest, "Missing file in URL")
++		return
++	}
++
++	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
++	if err != nil {
++		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
++		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
++		return
++	}
++
++	query := c.Request.URL.Query()
++	query.Del("key")
++	res, err := h.geminiCompatService.ForwardAIStudioFileGET(c.Request.Context(), account, fileAction, query.Encode())
++	if err != nil {
++		googleError(c, http.StatusBadGateway, err.Error())
++		return
++	}
++	writeUpstreamResponse(c, res)
++}
++
+ // GeminiV1BetaModels proxies Gemini native REST endpoints like:
+ // POST /v1beta/models/{model}:generateContent
+ // POST /v1beta/models/{model}:streamGenerateContent?alt=sse
+diff --git a/backend/internal/server/routes/gateway.go b/backend/internal/server/routes/gateway.go
+index b039a6ec..d6383c2d 100644
+--- a/backend/internal/server/routes/gateway.go
++++ b/backend/internal/server/routes/gateway.go
+@@ -140,7 +140,9 @@ func RegisterGatewayRoutes(
+ 	gemini.Use(requireGroupGoogle)
+ 	{
+ 		gemini.GET("/models", h.Gateway.GeminiV1BetaListModels)
++		gemini.GET("/models/:model/operations/:operation", h.Gateway.GeminiV1BetaOperation)
+ 		gemini.GET("/models/:model", h.Gateway.GeminiV1BetaGetModel)
++		gemini.GET("/files/*fileAction", h.Gateway.GeminiV1BetaFile)
+ 		// Gin treats ":" as a param marker, but Gemini uses "{model}:{action}" in the same segment.
+ 		gemini.POST("/models/*modelAction", h.Gateway.GeminiV1BetaModels)
+ 	}
+diff --git a/backend/internal/service/gemini_messages_compat_service.go b/backend/internal/service/gemini_messages_compat_service.go
+index 375fb053..d303ae29 100644
+--- a/backend/internal/service/gemini_messages_compat_service.go
++++ b/backend/internal/service/gemini_messages_compat_service.go
+@@ -579,6 +579,40 @@ func (s *GeminiMessagesCompatService) SelectAccountForAIStudioEndpoints(ctx cont
+ 	return s.hydrateSelectedAccount(ctx, selected)
+ }
+ 
++// ForwardAIStudioOperationGET forwards Gemini long-running operation polling
++// requests such as /v1beta/models/{model}/operations/{operation}. Veo video
++// generation returns these operation names after predictLongRunning.
++func (s *GeminiMessagesCompatService) ForwardAIStudioOperationGET(ctx context.Context, account *Account, modelName, operationID string) (*UpstreamHTTPResult, error) {
++	modelName = strings.TrimSpace(modelName)
++	operationID = strings.TrimSpace(operationID)
++	if modelName == "" || operationID == "" {
++		return nil, errors.New("missing model or operation")
++	}
++	if strings.Contains(operationID, "/") || strings.Contains(operationID, "..") {
++		return nil, errors.New("invalid operation id")
++	}
++
++	return s.ForwardAIStudioGET(ctx, account, fmt.Sprintf("/v1beta/models/%s/operations/%s", modelName, operationID))
++}
++
++// ForwardAIStudioFileGET forwards generated media file downloads such as
++// /v1beta/files/{file}:download?alt=media.
++func (s *GeminiMessagesCompatService) ForwardAIStudioFileGET(ctx context.Context, account *Account, fileAction, rawQuery string) (*UpstreamHTTPResult, error) {
++	fileAction = strings.TrimSpace(strings.TrimPrefix(fileAction, "/"))
++	if fileAction == "" {
++		return nil, errors.New("missing file")
++	}
++	if strings.Contains(fileAction, "/") || strings.Contains(fileAction, "..") {
++		return nil, errors.New("invalid file path")
++	}
++
++	path := "/v1beta/files/" + fileAction
++	if strings.TrimSpace(rawQuery) != "" {
++		path += "?" + rawQuery
++	}
++	return s.ForwardAIStudioGET(ctx, account, path)
++}
++
+ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Context, account *Account, body []byte) (*ForwardResult, error) {
+ 	startTime := time.Now()
+ 
+@@ -1125,7 +1159,7 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
+ 	}
+ 
+ 	switch action {
+-	case "generateContent", "streamGenerateContent", "countTokens":
++	case "generateContent", "streamGenerateContent", "countTokens", "predictLongRunning":
+ 		// ok
+ 	default:
+ 		return nil, s.writeGoogleError(c, http.StatusNotFound, "Unsupported action: "+action)
+@@ -2685,7 +2719,7 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
+ 	}
+ 	defer func() { _ = resp.Body.Close() }()
+ 
+-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
++	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256<<20))
+ 	wwwAuthenticate := resp.Header.Get("Www-Authenticate")
+ 	filteredHeaders := responseheaders.FilterHeaders(resp.Header, s.responseHeaderFilter)
+ 	if wwwAuthenticate != "" {

@@ -131,6 +131,77 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 	writeUpstreamResponse(c, res)
 }
 
+// GeminiV1BetaOperation proxies Veo/Gemini long-running operation polling:
+// GET /v1beta/models/{model}/operations/{operation}
+func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
+	apiKey, ok := middleware.GetAPIKeyFromContext(c)
+	if !ok || apiKey == nil {
+		googleError(c, http.StatusUnauthorized, "Invalid API key")
+		return
+	}
+	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
+		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
+		return
+	}
+
+	modelName := strings.TrimSpace(c.Param("model"))
+	operationID := strings.TrimSpace(c.Param("operation"))
+	if modelName == "" || operationID == "" {
+		googleError(c, http.StatusBadRequest, "Missing model or operation in URL")
+		return
+	}
+
+	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
+	if err != nil {
+		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
+		return
+	}
+
+	res, err := h.geminiCompatService.ForwardAIStudioOperationGET(c.Request.Context(), account, modelName, operationID)
+	if err != nil {
+		googleError(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeUpstreamResponse(c, res)
+}
+
+// GeminiV1BetaFile proxies generated media file downloads:
+// GET /v1beta/files/{file}:download?alt=media
+func (h *GatewayHandler) GeminiV1BetaFile(c *gin.Context) {
+	apiKey, ok := middleware.GetAPIKeyFromContext(c)
+	if !ok || apiKey == nil {
+		googleError(c, http.StatusUnauthorized, "Invalid API key")
+		return
+	}
+	if apiKey.Group == nil || apiKey.Group.Platform != service.PlatformGemini {
+		googleError(c, http.StatusBadRequest, "API key group platform is not gemini")
+		return
+	}
+
+	fileAction := strings.TrimSpace(strings.TrimPrefix(c.Param("fileAction"), "/"))
+	if fileAction == "" {
+		googleError(c, http.StatusBadRequest, "Missing file in URL")
+		return
+	}
+
+	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
+	if err != nil {
+		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
+		return
+	}
+
+	query := c.Request.URL.Query()
+	query.Del("key")
+	res, err := h.geminiCompatService.ForwardAIStudioFileGET(c.Request.Context(), account, fileAction, query.Encode())
+	if err != nil {
+		googleError(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeUpstreamResponse(c, res)
+}
+
 // GeminiV1BetaModels proxies Gemini native REST endpoints like:
 // POST /v1beta/models/{model}:generateContent
 // POST /v1beta/models/{model}:streamGenerateContent?alt=sse
