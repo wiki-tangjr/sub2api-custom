@@ -83,6 +83,26 @@ func TestGatewayRoutesOpenAIImagesPathsAreRegistered(t *testing.T) {
 	}
 }
 
+func TestGatewayRoutesOpenAIVideoAndJimengPathsAreRegistered(t *testing.T) {
+	router := newGatewayRoutesTestRouter()
+
+	for _, path := range []string{
+		"/v1/videos/generations",
+		"/v1/videos/generations/vid_123",
+		"/v1/jimeng/videos/generations",
+		"/videos/generations",
+		"/videos/generations/vid_123",
+		"/jimeng/videos/generations",
+	} {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"model":"video-ds-2.0","prompt":"cat video"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		require.NotEqual(t, http.StatusNotFound, w.Code, "path=%s should hit OpenAI video/Jimeng handler", path)
+	}
+}
+
 func TestGatewayRoutesGrokAllowsCLICompatibilityEntrypoints(t *testing.T) {
 	router := newGatewayRoutesTestRouter(service.PlatformGrok)
 
