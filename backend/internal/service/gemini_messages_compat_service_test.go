@@ -981,3 +981,61 @@ func parseAnthropicContentBlockEvents(t *testing.T, raw string) []anthropicConte
 	}
 	return events
 }
+
+func TestGeminiForwardAIStudioOperationRequest_UsesReturnedOperationPath(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"name":"operations/op-123","done":false}`)),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:       7,
+		Platform: PlatformGemini,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key":  "gemini-key",
+			"base_url": "https://generativelanguage.googleapis.com",
+		},
+	}
+
+	res, err := svc.ForwardAIStudioOperationRequest(context.Background(), account, http.MethodGet, "/v1beta/operations/op-123", "alt=json", nil, "")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Equal(t, 1, httpStub.calls)
+	require.Equal(t, "https://generativelanguage.googleapis.com/v1beta/operations/op-123?alt=json", httpStub.lastReq.URL.String())
+	require.Equal(t, "gemini-key", httpStub.lastReq.Header.Get("x-goog-api-key"))
+}
+
+func TestGeminiForwardAIStudioFileRequest_ForwardsVeoDownload(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	httpStub := &geminiCompatHTTPUpstreamStub{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"video/mp4"}},
+			Body:       io.NopCloser(strings.NewReader("mp4-bytes")),
+		},
+	}
+	svc := &GeminiMessagesCompatService{httpUpstream: httpStub, cfg: &config.Config{}}
+	account := &Account{
+		ID:       8,
+		Platform: PlatformGemini,
+		Type:     AccountTypeAPIKey,
+		Credentials: map[string]any{
+			"api_key":  "gemini-key",
+			"base_url": "https://generativelanguage.googleapis.com",
+		},
+	}
+
+	res, err := svc.ForwardAIStudioFileRequest(context.Background(), account, http.MethodGet, "video-1:download", "alt=media", nil, "")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Equal(t, "video/mp4", res.Headers.Get("Content-Type"))
+	require.Equal(t, []byte("mp4-bytes"), res.Body)
+	require.Equal(t, "https://generativelanguage.googleapis.com/v1beta/files/video-1:download?alt=media", httpStub.lastReq.URL.String())
+}

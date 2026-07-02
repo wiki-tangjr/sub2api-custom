@@ -134,6 +134,28 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 // GeminiV1BetaOperation proxies Veo/Gemini long-running operation polling:
 // GET /v1beta/models/{model}/operations/{operation}
 func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
+	modelName := strings.TrimSpace(c.Param("model"))
+	operationID := strings.TrimSpace(c.Param("operation"))
+	if modelName == "" || operationID == "" {
+		googleError(c, http.StatusBadRequest, "Missing model or operation in URL")
+		return
+	}
+	h.forwardGeminiV1BetaOperationPath(c, "/v1beta/models/"+modelName+"/operations/"+operationID)
+}
+
+// GeminiV1BetaOperationPath proxies long-running operation paths returned by
+// Gemini/Veo, e.g. GET /v1beta/operations/{operation} and
+// POST /v1beta/operations/{operation}:cancel.
+func (h *GatewayHandler) GeminiV1BetaOperationPath(c *gin.Context) {
+	operationAction := strings.TrimSpace(strings.TrimPrefix(c.Param("operationAction"), "/"))
+	if operationAction == "" {
+		googleError(c, http.StatusBadRequest, "Missing operation in URL")
+		return
+	}
+	h.forwardGeminiV1BetaOperationPath(c, "/v1beta/operations/"+operationAction)
+}
+
+func (h *GatewayHandler) forwardGeminiV1BetaOperationPath(c *gin.Context, operationPath string) {
 	apiKey, ok := middleware.GetAPIKeyFromContext(c)
 	if !ok || apiKey == nil {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
@@ -144,10 +166,13 @@ func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
 		return
 	}
 
-	modelName := strings.TrimSpace(c.Param("model"))
-	operationID := strings.TrimSpace(c.Param("operation"))
-	if modelName == "" || operationID == "" {
-		googleError(c, http.StatusBadRequest, "Missing model or operation in URL")
+	body, err := readOptionalGeminiBody(c)
+	if err != nil {
+		if maxErr, ok := extractMaxBytesError(err); ok {
+			googleError(c, http.StatusRequestEntityTooLarge, buildBodyTooLargeMessage(maxErr.Limit))
+			return
+		}
+		googleError(c, http.StatusBadRequest, "Failed to read request body")
 		return
 	}
 
@@ -158,7 +183,9 @@ func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
 		return
 	}
 
-	res, err := h.geminiCompatService.ForwardAIStudioOperationGET(c.Request.Context(), account, modelName, operationID)
+	query := c.Request.URL.Query()
+	query.Del("key")
+	res, err := h.geminiCompatService.ForwardAIStudioOperationRequest(c.Request.Context(), account, c.Request.Method, operationPath, query.Encode(), body, c.GetHeader("Content-Type"))
 	if err != nil {
 		googleError(c, http.StatusBadGateway, err.Error())
 		return
@@ -166,7 +193,7 @@ func (h *GatewayHandler) GeminiV1BetaOperation(c *gin.Context) {
 	writeUpstreamResponse(c, res)
 }
 
-// GeminiV1BetaFile proxies generated media file downloads:
+// GeminiV1BetaFile proxies generated media file APIs, including downloads:
 // GET /v1beta/files/{file}:download?alt=media
 func (h *GatewayHandler) GeminiV1BetaFile(c *gin.Context) {
 	apiKey, ok := middleware.GetAPIKeyFromContext(c)
@@ -184,6 +211,15 @@ func (h *GatewayHandler) GeminiV1BetaFile(c *gin.Context) {
 		googleError(c, http.StatusBadRequest, "Missing file in URL")
 		return
 	}
+	body, err := readOptionalGeminiBody(c)
+	if err != nil {
+		if maxErr, ok := extractMaxBytesError(err); ok {
+			googleError(c, http.StatusRequestEntityTooLarge, buildBodyTooLargeMessage(maxErr.Limit))
+			return
+		}
+		googleError(c, http.StatusBadRequest, "Failed to read request body")
+		return
+	}
 
 	account, err := h.geminiCompatService.SelectAccountForAIStudioEndpoints(c.Request.Context(), apiKey.GroupID)
 	if err != nil {
@@ -194,12 +230,22 @@ func (h *GatewayHandler) GeminiV1BetaFile(c *gin.Context) {
 
 	query := c.Request.URL.Query()
 	query.Del("key")
-	res, err := h.geminiCompatService.ForwardAIStudioFileGET(c.Request.Context(), account, fileAction, query.Encode())
+	res, err := h.geminiCompatService.ForwardAIStudioFileRequest(c.Request.Context(), account, c.Request.Method, fileAction, query.Encode(), body, c.GetHeader("Content-Type"))
 	if err != nil {
 		googleError(c, http.StatusBadGateway, err.Error())
 		return
 	}
 	writeUpstreamResponse(c, res)
+}
+
+func readOptionalGeminiBody(c *gin.Context) ([]byte, error) {
+	if c == nil || c.Request == nil || c.Request.Body == nil {
+		return nil, nil
+	}
+	if c.Request.ContentLength == 0 {
+		return nil, nil
+	}
+	return pkghttputil.ReadRequestBodyWithPrealloc(c.Request)
 }
 
 // GeminiV1BetaModels proxies Gemini native REST endpoints like:

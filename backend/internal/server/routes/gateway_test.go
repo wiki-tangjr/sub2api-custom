@@ -65,6 +65,32 @@ func TestGatewayRoutesOpenAIResponsesCompactPathIsRegistered(t *testing.T) {
 	}
 }
 
+func TestGatewayRoutesGeminiVeoOperationAndFilePathsAreRegistered(t *testing.T) {
+	router := newGatewayRoutesTestRouter(service.PlatformGemini)
+
+	for _, tc := range []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodPost, "/v1beta/models/veo-3.1-generate-preview:predictLongRunning", `{"instances":[{"prompt":"cat"}]}`},
+		{http.MethodGet, "/v1beta/models/veo-3.1-generate-preview/operations/op-123", ""},
+		{http.MethodDelete, "/v1beta/models/veo-3.1-generate-preview/operations/op-123", ""},
+		{http.MethodGet, "/v1beta/operations/op-123", ""},
+		{http.MethodPost, "/v1beta/operations/op-123:cancel", `{}`},
+		{http.MethodPost, "/v1beta/operations/op-123:wait", `{}`},
+		{http.MethodDelete, "/v1beta/operations/op-123", ""},
+		{http.MethodGet, "/v1beta/files/video-1:download?alt=media", ""},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+		require.NotEqual(t, http.StatusNotFound, w.Code, "method=%s path=%s should hit Gemini/Veo handler", tc.method, tc.path)
+	}
+}
+
 func TestGatewayRoutesOpenAIImagesPathsAreRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 

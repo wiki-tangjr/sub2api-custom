@@ -300,7 +300,7 @@ func buildVertexGeminiURL(projectID, location, model, action string, stream bool
 		return "", errors.New("vertex model is required")
 	}
 	switch action {
-	case "generateContent", "streamGenerateContent", "countTokens":
+	case "generateContent", "streamGenerateContent", "countTokens", "predictLongRunning":
 	default:
 		return "", fmt.Errorf("unsupported vertex gemini action: %s", action)
 	}

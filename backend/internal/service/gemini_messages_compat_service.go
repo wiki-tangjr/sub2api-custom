@@ -595,6 +595,32 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioOperationGET(ctx context.Co
 	return s.ForwardAIStudioGET(ctx, account, fmt.Sprintf("/v1beta/models/%s/operations/%s", modelName, operationID))
 }
 
+// ForwardAIStudioOperationRequest forwards Gemini/Veo long-running operation
+// methods. It intentionally accepts operation actions with slashes because the
+// public API returns operation names such as "operations/..." and may also be
+// polled as /v1beta/{operation.name}.
+func (s *GeminiMessagesCompatService) ForwardAIStudioOperationRequest(ctx context.Context, account *Account, method, operationPath, rawQuery string, body []byte, contentType string) (*UpstreamHTTPResult, error) {
+	operationPath = strings.TrimSpace(operationPath)
+	if operationPath == "" || !strings.HasPrefix(operationPath, "/v1beta/") {
+		return nil, errors.New("invalid operation path")
+	}
+	if strings.Contains(operationPath, "..") || strings.Contains(operationPath, "//") {
+		return nil, errors.New("invalid operation path")
+	}
+	switch method {
+	case http.MethodGet, http.MethodPost, http.MethodDelete:
+		// ok: Google long-running operations support get, cancel/wait via POST,
+		// and delete. Other methods are not part of the Gemini/Veo surface.
+	default:
+		return nil, fmt.Errorf("unsupported operation method: %s", method)
+	}
+	path := operationPath
+	if strings.TrimSpace(rawQuery) != "" {
+		path += "?" + rawQuery
+	}
+	return s.forwardAIStudioRaw(ctx, account, method, path, body, contentType)
+}
+
 // ForwardAIStudioFileGET forwards generated media file downloads such as
 // /v1beta/files/{file}:download?alt=media.
 func (s *GeminiMessagesCompatService) ForwardAIStudioFileGET(ctx context.Context, account *Account, fileAction, rawQuery string) (*UpstreamHTTPResult, error) {
@@ -611,6 +637,30 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioFileGET(ctx context.Context
 		path += "?" + rawQuery
 	}
 	return s.ForwardAIStudioGET(ctx, account, path)
+}
+
+// ForwardAIStudioFileRequest forwards generated media file APIs. It covers the
+// download endpoint used by Veo responses and keeps the method generic for
+// Gemini SDK compatibility.
+func (s *GeminiMessagesCompatService) ForwardAIStudioFileRequest(ctx context.Context, account *Account, method, fileAction, rawQuery string, body []byte, contentType string) (*UpstreamHTTPResult, error) {
+	fileAction = strings.TrimSpace(strings.TrimPrefix(fileAction, "/"))
+	if fileAction == "" {
+		return nil, errors.New("missing file")
+	}
+	if strings.Contains(fileAction, "..") || strings.HasPrefix(fileAction, "/") {
+		return nil, errors.New("invalid file path")
+	}
+	switch method {
+	case http.MethodGet, http.MethodPost, http.MethodDelete:
+		// ok
+	default:
+		return nil, fmt.Errorf("unsupported file method: %s", method)
+	}
+	path := "/v1beta/files/" + fileAction
+	if strings.TrimSpace(rawQuery) != "" {
+		path += "?" + rawQuery
+	}
+	return s.forwardAIStudioRaw(ctx, account, method, path, body, contentType)
 }
 
 func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Context, account *Account, body []byte) (*ForwardResult, error) {
@@ -2671,12 +2721,25 @@ func (s *GeminiMessagesCompatService) handleNativeStreamingResponse(c *gin.Conte
 //
 // This is used to support Gemini SDKs that call models listing endpoints before generation.
 func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, account *Account, path string) (*UpstreamHTTPResult, error) {
+	return s.forwardAIStudioRaw(ctx, account, http.MethodGet, path, nil, "")
+}
+
+func (s *GeminiMessagesCompatService) forwardAIStudioRaw(ctx context.Context, account *Account, method, path string, body []byte, contentType string) (*UpstreamHTTPResult, error) {
 	if account == nil {
 		return nil, errors.New("account is nil")
 	}
 	path = strings.TrimSpace(path)
 	if path == "" || !strings.HasPrefix(path, "/") {
 		return nil, errors.New("invalid path")
+	}
+	if strings.Contains(path, "..") || strings.Contains(path, "//") {
+		return nil, errors.New("invalid path")
+	}
+	switch method {
+	case http.MethodGet, http.MethodPost, http.MethodDelete:
+		// ok
+	default:
+		return nil, fmt.Errorf("unsupported method: %s", method)
 	}
 
 	baseURL := account.GetGeminiBaseURL(geminicli.AIStudioBaseURL)
@@ -2691,9 +2754,19 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 		proxyURL = account.Proxy.URL()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
+	var bodyReader io.Reader
+	if len(body) > 0 {
+		bodyReader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, bodyReader)
 	if err != nil {
 		return nil, err
+	}
+	if bodyReader != nil {
+		if strings.TrimSpace(contentType) == "" {
+			contentType = "application/json"
+		}
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	switch account.Type {
@@ -2712,6 +2785,15 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 			return nil, err
 		}
 		req.Header.Set("Authorization", "Bearer "+accessToken)
+	case AccountTypeServiceAccount:
+		if s.tokenProvider == nil {
+			return nil, errors.New("gemini token provider not configured")
+		}
+		accessToken, err := s.tokenProvider.GetAccessToken(ctx, account)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+accessToken)
 	default:
 		return nil, fmt.Errorf("unsupported account type: %s", account.Type)
 	}
@@ -2722,7 +2804,7 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 256<<20))
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 256<<20))
 	wwwAuthenticate := resp.Header.Get("Www-Authenticate")
 	filteredHeaders := responseheaders.FilterHeaders(resp.Header, s.responseHeaderFilter)
 	if wwwAuthenticate != "" {
@@ -2731,7 +2813,7 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 	return &UpstreamHTTPResult{
 		StatusCode: resp.StatusCode,
 		Headers:    filteredHeaders,
-		Body:       body,
+		Body:       respBody,
 	}, nil
 }
 
