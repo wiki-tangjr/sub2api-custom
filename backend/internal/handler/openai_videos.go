@@ -19,6 +19,7 @@ import (
 
 // Videos handles OpenAI-compatible video/Jimeng proxy requests.
 // Supported inbound paths include:
+//   - POST /v1/videos
 //   - POST /v1/videos/generations
 //   - POST /v1/videos/*subpath
 //   - POST /v1/jimeng/*subpath

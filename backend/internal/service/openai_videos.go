@@ -20,6 +20,7 @@ import (
 
 const (
 	openAIVideosGenerationsEndpoint = "/v1/videos/generations"
+	openAIVideosEndpoint            = "/v1/videos"
 	openAIVideosEndpointPrefix      = "/v1/videos"
 	openAIJimengEndpointPrefix      = "/v1/jimeng"
 	openAIVideosGenerationsURL      = "https://api.openai.com/v1/videos/generations"
@@ -61,13 +62,14 @@ func (s *OpenAIGatewayService) ParseOpenAIVideosRequest(c *gin.Context, body []b
 
 func normalizeOpenAIVideoEndpoint(path string) string {
 	path = "/" + strings.TrimLeft(strings.TrimSpace(path), "/")
+	path = strings.TrimRight(path, "/")
 	for _, prefix := range []string{"/backend-api/openai", "/openai"} {
-		if strings.HasPrefix(path, prefix+"/v1/") {
+		if path == prefix+openAIVideosEndpoint || strings.HasPrefix(path, prefix+"/v1/") {
 			path = strings.TrimPrefix(path, prefix)
 			break
 		}
 	}
-	if strings.HasPrefix(path, openAIVideosEndpointPrefix) || strings.HasPrefix(path, openAIJimengEndpointPrefix) {
+	if path == openAIVideosEndpoint || strings.HasPrefix(path, openAIVideosEndpointPrefix+"/") || strings.HasPrefix(path, openAIJimengEndpointPrefix) {
 		return path
 	}
 	return ""
@@ -113,7 +115,8 @@ func (s *OpenAIGatewayService) forwardOpenAIVideosAPIKey(
 	if strings.TrimSpace(upstreamModel) == "" {
 		upstreamModel = requestModel
 	}
-	forwardBody, forwardContentType, err := rewriteOpenAIVideoJSONModel(body, parsed.ContentType, upstreamModel)
+	forwardEndpoint := openAIVideoUpstreamEndpoint(parsed.Endpoint, requestModel)
+	forwardBody, forwardContentType, err := rewriteOpenAIVideoJSONBody(body, parsed.ContentType, upstreamModel, forwardEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +127,7 @@ func (s *OpenAIGatewayService) forwardOpenAIVideosAPIKey(
 	if err != nil {
 		return nil, err
 	}
-	upstreamReq, err := s.buildOpenAIVideosRequest(upstreamCtx, c, account, forwardBody, forwardContentType, token, parsed.Endpoint)
+	upstreamReq, err := s.buildOpenAIVideosRequest(upstreamCtx, c, account, forwardBody, forwardContentType, token, forwardEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -211,16 +214,72 @@ func buildOpenAIVideosURL(base string, endpoint string) string {
 	return buildOpenAIEndpointURL(base, endpoint)
 }
 
-func rewriteOpenAIVideoJSONModel(body []byte, contentType string, model string) ([]byte, string, error) {
-	model = strings.TrimSpace(model)
-	if model == "" || !json.Valid(body) {
+func openAIVideoUpstreamEndpoint(endpoint string, model string) string {
+	if isJimengVideoModel(model) && (endpoint == openAIVideosEndpoint || endpoint == openAIVideosGenerationsEndpoint || endpoint == openAIJimengEndpointPrefix+"/videos/generations") {
+		return openAIVideosEndpoint
+	}
+	return endpoint
+}
+
+func isJimengVideoModel(model string) bool {
+	switch strings.ToLower(strings.TrimSpace(model)) {
+	case "video-ds-2.0", "video-ds-2.0-fast":
+		return true
+	default:
+		return false
+	}
+}
+
+func rewriteOpenAIVideoJSONBody(body []byte, contentType string, model string, endpoint string) ([]byte, string, error) {
+	if !json.Valid(body) {
 		return body, contentType, nil
 	}
-	rewritten, err := sjson.SetBytes(body, "model", model)
-	if err != nil {
-		return nil, "", fmt.Errorf("rewrite video request model: %w", err)
+	rewritten := body
+	model = strings.TrimSpace(model)
+	if model != "" {
+		var err error
+		rewritten, err = sjson.SetBytes(rewritten, "model", model)
+		if err != nil {
+			return nil, "", fmt.Errorf("rewrite video request model: %w", err)
+		}
+	}
+	if endpoint == openAIVideosEndpoint && isJimengVideoModel(model) {
+		patched, err := patchJimengVideoCreateBody(rewritten)
+		if err != nil {
+			return nil, "", err
+		}
+		rewritten = patched
 	}
 	return rewritten, contentType, nil
+}
+
+func patchJimengVideoCreateBody(body []byte) ([]byte, error) {
+	out := body
+	if !gjson.GetBytes(out, "seconds").Exists() {
+		for _, field := range []string{"duration", "second"} {
+			value := strings.TrimSpace(gjson.GetBytes(out, field).String())
+			if value == "" {
+				continue
+			}
+			var err error
+			out, err = sjson.SetBytes(out, "seconds", value)
+			if err != nil {
+				return nil, fmt.Errorf("rewrite jimeng video seconds: %w", err)
+			}
+			break
+		}
+	}
+	for _, field := range []string{"duration", "second", "width", "height", "size", "mode", "model_name", "req_key"} {
+		if !gjson.GetBytes(out, field).Exists() {
+			continue
+		}
+		var err error
+		out, err = sjson.DeleteBytes(out, field)
+		if err != nil {
+			return nil, fmt.Errorf("drop unsupported jimeng video field %s: %w", field, err)
+		}
+	}
+	return out, nil
 }
 
 func (s *OpenAIGatewayService) handleOpenAIVideosErrorResponse(resp *http.Response, c *gin.Context, account *Account, upstreamModel string) (*OpenAIForwardResult, error) {

@@ -161,6 +161,7 @@ func RegisterGatewayRoutes(
 		})
 		gateway.POST("/images/generations", imagesHandler)
 		gateway.POST("/images/edits", imagesHandler)
+		gateway.Any("/videos", videoHandler)
 		gateway.Any("/videos/*subpath", videoHandler)
 		openAIJimengHandler := func(c *gin.Context) {
 			if getGroupPlatform(c) != service.PlatformOpenAI {
@@ -242,6 +243,7 @@ func RegisterGatewayRoutes(
 	})
 	r.POST("/images/generations", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, imagesHandler)
 	r.POST("/images/edits", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, imagesHandler)
+	r.Any("/videos", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoHandler)
 	r.Any("/videos/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, videoHandler)
 	openAIJimengRootHandler := func(c *gin.Context) {
 		if getGroupPlatform(c) != service.PlatformOpenAI {

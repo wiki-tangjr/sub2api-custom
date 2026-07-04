@@ -113,9 +113,11 @@ func TestGatewayRoutesOpenAIVideoAndJimengPathsAreRegistered(t *testing.T) {
 	router := newGatewayRoutesTestRouter()
 
 	for _, path := range []string{
+		"/v1/videos",
 		"/v1/videos/generations",
 		"/v1/videos/generations/vid_123",
 		"/v1/jimeng/videos/generations",
+		"/videos",
 		"/videos/generations",
 		"/videos/generations/vid_123",
 		"/jimeng/videos/generations",
