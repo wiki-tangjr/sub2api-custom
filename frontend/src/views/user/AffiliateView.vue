@@ -109,7 +109,9 @@
           <div v-if="detail.invitees.length === 0" class="mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-dark-700 dark:text-dark-400">
             {{ t('affiliate.invitees.empty') }}
           </div>
-          <div v-else class="mt-4 overflow-x-auto">
+          <!-- 桌面端（>=768px）：表格 -->
+          <div v-else class="mt-4">
+           <div class="hidden overflow-x-auto md:block">
             <table class="w-full min-w-[560px] text-left text-sm">
               <thead>
                 <tr class="border-b border-gray-200 text-gray-500 dark:border-dark-700 dark:text-dark-400">
@@ -132,6 +134,33 @@
                 </tr>
               </tbody>
             </table>
+           </div>
+
+           <!-- 移动端（<768px）：卡片，与全站表格移动端体验一致 -->
+           <div class="space-y-3 md:hidden">
+            <div
+              v-for="item in detail.invitees"
+              :key="item.user_id"
+              class="rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-900"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('affiliate.invitees.columns.email') }}</span>
+                <span class="text-right text-sm text-gray-900 dark:text-white break-all">{{ item.email || '-' }}</span>
+              </div>
+              <div class="mt-2 flex items-start justify-between gap-4">
+                <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('affiliate.invitees.columns.username') }}</span>
+                <span class="text-right text-sm text-gray-700 dark:text-gray-300">{{ item.username || '-' }}</span>
+              </div>
+              <div class="mt-2 flex items-start justify-between gap-4">
+                <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('affiliate.invitees.columns.rebate') }}</span>
+                <span class="text-right text-sm font-medium text-emerald-600 dark:text-emerald-400">{{ formatCurrency(item.total_rebate) }}</span>
+              </div>
+              <div class="mt-2 flex items-start justify-between gap-4">
+                <span class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">{{ t('affiliate.invitees.columns.joinedAt') }}</span>
+                <span class="text-right text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(item.created_at) || '-' }}</span>
+              </div>
+            </div>
+           </div>
           </div>
         </div>
       </template>

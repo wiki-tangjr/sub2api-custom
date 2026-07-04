@@ -25,22 +25,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { useViewport } from '@/composables/useViewport'
 
-const isMobile = ref(false)
-
-const checkMobile = () => {
-  isMobile.value = window.innerWidth < 1024
-}
-
-onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-})
+// 统一使用全站断点(md=768px),与 DataTable 的移动端卡片切换保持一致,
+// 避免框架与表格内容在 768–1024px 区间对是否移动端判断不一致导致错位。
+// matchMedia 事件驱动,无 resize 高频轮询,天然无抖动。
+const { isMobile } = useViewport()
 </script>
 
 <style scoped>

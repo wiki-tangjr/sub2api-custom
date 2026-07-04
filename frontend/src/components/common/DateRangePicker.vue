@@ -356,7 +356,7 @@ onUnmounted(() => {
   @apply border border-gray-200 dark:border-dark-700;
   @apply shadow-lg shadow-black/10 dark:shadow-black/30;
   @apply overflow-hidden;
-  @apply min-w-[320px];
+  @apply min-w-[min(92vw,320px)] max-w-[92vw];
 }
 
 .date-picker-presets {
