@@ -108,7 +108,7 @@ func (h *OpenAIGatewayHandler) Videos(c *gin.Context) {
 	for {
 		selection, scheduleDecision, err := h.gatewayService.SelectAccountWithSchedulerForCapability(
 			c.Request.Context(), apiKey.GroupID, "", sessionHash, requestModel, failedAccountIDs,
-			service.OpenAIUpstreamTransportHTTPSSE, service.OpenAIEndpointCapabilityChatCompletions, false, service.PlatformOpenAI,
+			service.OpenAIUpstreamTransportHTTPSSE, service.OpenAIEndpointCapabilityChatCompletions, false, false, service.PlatformOpenAI,
 		)
 		if err != nil {
 			reqLog.Warn("openai.videos.account_select_failed", zap.Error(err), zap.Int("excluded_account_count", len(failedAccountIDs)))

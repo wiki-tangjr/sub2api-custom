@@ -161,6 +161,9 @@ func RegisterGatewayRoutes(
 		})
 		gateway.POST("/images/generations", imagesHandler)
 		gateway.POST("/images/edits", imagesHandler)
+		// LOCAL CUSTOMIZATION: 视频/即梦代理魔改（videoHandler 覆盖 OpenAI/Grok/即梦，
+		// 是官方 /videos/generations + /videos/:request_id 的功能超集；用 Any 通配统一转发。
+		// 官方那两条具名/参数路由与本通配路由在 gin 下冲突，故不采用，逻辑已由 videoHandler 承接。
 		gateway.Any("/videos", videoHandler)
 		gateway.Any("/videos/*subpath", videoHandler)
 		openAIJimengHandler := func(c *gin.Context) {
@@ -177,6 +180,17 @@ func RegisterGatewayRoutes(
 			h.OpenAIGateway.Videos(c)
 		}
 		gateway.Any("/jimeng/*subpath", openAIJimengHandler)
+		// 官方新增：批量图片端点（纯新增，无冲突，保留）。
+		gateway.POST("/images/batches", h.BatchImage.Submit)
+		gateway.GET("/images/batches", h.BatchImage.List)
+		gateway.GET("/images/batches/models", h.BatchImage.Models)
+		gateway.GET("/images/batches/:id", h.BatchImage.Get)
+		gateway.GET("/images/batches/:id/items", h.BatchImage.Items)
+		gateway.GET("/images/batches/:id/items/:custom_id/content", h.BatchImage.ItemContent)
+		gateway.GET("/images/batches/:id/download", h.BatchImage.Download)
+		gateway.POST("/images/batches/:id/cancel", h.BatchImage.Cancel)
+		gateway.DELETE("/images/batches/:id", h.BatchImage.DeleteRecord)
+		gateway.DELETE("/images/batches/:id/outputs", h.BatchImage.DeleteOutputs)
 	}
 
 	// Gemini 原生 API 兼容层（Gemini SDK/CLI 直连）
