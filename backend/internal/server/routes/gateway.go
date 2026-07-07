@@ -260,6 +260,27 @@ func RegisterGatewayRoutes(
 	}
 	r.Any("/jimeng/*subpath", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, openAIJimengRootHandler)
 
+	// LOCAL CUSTOMIZATION: Seedance 原生视频接口兼容（火山方舟 /seedance/v3/contents/generations/tasks）。
+	// 把 Seedance 原生协议翻译成 /v1/videos 复用现有转发，模型名 seedance-2.0-fast-sdols -> as-sd2.0-fast。
+	seedanceCreate := func(c *gin.Context) {
+		if getGroupPlatform(c) != service.PlatformOpenAI {
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Seedance API is not supported for this platform"}})
+			return
+		}
+		h.OpenAIGateway.SeedanceCreate(c)
+	}
+	seedanceQuery := func(c *gin.Context) {
+		if getGroupPlatform(c) != service.PlatformOpenAI {
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Seedance API is not supported for this platform"}})
+			return
+		}
+		h.OpenAIGateway.SeedanceQuery(c)
+	}
+	r.POST("/seedance/v3/contents/generations/tasks", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, seedanceCreate)
+	r.GET("/seedance/v3/contents/generations/tasks/*taskId", bodyLimit, clientRequestID, opsErrorLogger, endpointNorm, gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, seedanceQuery)
+
 	// Antigravity 模型列表
 	r.GET("/antigravity/models", gin.HandlerFunc(apiKeyAuth), requireGroupAnthropic, h.Gateway.AntigravityModels)
 

@@ -70,6 +70,11 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 		if origin != "" && !allowAll {
 			_, originAllowed = allowedSet[origin]
 		}
+		// LOCAL CUSTOMIZATION: Seedance 原生接口（桥豆麻衣酱等浏览器客户端）需无条件放行跨域，
+		// 否则浏览器 OPTIONS 预检被 403 拦截，真正的 POST 无法发出。
+		if !originAllowed && strings.HasPrefix(c.Request.URL.Path, "/seedance/") {
+			originAllowed = true
+		}
 
 		if originAllowed {
 			if allowAll {
