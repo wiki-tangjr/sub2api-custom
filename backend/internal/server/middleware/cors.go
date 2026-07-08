@@ -75,6 +75,15 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 		if !originAllowed && strings.HasPrefix(c.Request.URL.Path, "/seedance/") {
 			originAllowed = true
 		}
+		// LOCAL CUSTOMIZATION: OpenAI 兼容端点（/v1/*，如 chat/completions、responses、images、models）
+		// 同样需无条件放行浏览器/WebView 客户端（桥豆麻衣酱等）的跨域预检，
+		// 否则 OPTIONS 预检被 403 拦截，前端报 "Failed to fetch"，真正的 POST 无法发出。
+		// 仅放行 CORS 预检与响应头，不改变后续鉴权/计费/转发逻辑（POST 仍照常校验 API key 并计费）。
+		if !originAllowed && (strings.HasPrefix(c.Request.URL.Path, "/v1/") ||
+			strings.HasPrefix(c.Request.URL.Path, "/videos") ||
+			strings.HasPrefix(c.Request.URL.Path, "/jimeng/")) {
+			originAllowed = true
+		}
 
 		if originAllowed {
 			if allowAll {
