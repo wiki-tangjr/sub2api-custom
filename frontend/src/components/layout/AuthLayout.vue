@@ -58,6 +58,18 @@
       <div class="mt-8 text-center text-xs text-gray-400 dark:text-dark-500">
         &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
       </div>
+
+      <!-- ICP Filing (custom) -->
+      <div class="mt-2 text-center text-xs text-gray-400 dark:text-dark-500">
+        <a
+          href="https://beian.miit.gov.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-gray-600 dark:hover:text-dark-300 transition-colors"
+        >
+          滍ICP备2026013786号-1
+        </a>
+      </div>
     </div>
   </div>
 </template>

@@ -15,6 +15,18 @@
       <main class="p-4 md:p-6 lg:p-8">
         <slot />
       </main>
+
+      <!-- ICP Filing Footer (custom) -->
+      <footer class="px-4 pb-6 pt-2 text-center text-xs text-gray-400 dark:text-dark-500">
+        <a
+          href="https://beian.miit.gov.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-gray-600 dark:hover:text-dark-300 transition-colors"
+        >
+          滍ICP备2026013786号-1
+        </a>
+      </footer>
     </div>
   </div>
 </template>

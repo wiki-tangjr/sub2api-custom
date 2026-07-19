@@ -78,6 +78,14 @@
 - **关键文件**：`backend/internal/server/middleware/cors.go`。
 - **验证**：`curl -X OPTIONS http://127.0.0.1:8080/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST'` 应返回 204 + `Access-Control-Allow-Origin`。
 
+### 10. 前端底部 ICP 备案号标识（合规要求，2026-07-19）
+- **内容**：按工信部规定，在网站所有页面底部显示 ICP 备案号并链接到工信部备案系统。备案号：**滍ICP备2026013786号-1**（带序号，非广东必须带 `-1`），链接指向 `https://beian.miit.gov.cn`（新标页打开，`rel="noopener noreferrer"`）。
+- **两处覆盖全部页面**：登录/未登录页（`AuthLayout.vue`，版权行下方）+ 登录后主界面（`AppLayout.vue`，底部 `<footer>`）。
+- **待办**：公安备案审核中；通过后需把公安备案号（含图标 + 链接 `https://www.beian.gov.cn`）同样补到这两处 footer。
+- **标记**：两个布局文件中搜索 `2026013786`、`beian.miit.gov.cn` 应各存在；构建后 `strings sub2api | grep -c 2026013786` 应 ≥ 2。
+- **关键文件**：`frontend/src/components/layout/AuthLayout.vue`、`frontend/src/components/layout/AppLayout.vue`。
+- **验证**：构建 `-tags embed` 后，登录页与主界面底部均可见可点击的备案号链接。
+
 ---
 
 ## 合并后验证清单（照做即可）
