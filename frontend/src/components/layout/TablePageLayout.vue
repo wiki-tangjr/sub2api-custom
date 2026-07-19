@@ -90,10 +90,6 @@ const { isMobile } = useViewport()
   @apply flex-none min-h-fit;
 }
 
-.table-page-layout.mobile-mode .table-scroll-container :deep(.table-wrapper) {
-  @apply overflow-visible;
-}
-
 .table-page-layout.mobile-mode .table-scroll-container :deep(table) {
   @apply flex-none;
   display: table;

@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/service"
+	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -62,6 +64,19 @@ func (h *OpenAIGatewayHandler) SeedanceCreate(c *gin.Context) {
 	if !ok {
 		// 转换失败时，原样透传给 Videos()（让其按 /v1/videos 逻辑处理并返回上游错误）
 		translated = raw
+	}
+
+	// LOCAL CUSTOMIZATION: 安全审计门。seedance 携带用户提示词，需经官方 prompt 审计协调器（与 /v1/images 一致）。
+	// 未配置审计/内容审核时 checkSecurityAudit 为 no-op（coordinator/legacy 均 nil 直接放行）。
+	if apiKey, ok := middleware2.GetAPIKeyFromContext(c); ok {
+		if subject, ok := middleware2.GetAuthSubjectFromContext(c); ok {
+			reqLog := requestLogger(c, "handler.openai_gateway.seedance", zap.Int64("user_id", subject.UserID), zap.Int64("api_key_id", apiKey.ID))
+			model := gjson.GetBytes(translated, "model").String()
+			if decision := h.checkSecurityAudit(c, reqLog, apiKey, subject, service.ContentModerationProtocolOpenAIImages, model, translated); decision != nil && !decision.AllowNextStage {
+				h.openAISecurityAuditError(c, decision)
+				return
+			}
+		}
 	}
 
 	// 用翻译后的 body 覆盖请求，并将路径改写为 /v1/videos 复用现有转发
