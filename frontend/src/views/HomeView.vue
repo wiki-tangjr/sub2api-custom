@@ -374,31 +374,55 @@
 
     <!-- Footer -->
     <footer class="relative z-10 border-t border-gray-200/50 px-6 py-8 dark:border-dark-800/50">
-      <div
-        class="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left"
-      >
-        <p class="text-sm text-gray-500 dark:text-dark-400">
-          &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
-        </p>
-        <div class="flex items-center gap-4">
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >
-            {{ t('home.docs') }}
-          </a>
-          <a
-            :href="githubUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
-          >
-            GitHub
-          </a>
+      <div class="mx-auto flex max-w-6xl flex-col items-center gap-4">
+        <div
+          class="flex w-full flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left"
+        >
+          <p class="text-sm text-gray-500 dark:text-dark-400">
+            &copy; {{ currentYear }} {{ siteName }}. {{ t('home.footer.allRightsReserved') }}
+          </p>
+          <div class="flex items-center gap-4">
+            <a
+              v-if="docUrl"
+              :href="docUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
+            >
+              {{ t('home.docs') }}
+            </a>
+            <a
+              :href="githubUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-dark-400 dark:hover:text-white"
+            >
+              GitHub
+            </a>
+          </div>
         </div>
+
+        <!-- ICP Filing (custom) -->
+        <a
+          href="https://beian.miit.gov.cn"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group inline-flex items-center gap-1.5 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
+        >
+          <svg
+            class="h-3.5 w-3.5 opacity-70 transition-opacity group-hover:opacity-100"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>滇ICP备2026013786号-1</span>
+        </a>
       </div>
     </footer>
   </div>

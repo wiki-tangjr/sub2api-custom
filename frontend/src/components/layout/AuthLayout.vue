@@ -54,21 +54,33 @@
         <slot name="footer" />
       </div>
 
-      <!-- Copyright -->
-      <div class="mt-8 text-center text-xs text-gray-400 dark:text-dark-500">
-        &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
-      </div>
-
-      <!-- ICP Filing (custom) -->
-      <div class="mt-2 text-center text-xs text-gray-400 dark:text-dark-500">
-        <a
-          href="https://beian.miit.gov.cn"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hover:text-gray-600 dark:hover:text-dark-300 transition-colors"
-        >
-          滍ICP备2026013786号-1
-        </a>
+      <!-- Copyright & ICP Filing (custom) -->
+      <div class="mt-8 space-y-2 text-center">
+        <p class="text-xs text-gray-400 dark:text-dark-500">
+          &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
+        </p>
+        <div class="flex items-center justify-center">
+          <a
+            href="https://beian.miit.gov.cn"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center gap-1.5 rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
+          >
+            <svg
+              class="h-3 w-3 opacity-70 transition-opacity group-hover:opacity-100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>滇ICP备2026013786号-1</span>
+          </a>
+        </div>
       </div>
     </div>
   </div>
