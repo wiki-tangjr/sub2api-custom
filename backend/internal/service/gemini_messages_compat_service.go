@@ -722,9 +722,9 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 			if req.Stream {
 				action = "streamGenerateContent"
 			}
-			fullURL := fmt.Sprintf("%s/v1beta/models/%s:%s", strings.TrimRight(normalizedBaseURL, "/"), mappedModel, action)
-			if req.Stream {
-				fullURL += "?alt=sse"
+			fullURL, err := buildGeminiAIStudioModelActionURL(normalizedBaseURL, mappedModel, action, req.Stream)
+			if err != nil {
+				return nil, "", err
 			}
 
 			restGeminiReq := normalizeGeminiRequestForAIStudio(geminiReq)
@@ -796,9 +796,9 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 					return nil, "", err
 				}
 
-				fullURL := fmt.Sprintf("%s/v1beta/models/%s:%s", strings.TrimRight(normalizedBaseURL, "/"), mappedModel, action)
-				if useUpstreamStream {
-					fullURL += "?alt=sse"
+				fullURL, err := buildGeminiAIStudioModelActionURL(normalizedBaseURL, mappedModel, action, useUpstreamStream)
+				if err != nil {
+					return nil, "", err
 				}
 
 				restGeminiReq := normalizeGeminiRequestForAIStudio(geminiReq)
@@ -1265,9 +1265,9 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 				return nil, "", err
 			}
 
-			fullURL := fmt.Sprintf("%s/v1beta/models/%s:%s", strings.TrimRight(normalizedBaseURL, "/"), mappedModel, upstreamAction)
-			if useUpstreamStream {
-				fullURL += "?alt=sse"
+			fullURL, err := buildGeminiAIStudioModelActionURL(normalizedBaseURL, mappedModel, upstreamAction, useUpstreamStream)
+			if err != nil {
+				return nil, "", err
 			}
 
 			upstreamReq, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(body))
@@ -1333,9 +1333,9 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 					return nil, "", err
 				}
 
-				fullURL := fmt.Sprintf("%s/v1beta/models/%s:%s", strings.TrimRight(normalizedBaseURL, "/"), mappedModel, upstreamAction)
-				if useUpstreamStream {
-					fullURL += "?alt=sse"
+				fullURL, err := buildGeminiAIStudioModelActionURL(normalizedBaseURL, mappedModel, upstreamAction, useUpstreamStream)
+				if err != nil {
+					return nil, "", err
 				}
 
 				upstreamReq, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(body))
@@ -2789,13 +2789,16 @@ func (s *GeminiMessagesCompatService) forwardAIStudioRaw(ctx context.Context, ac
 	if account == nil {
 		return nil, errors.New("account is nil")
 	}
-	path = strings.TrimSpace(path)
-	if path == "" || !strings.HasPrefix(path, "/") {
+	// path 会被直接拼到上游 base URL 后面，因此按路径护栏逐片段校验。
+	// 本地魔改 #5：Gemini/Veo 原生路径含冒号动作（:download/:cancel/:predictLongRunning）
+	// 与查询串（?alt=media），官方 sanitizedUpstreamPathSuffix 会误杀，
+	// 故改用 Gemini 专用护栏，见 gemini_upstream_path_guard.go。
+	sanitizedPath, ok := sanitizedGeminiUpstreamPath(path)
+	if !ok || sanitizedPath == "" {
 		return nil, errors.New("invalid path")
 	}
-	if strings.Contains(path, "..") || strings.Contains(path, "//") {
-		return nil, errors.New("invalid path")
-	}
+	path = sanitizedPath
+	// 本地魔改 #5：Gemini/Veo 需要 POST（predictLongRunning、operations:cancel/:wait）与 DELETE（operations 删除）。
 	switch method {
 	case http.MethodGet, http.MethodPost, http.MethodDelete:
 		// ok
