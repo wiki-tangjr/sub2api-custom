@@ -16,11 +16,11 @@
         <slot />
       </main>
 
-      <!-- ICP Filing Footer (custom) -->
+      <!-- ICP & Public Security Filing Footer (custom) -->
       <footer
         class="mt-auto shrink-0 border-t border-gray-200/80 bg-white/40 px-4 py-5 backdrop-blur-sm dark:border-dark-800/80 dark:bg-dark-900/30"
       >
-        <div class="flex flex-col items-center justify-center gap-1.5 text-xs text-gray-400 dark:text-dark-500">
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-400 dark:text-dark-500">
           <a
             href="https://beian.miit.gov.cn"
             target="_blank"
@@ -40,6 +40,21 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>滇ICP备2026013786号-1</span>
+          </a>
+          <a
+            href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
+            target="_blank"
+            rel="noreferrer"
+            class="group inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-primary-600 dark:hover:text-primary-400"
+          >
+            <img
+              src="/assets/image/gongan-beian.png"
+              alt="公安备案图标"
+              width="20"
+              height="20"
+              class="h-4 w-4 opacity-80 transition-opacity group-hover:opacity-100"
+            />
+            <span>滇公网安备53011102001665号</span>
           </a>
         </div>
       </footer>

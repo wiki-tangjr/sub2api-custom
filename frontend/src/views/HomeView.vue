@@ -471,27 +471,44 @@
           </div>
         </div>
 
-        <!-- ICP Filing (custom) -->
-        <a
-          href="https://beian.miit.gov.cn"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="group inline-flex items-center gap-1.5 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
-        >
-          <svg
-            class="h-3.5 w-3.5 opacity-70 transition-opacity group-hover:opacity-100"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+        <!-- ICP & Public Security Filing (custom) -->
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <a
+            href="https://beian.miit.gov.cn"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center gap-1.5 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
           >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          <span>滇ICP备2026013786号-1</span>
-        </a>
+            <svg
+              class="h-3.5 w-3.5 opacity-70 transition-opacity group-hover:opacity-100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>滇ICP备2026013786号-1</span>
+          </a>
+          <a
+            href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
+            target="_blank"
+            rel="noreferrer"
+            class="group inline-flex items-center gap-1.5 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
+          >
+            <img
+              src="/assets/image/gongan-beian.png"
+              alt="公安备案图标"
+              width="20"
+              height="20"
+              class="h-4 w-4 opacity-80 transition-opacity group-hover:opacity-100"
+            />
+            <span>滇公网安备53011102001665号</span>
+          </a>
+        </div>
       </div>
     </footer>
   </div>

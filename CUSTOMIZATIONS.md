@@ -80,13 +80,14 @@
 - **关键文件**：`backend/internal/server/middleware/cors.go`。
 - **验证**：`curl -X OPTIONS http://127.0.0.1:8080/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST'` 应返回 204 + `Access-Control-Allow-Origin`。
 
-### 10. 前端底部 ICP 备案号标识（合规要求，2026-07-19）
-- **内容**：按工信部规定，在网站所有页面底部显示 ICP 备案号并链接到工信部备案系统。备案号：**滇ICP备2026013786号-1**（带序号，必须保留 `-1`），链接指向 `https://beian.miit.gov.cn`（新标签页打开，`rel="noopener noreferrer"`）。
-- **三处覆盖全部页面**：登录/未登录页（`AuthLayout.vue`，版权行下方）+ 登录后主界面（`AppLayout.vue`，底部 `<footer>`）+ 公开首页（`HomeView.vue`，底部 `<footer>`）。
-- **待办**：公安备案审核中；通过后需把公安备案号（含图标 + 链接 `https://www.beian.gov.cn`）同样补到这三处 footer。
-- **标记**：上述三个前端文件中搜索 `2026013786`、`beian.miit.gov.cn` 应各存在；构建后 `strings sub2api | grep -c 2026013786` 应 ≥ 3。
-- **关键文件**：`frontend/src/components/layout/AuthLayout.vue`、`frontend/src/components/layout/AppLayout.vue`、`frontend/src/views/HomeView.vue`。
-- **验证**：构建 `-tags embed` 后，登录页、主界面与公开首页底部均可见可点击的备案号链接。
+### 10. 前端底部 ICP 与公安备案标识（合规要求，2026-07-19；公安备案 2026-08-12）
+- **内容**：按规定在网站所有页面底部同时显示 ICP 与公安备案信息：
+  - ICP：**滇ICP备2026013786号-1**（带序号，必须保留 `-1`），链接 `https://beian.miit.gov.cn`（新标签页打开，`rel="noopener noreferrer"`）。
+  - 公安备案：**滇公网安备53011102001665号**，链接 `https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665`（必须保留查询参数，按平台代码使用 `target="_blank"`、`rel="noreferrer"`），并显示公安备案图标 `frontend/public/assets/image/gongan-beian.png`（20×20 PNG，取自全国互联网安全管理服务平台公开资源 `/img/ghs.png`）。
+- **三处覆盖全部页面**：登录/未登录页（`AuthLayout.vue`，版权行下方）+ 登录后主界面（`AppLayout.vue`，底部 `<footer>`）+ 公开首页（`HomeView.vue`，底部 `<footer>`）。小屏使用 `flex-wrap`，避免两个备案号挤压或溢出。
+- **标记**：上述三个前端文件中搜索 `2026013786`、`53011102001665`、`beian.miit.gov.cn`、`beian.mps.gov.cn` 应各存在；公安图标文件必须存在。构建后 `grep -R 53011102001665 frontend/dist` 应命中，`frontend/dist/assets/image/gongan-beian.png` 应存在。
+- **关键文件**：`frontend/src/components/layout/AuthLayout.vue`、`frontend/src/components/layout/AppLayout.vue`、`frontend/src/views/HomeView.vue`、`frontend/public/assets/image/gongan-beian.png`。
+- **验证**：前端构建及 `-tags embed` 构建后，登录页、主界面与公开首页底部均可见可点击的 ICP 和公安备案号；公安备案链接应打开备案详情查询页。
 
 ---
 
