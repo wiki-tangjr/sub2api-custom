@@ -59,12 +59,12 @@
         <p class="text-xs text-gray-400 dark:text-dark-500">
           &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
         </p>
-        <div class="flex flex-wrap items-center justify-center gap-2">
+        <div class="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <a
             href="https://beian.miit.gov.cn"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex items-center gap-1.5 rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
+            class="group inline-flex min-h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 sm:min-h-0 sm:w-auto dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
           >
             <svg
               class="h-3 w-3 opacity-70 transition-opacity group-hover:opacity-100"
@@ -84,7 +84,7 @@
             href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
             target="_blank"
             rel="noreferrer"
-            class="group inline-flex items-center gap-1.5 rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
+            class="group inline-flex min-h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 sm:min-h-0 sm:w-auto dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
           >
             <img
               src="/assets/image/gongan-beian.png"

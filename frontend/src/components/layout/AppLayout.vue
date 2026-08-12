@@ -20,12 +20,12 @@
       <footer
         class="mt-auto shrink-0 border-t border-gray-200/80 bg-white/40 px-4 py-5 backdrop-blur-sm dark:border-dark-800/80 dark:bg-dark-900/30"
       >
-        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-400 dark:text-dark-500">
+        <div class="flex flex-col items-center justify-center gap-1 text-xs text-gray-400 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-1.5 dark:text-dark-500">
           <a
             href="https://beian.miit.gov.cn"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-primary-600 dark:hover:text-primary-400"
+            class="group inline-flex min-h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 transition-colors duration-200 hover:text-primary-600 sm:min-h-0 sm:w-auto sm:px-0 dark:hover:text-primary-400"
           >
             <svg
               class="h-3.5 w-3.5 opacity-70 transition-opacity group-hover:opacity-100"
@@ -45,7 +45,7 @@
             href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
             target="_blank"
             rel="noreferrer"
-            class="group inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-primary-600 dark:hover:text-primary-400"
+            class="group inline-flex min-h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 transition-colors duration-200 hover:text-primary-600 sm:min-h-0 sm:w-auto sm:px-0 dark:hover:text-primary-400"
           >
             <img
               src="/assets/image/gongan-beian.png"
