@@ -41,17 +41,20 @@ func TestEveryGatewayPOSTRouteIsClassifiedForPromptAuditCoverage(t *testing.T) {
 		"/images/generations/async": {"image_task_handler.go"},
 		"/images/edits/async":       {"image_task_handler.go"},
 		"/images/batches":           {"batch_image_handler.go"},
-		// LOCAL CUSTOMIZATION: 官方具名视频路由 /videos/{generations,edits,extensions} 已被本地魔改的
-		// videoHandler 通配路由（Any /videos + /videos/*subpath）承接，故 gateway.go 中不再有对应
-		// 具名 .POST 路由，从 audited 清单中移除以避免 stale 校验失败。
 		"/models/*modelAction":      {"gemini_v1beta_handler.go"},
-		// LOCAL CUSTOMIZATION: Seedance 原生视频接口魔改（桥豆麻衣酱客户端）。
-		// 携带用户提示词，已在 seedance_handler.go 的 SeedanceCreate 中接入 checkSecurityAudit。
+		"/tts":                      {"grok_audio.go"},
+		"/web_search":               {"gateway_web_search.go"},
+		"/x_search":                 {"gateway_web_search.go"},
+		// LOCAL CUSTOMIZATION: /videos creation routes are handled by Any routes
+		// so OpenAI/Jimeng compatibility and Grok video endpoints share one dispatcher.
+		// LOCAL CUSTOMIZATION: Seedance native video protocol for clients like 桥豆麻衣酱.
 		"/seedance/v3/contents/generations/tasks": {"seedance_handler.go"},
 	}
 	excluded := map[string]string{
 		"/messages/count_tokens":     "tokenization only; it does not execute a model request",
 		"/images/batches/:id/cancel": "control-plane cancellation with no user prompt",
+		"/stt":                       "speech transcription is not a text-generation prompt",
+		"/custom-voices":             "voice profile management has no model prompt",
 	}
 
 	unclassified := make([]string, 0)
