@@ -99,14 +99,24 @@ func (s *FrontendServer) Middleware() gin.HandlerFunc {
 			cleanPath = "index.html"
 		}
 
-		// For index.html or SPA routes, serve with injected settings
-		if cleanPath == "index.html" || !s.fileExists(cleanPath) {
+		// For index.html, serve with injected settings.
+		if cleanPath == "index.html" {
 			s.serveIndexHTML(c)
 			return
 		}
 
 		// Try local override first
 		if s.tryServeOverride(c, cleanPath) {
+			return
+		}
+
+		if !s.fileExists(cleanPath) {
+			if shouldServeSPAIndex(cleanPath) {
+				s.serveIndexHTML(c)
+				return
+			}
+			c.String(http.StatusNotFound, "Static asset not found")
+			c.Abort()
 			return
 		}
 
@@ -321,20 +331,35 @@ func ServeEmbeddedFrontend() gin.HandlerFunc {
 			cleanPath = "index.html"
 		}
 
+		if tryServeOverrideFile(c, overrideDir, cleanPath) {
+			return
+		}
+
 		if file, err := distFS.Open(cleanPath); err == nil {
 			_ = file.Close()
-			// Try local override first
-			if tryServeOverrideFile(c, overrideDir, cleanPath) {
-				return
-			}
 			applyStaticAssetCacheHeaders(c.Writer.Header(), cleanPath)
 			fileServer.ServeHTTP(c.Writer, c.Request)
 			c.Abort()
 			return
 		}
 
-		serveIndexHTML(c, distFS)
+		if shouldServeSPAIndex(cleanPath) {
+			serveIndexHTML(c, distFS)
+			return
+		}
+
+		c.String(http.StatusNotFound, "Static asset not found")
+		c.Abort()
 	}
+}
+
+func shouldServeSPAIndex(cleanPath string) bool {
+	return filepath.Ext(cleanPath) == "" || !isEmbeddedAssetPath(cleanPath)
+}
+
+func isEmbeddedAssetPath(cleanPath string) bool {
+	cleanPath = strings.TrimPrefix(cleanPath, "/")
+	return strings.HasPrefix(cleanPath, "assets/")
 }
 
 // tryServeOverrideFile is a standalone version of tryServeOverride for legacy usage.
