@@ -179,7 +179,7 @@ func (h *OpenAIGatewayHandler) Videos(c *gin.Context) {
 		if err != nil {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
-				h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), false, nil)
+				h.gatewayService.ReportOpenAIAccountScheduleResult(account, account.GetMappedModel(requestModel), false, nil)
 				if c.Writer.Size() != writerSizeBeforeForward {
 					h.handleFailoverExhausted(c, failoverErr, true)
 					return
@@ -194,7 +194,7 @@ func (h *OpenAIGatewayHandler) Videos(c *gin.Context) {
 				switchCount++
 				continue
 			}
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), false, nil)
+			h.gatewayService.ReportOpenAIAccountScheduleResult(account, account.GetMappedModel(requestModel), false, nil)
 			upstreamErrorAlreadyCommunicated := openAIForwardErrorAlreadyCommunicated(c, writerSizeBeforeForward, err)
 			wroteFallback := false
 			if !upstreamErrorAlreadyCommunicated {
@@ -209,7 +209,7 @@ func (h *OpenAIGatewayHandler) Videos(c *gin.Context) {
 		}
 
 		if result != nil {
-			h.gatewayService.ReportOpenAIAccountScheduleResult(account.ID, account.GetMappedModel(requestModel), true, result.FirstTokenMs)
+			h.gatewayService.ReportOpenAIAccountScheduleResult(account, account.GetMappedModel(requestModel), true, result.FirstTokenMs)
 		}
 		userAgent := c.GetHeader("User-Agent")
 		clientIP := ip.GetClientIP(c)

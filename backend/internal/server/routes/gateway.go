@@ -94,76 +94,111 @@ func RegisterGatewayRoutes(
 			})
 		}
 	}
-	// LOCAL CUSTOMIZATION: Add OpenAI Videos support to official Grok video handlers
-	videoGenerationHandler := func(c *gin.Context) {
-		// Video status/content lookups below already allow Composite groups; keep
-		// task creation aligned so composite keys that route to Grok accounts can
-		// submit video generation jobs.
-		if platform := getGroupPlatform(c); platform == service.PlatformGrok || platform == service.PlatformComposite {
-			h.OpenAIGateway.GrokVideoGeneration(c)
-			return
-		}
-		// LOCAL CUSTOMIZATION: OpenAI Videos support
-		if platform := getGroupPlatform(c); platform == service.PlatformOpenAI {
+	// LOCAL CUSTOMIZATION: OpenAI-compatible video/Jimeng proxy plus upstream
+	// Grok video support. The wildcard dispatcher keeps the legacy /videos
+	// compatibility routes available alongside the official named routes.
+	videoHandler := func(c *gin.Context) {
+		switch getGroupPlatform(c) {
+		case service.PlatformOpenAI:
 			h.OpenAIGateway.Videos(c)
-			return
+		case service.PlatformGrok, service.PlatformComposite:
+			subpath := strings.Trim(strings.TrimPrefix(c.Param("subpath"), "/"), "/")
+			if c.Request.Method == http.MethodGet {
+				if strings.HasSuffix(subpath, "/content") {
+					requestID := strings.TrimSuffix(subpath, "/content")
+					c.Params = append(c.Params, gin.Param{Key: "request_id", Value: requestID})
+					h.OpenAIGateway.GrokVideoContent(c)
+					return
+				}
+				c.Params = append(c.Params, gin.Param{Key: "request_id", Value: subpath})
+				h.OpenAIGateway.GrokVideoStatus(c)
+				return
+			}
+			switch subpath {
+			case "edits":
+				h.OpenAIGateway.GrokVideoEdit(c)
+			case "extensions":
+				h.OpenAIGateway.GrokVideoExtension(c)
+			default:
+				h.OpenAIGateway.GrokVideoGeneration(c)
+			}
+		default:
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
 		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{
-				"type":    "not_found_error",
-				"message": "Videos API is not supported for this platform",
-			},
-		})
 	}
-	videoStatusHandler := func(c *gin.Context) {
-		// Video status requests do not carry a model, so composite groups cannot
-		// be resolved by compositeTargetPlatformMiddleware. Route them through
-		// the Grok handler and let scheduler/account selection enforce capacity.
-		if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
-			h.OpenAIGateway.GrokVideoStatus(c)
-			return
+	/*
+		// LOCAL CUSTOMIZATION: Add OpenAI Videos support to official Grok video handlers
+		videoGenerationHandler := func(c *gin.Context) {
+			// Video status/content lookups below already allow Composite groups; keep
+			// task creation aligned so composite keys that route to Grok accounts can
+			// submit video generation jobs.
+			if platform := getGroupPlatform(c); platform == service.PlatformGrok || platform == service.PlatformComposite {
+				h.OpenAIGateway.GrokVideoGeneration(c)
+				return
+			}
+			// LOCAL CUSTOMIZATION: OpenAI Videos support
+			if platform := getGroupPlatform(c); platform == service.PlatformOpenAI {
+				h.OpenAIGateway.Videos(c)
+				return
+			}
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": gin.H{
+					"type":    "not_found_error",
+					"message": "Videos API is not supported for this platform",
+				},
+			})
 		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{
-				"type":    "not_found_error",
-				"message": "Videos API is not supported for this platform",
-			},
-		})
-	}
-	videoContentHandler := func(c *gin.Context) {
-		// Video content requests do not carry a model, so composite groups cannot
-		// be resolved by compositeTargetPlatformMiddleware. Route them through
-		// the Grok handler just like video status lookups.
-		if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
-			h.OpenAIGateway.GrokVideoContent(c)
-			return
+		videoStatusHandler := func(c *gin.Context) {
+			// Video status requests do not carry a model, so composite groups cannot
+			// be resolved by compositeTargetPlatformMiddleware. Route them through
+			// the Grok handler and let scheduler/account selection enforce capacity.
+			if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
+				h.OpenAIGateway.GrokVideoStatus(c)
+				return
+			}
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": gin.H{
+					"type":    "not_found_error",
+					"message": "Videos API is not supported for this platform",
+				},
+			})
 		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{
-				"type":    "not_found_error",
-				"message": "Videos API is not supported for this platform",
-			},
-		})
-	}
-	videoEditHandler := func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformGrok {
-			h.OpenAIGateway.GrokVideoEdit(c)
-			return
+		videoContentHandler := func(c *gin.Context) {
+			// Video content requests do not carry a model, so composite groups cannot
+			// be resolved by compositeTargetPlatformMiddleware. Route them through
+			// the Grok handler just like video status lookups.
+			if getGroupPlatform(c) == service.PlatformGrok || getGroupPlatform(c) == service.PlatformComposite {
+				h.OpenAIGateway.GrokVideoContent(c)
+				return
+			}
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": gin.H{
+					"type":    "not_found_error",
+					"message": "Videos API is not supported for this platform",
+				},
+			})
 		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
-	}
-	videoExtensionHandler := func(c *gin.Context) {
-		if getGroupPlatform(c) == service.PlatformGrok {
-			h.OpenAIGateway.GrokVideoExtension(c)
-			return
+		videoEditHandler := func(c *gin.Context) {
+			if getGroupPlatform(c) == service.PlatformGrok {
+				h.OpenAIGateway.GrokVideoEdit(c)
+				return
+			}
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
 		}
-		service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
-		c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
-	}
+		videoExtensionHandler := func(c *gin.Context) {
+			if getGroupPlatform(c) == service.PlatformGrok {
+				h.OpenAIGateway.GrokVideoExtension(c)
+				return
+			}
+			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonLocalFeatureGate)
+			c.JSON(http.StatusNotFound, gin.H{"error": gin.H{"type": "not_found_error", "message": "Videos API is not supported for this platform"}})
+		}
+	*/
 	// /responses/*subpath 的子路径会被转发到上游同名端点之后，因此在入口就拒掉
 	// 不可转发的子路径，不让它进入调度与转发流程。可转发的判定见
 	// service.IsForwardableOpenAIResponsesRequestPath 及 upstream_path_guard.go。
