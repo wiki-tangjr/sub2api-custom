@@ -492,12 +492,12 @@
         </div>
 
         <!-- ICP & Public Security Filing (custom) -->
-        <div class="flex flex-col items-center justify-center gap-1 sm:flex-row sm:flex-wrap sm:gap-x-4 sm:gap-y-2">
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-xs">
           <a
             href="https://beian.miit.gov.cn"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex min-h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 sm:min-h-0 sm:w-auto sm:px-0 dark:text-dark-500 dark:hover:text-primary-400"
+            class="group inline-flex items-center justify-center gap-1.5 whitespace-nowrap py-1 text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
           >
             <svg
               class="h-3.5 w-3.5 opacity-70 transition-opacity group-hover:opacity-100"
@@ -517,7 +517,7 @@
             href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
             target="_blank"
             rel="noreferrer"
-            class="group inline-flex min-h-9 w-full items-center justify-center gap-1.5 whitespace-nowrap px-2 text-xs text-gray-400 transition-colors duration-200 hover:text-primary-600 sm:min-h-0 sm:w-auto sm:px-0 dark:text-dark-500 dark:hover:text-primary-400"
+            class="group inline-flex items-center justify-center gap-1.5 whitespace-nowrap py-1 text-gray-400 transition-colors duration-200 hover:text-primary-600 dark:text-dark-500 dark:hover:text-primary-400"
           >
             <img
               src="/assets/image/gongan-beian.png"

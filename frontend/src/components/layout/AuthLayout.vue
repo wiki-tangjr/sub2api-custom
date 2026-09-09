@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+  <div class="relative flex min-h-screen flex-col overflow-x-hidden p-4">
     <!-- Background -->
     <div
       class="absolute inset-0 bg-gradient-to-br from-gray-50 via-primary-50/30 to-gray-100 dark:from-dark-950 dark:via-dark-900 dark:to-dark-950"
@@ -25,7 +25,8 @@
     </div>
 
     <!-- Content Container -->
-    <div class="relative z-10 w-full max-w-md">
+    <div class="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center overflow-y-auto">
+      <div class="w-full max-w-md">
       <!-- Logo/Brand -->
       <div class="mb-8 text-center">
         <!-- Custom Logo or Default Logo -->
@@ -49,22 +50,24 @@
         <slot />
       </div>
 
-      <!-- Footer Links -->
-      <div class="mt-6 text-center text-sm">
-        <slot name="footer" />
+        <!-- Footer Links -->
+        <div class="mt-6 text-center text-sm">
+          <slot name="footer" />
+        </div>
       </div>
+    </div>
 
-      <!-- Copyright, ICP & Public Security Filing (custom) -->
-      <div class="mt-8 space-y-2 text-center">
-        <p class="text-xs text-gray-400 dark:text-dark-500">
-          &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
-        </p>
-        <div class="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+    <!-- Copyright, ICP & Public Security Filing (custom) -->
+    <div class="relative z-10 mx-auto w-full max-w-md shrink-0 space-y-2.5 pb-2 pt-6 text-center">
+      <p class="text-xs text-gray-400 dark:text-dark-500">
+        &copy; {{ currentYear }} {{ siteName }}. All rights reserved.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-2">
           <a
             href="https://beian.miit.gov.cn"
             target="_blank"
             rel="noopener noreferrer"
-            class="group inline-flex min-h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 sm:min-h-0 sm:w-auto dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
+            class="group inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
           >
             <svg
               class="h-3 w-3 opacity-70 transition-opacity group-hover:opacity-100"
@@ -84,7 +87,7 @@
             href="https://beian.mps.gov.cn/#/query/webSearch?code=53011102001665"
             target="_blank"
             rel="noreferrer"
-            class="group inline-flex min-h-10 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 sm:min-h-0 sm:w-auto dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
+            class="group inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gray-200/70 bg-white/50 px-3 py-1 text-xs text-gray-400 backdrop-blur-sm transition-all duration-200 hover:border-primary-300 hover:text-primary-600 dark:border-dark-700/70 dark:bg-dark-800/40 dark:text-dark-500 dark:hover:border-primary-500/60 dark:hover:text-primary-400"
           >
             <img
               src="/assets/image/gongan-beian.png"
@@ -95,7 +98,6 @@
             />
             <span>滇公网安备53011102001665号</span>
           </a>
-        </div>
       </div>
     </div>
   </div>
