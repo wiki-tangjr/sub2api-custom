@@ -94,6 +94,14 @@
 - **关键文件**：`frontend/src/components/layout/AuthLayout.vue`、`frontend/src/components/layout/AppLayout.vue`、`frontend/src/views/HomeView.vue`、`frontend/public/assets/image/gongan-beian.png`。
 - **验证**：前端构建及 `-tags embed` 构建后，登录页、主界面与公开首页底部均可见可点击的 ICP 和公安备案号；公安备案链接应打开备案详情查询页；移动端自适应居中排列且无全屏撑满畸变。
 
+### 11. 自定义菜单打开方式（iframe / 新标签页，2026-09-10）
+- **永久保留要求**：这是正式本地魔改。每次升级/合并上游后，后台“系统设置 → 自定义菜单页面”必须仍可为每个菜单项选择打开方式。
+- **内容**：自定义菜单项使用 `open_mode` 字段，支持 `iframe` 与 `new_tab`。管理员界面必须提供选择控件；新建项及历史项缺失、非法值均归一为 `iframe`，保证旧配置继续以内嵌方式打开。
+- **安全约束**：`new_tab` 只能使用原始菜单 URL 打开，绝不能调用 `buildEmbeddedUrl()` 或向外链附加用户 ID、token、主题、语言等 iframe 专用查询参数。侧栏外链必须保留 `target="_blank" rel="noopener noreferrer"`。
+- **标记**：搜索 `admin.settings.customMenu.openMode`、`open_mode: "iframe"`、`item.open_mode === "new_tab" ? "new_tab" : "iframe"`；`CustomPageView.vue` 中 `new_tab` 的链接和 `window.open` 必须使用 `externalUrl`。
+- **关键文件**：`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppSidebar.vue`、`frontend/src/views/user/CustomPageView.vue`、`frontend/src/types/index.ts`、`frontend/src/i18n/locales/{zh,en}/admin/settings.ts`。
+- **验证**：前端 typecheck/build 通过；新增菜单默认选择 iframe；旧配置打开后台后显示 iframe；选 `new_tab` 保存后，侧栏以新标签页打开原始 URL；直接访问 `/custom/{id}` 时，回退链接和自动打开 URL 均不含 `token=`。
+
 ---
 
 ## 合并后验证清单（照做即可）

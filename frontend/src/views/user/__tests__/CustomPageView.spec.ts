@@ -158,4 +158,21 @@ describe('custom page open button', () => {
     expect(wrapper.find('iframe').exists()).toBe(false)
     expect(wrapper.get('.markdown-page-content h1').text()).toBe('Guide')
   })
+
+  it('handles new_tab mode with clean URL and showing external link fallback without token leak', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    appStore.cachedPublicSettings.custom_menu_items = [{
+      id: 'docs',
+      url: 'https://help.pixelqd.cn/',
+      open_mode: 'new_tab',
+    }]
+    const wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.find('iframe').exists()).toBe(false)
+    const link = wrapper.get('a.btn-primary')
+    expect(link.attributes('href')).toBe('https://help.pixelqd.cn/')
+    expect(link.attributes('href')).not.toContain('token=')
+    expect(openSpy).toHaveBeenCalledWith('https://help.pixelqd.cn/', '_blank', 'noopener,noreferrer')
+    openSpy.mockRestore()
+  })
 })

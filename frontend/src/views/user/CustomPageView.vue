@@ -108,7 +108,7 @@
               {{ t('customPage.openingNewTabDesc') }}
             </p>
             <a
-              :href="embeddedUrl"
+              :href="externalUrl"
               target="_blank"
               rel="noopener noreferrer"
               class="btn btn-primary btn-sm mt-4 inline-flex"
@@ -266,6 +266,11 @@ const markdownSlug = computed(() => {
 
 const isMarkdownMode = computed(() => !!markdownSlug.value)
 
+const externalUrl = computed(() => {
+  if (!menuItem.value || isMarkdownMode.value) return ''
+  return menuItem.value.url?.trim() || ''
+})
+
 const embeddedUrl = computed(() => {
   if (!menuItem.value || isMarkdownMode.value) return ''
   return buildEmbeddedUrl(
@@ -278,7 +283,7 @@ const embeddedUrl = computed(() => {
 })
 
 watch(
-  () => [loading.value, menuItem.value?.open_mode, embeddedUrl.value] as const,
+  () => [loading.value, menuItem.value?.open_mode, externalUrl.value] as const,
   ([isLoading, openMode, url]) => {
     if (isLoading || openMode !== 'new_tab' || !url) return
     window.open(url, '_blank', 'noopener,noreferrer')
@@ -288,7 +293,7 @@ watch(
 
 const isValidUrl = computed(() => {
   if (isMarkdownMode.value) return false
-  const url = embeddedUrl.value
+  const url = menuItem.value?.open_mode === 'new_tab' ? externalUrl.value : embeddedUrl.value
   return url.startsWith('http://') || url.startsWith('https://')
 })
 
