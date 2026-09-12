@@ -184,14 +184,11 @@
                 <li>{{ t('redeem.codeRule2') }}</li>
                 <li>
                   {{ t('redeem.codeRule3') }}
-                  <span
-                    v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
-                    class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200"
-                  >
-                    {{ contactInfo }}
+                  <span v-if="contactInfo" class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200">
+                    {{ wechatContactLabel }}：{{ contactInfo }}
                   </span>
-                  <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300">{{ t('common.telegramGroup') }}</a>
-                  <button v-if="wechatGroupQrCode" type="button" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300" @click="wechatQrOpen = true">{{ t('common.wechatGroup') }}</button>
+                  <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300">{{ telegramLabel }}</a>
+                  <button v-if="wechatGroupQrCode" type="button" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300" @click="wechatQrOpen = true">{{ wechatGroupLabel }}</button>
                 </li>
                 <li>{{ t('redeem.codeRule4') }}</li>
               </ul>
@@ -386,6 +383,9 @@ const loadingHistory = ref(false)
 const contactInfo = ref('')
 const telegramGroupUrl = ref('')
 const wechatGroupQrCode = ref('')
+const telegramLabel = ref('')
+const wechatGroupLabel = ref('')
+const wechatContactLabel = ref('')
 const wechatQrOpen = ref(false)
 
 // Helper functions for history display
@@ -494,6 +494,9 @@ onMounted(async () => {
     contactInfo.value = settings.contact_info || ''
     telegramGroupUrl.value = sanitizeUrl(settings.telegram_group_url || '')
     wechatGroupQrCode.value = sanitizeUrl(settings.wechat_group_qr_code || '', { allowDataUrl: true })
+    telegramLabel.value = settings.telegram_entry_label || t('common.telegramGroup')
+    wechatGroupLabel.value = settings.wechat_group_entry_label || t('common.wechatGroup')
+    wechatContactLabel.value = settings.wechat_contact_entry_label || t('common.wechatContactDefault')
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }

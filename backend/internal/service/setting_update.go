@@ -343,6 +343,12 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyContactInfo] = settings.ContactInfo
 	updates[SettingKeyTelegramGroupURL] = strings.TrimSpace(settings.TelegramGroupURL)
 	updates[SettingKeyWeChatGroupQRCode] = settings.WeChatGroupQRCode
+	updates[SettingKeyContactSectionTitle] = strings.TrimSpace(settings.ContactSectionTitle)
+	updates[SettingKeyContactSectionDescription] = strings.TrimSpace(settings.ContactSectionDescription)
+	updates[SettingKeyTelegramEntryLabel] = strings.TrimSpace(settings.TelegramEntryLabel)
+	updates[SettingKeyWeChatGroupEntryLabel] = strings.TrimSpace(settings.WeChatGroupEntryLabel)
+	updates[SettingKeyWeChatContactEntryLabel] = strings.TrimSpace(settings.WeChatContactEntryLabel)
+	updates[SettingKeyContactSectionStyle] = strings.TrimSpace(settings.ContactSectionStyle)
 	updates[SettingKeyDocURL] = settings.DocURL
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyCompactHomeEnabled] = strconv.FormatBool(settings.CompactHomeEnabled)

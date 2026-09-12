@@ -17,20 +17,35 @@
 
       <div
         v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
-        class="card border-primary-200 bg-primary-50 p-6 dark:bg-primary-900/20"
+        class="card p-6 dark:bg-dark-800"
       >
         <div class="flex items-center gap-4">
-          <div class="rounded-xl bg-primary-100 p-3 text-primary-600">
+          <div class="rounded-xl bg-primary-100 p-3 text-primary-600 dark:bg-primary-900/40 dark:text-primary-400">
             <Icon name="chat" size="lg" />
           </div>
-          <div>
-            <h3 class="font-semibold text-primary-800 dark:text-primary-200">
-              {{ t('common.contactSupport') }}
+          <div class="min-w-0 flex-1">
+            <h3 class="font-semibold text-gray-900 dark:text-gray-100">
+              {{ contactSectionTitle }}
             </h3>
-            <p class="text-sm font-medium">{{ contactInfo }}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">{{ t('common.telegramGroup') }}</a>
-              <button v-if="wechatGroupQrCode" type="button" class="btn btn-secondary btn-sm" @click="wechatQrOpen = true">{{ t('common.wechatGroup') }}</button>
+            <p v-if="contactSectionDescription" class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{{ contactSectionDescription }}</p>
+            <div v-if="contactInfo" class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+              <span class="font-medium">{{ wechatContactLabel }}：</span>{{ contactInfo }}
+            </div>
+            <div v-if="contactSectionStyle === 'list'" class="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+              <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                <Icon name="externalLink" size="sm" />{{ telegramLabel }}
+              </a>
+              <button v-if="wechatGroupQrCode" type="button" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400" @click="wechatQrOpen = true">
+                <Icon name="grid" size="sm" />{{ wechatGroupLabel }}
+              </button>
+            </div>
+            <div v-else class="mt-3 flex flex-wrap gap-2">
+              <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                <Icon name="externalLink" size="sm" />{{ telegramLabel }}
+              </a>
+              <button v-if="wechatGroupQrCode" type="button" class="btn btn-secondary btn-sm" @click="wechatQrOpen = true">
+                <Icon name="grid" size="sm" />{{ wechatGroupLabel }}
+              </button>
             </div>
           </div>
         </div>
@@ -81,6 +96,12 @@ const user = computed(() => authStore.user)
 const contactInfo = ref('')
 const telegramGroupUrl = ref('')
 const wechatGroupQrCode = ref('')
+const contactSectionTitle = ref('')
+const contactSectionDescription = ref('')
+const telegramLabel = ref('')
+const wechatGroupLabel = ref('')
+const wechatContactLabel = ref('')
+const contactSectionStyle = ref('card')
 const wechatQrOpen = ref(false)
 const balanceLowNotifyEnabled = ref(false)
 const systemDefaultThreshold = ref(0)
@@ -106,6 +127,12 @@ onMounted(async () => {
       contactInfo.value = settings.contact_info || ''
       telegramGroupUrl.value = sanitizeUrl(settings.telegram_group_url || '')
       wechatGroupQrCode.value = sanitizeUrl(settings.wechat_group_qr_code || '', { allowDataUrl: true })
+      contactSectionTitle.value = settings.contact_section_title || t('common.contactSectionDefaultTitle')
+      contactSectionDescription.value = settings.contact_section_description || ''
+      telegramLabel.value = settings.telegram_entry_label || t('common.telegramGroup')
+      wechatGroupLabel.value = settings.wechat_group_entry_label || t('common.wechatGroup')
+      wechatContactLabel.value = settings.wechat_contact_entry_label || t('common.wechatContactDefault')
+      contactSectionStyle.value = settings.contact_section_style === 'list' ? 'list' : 'card'
       balanceLowNotifyEnabled.value = settings.balance_low_notify_enabled ?? false
       systemDefaultThreshold.value = settings.balance_low_notify_threshold ?? 0
       linuxdoOAuthEnabled.value = settings.linuxdo_oauth_enabled ?? false

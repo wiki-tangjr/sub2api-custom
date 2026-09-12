@@ -331,6 +331,12 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ContactInfo:                         settings[SettingKeyContactInfo],
 		TelegramGroupURL:                    strings.TrimSpace(settings[SettingKeyTelegramGroupURL]),
 		WeChatGroupQRCode:                   settings[SettingKeyWeChatGroupQRCode],
+		ContactSectionTitle:                 settings[SettingKeyContactSectionTitle],
+		ContactSectionDescription:           settings[SettingKeyContactSectionDescription],
+		TelegramEntryLabel:                  settings[SettingKeyTelegramEntryLabel],
+		WeChatGroupEntryLabel:               settings[SettingKeyWeChatGroupEntryLabel],
+		WeChatContactEntryLabel:             settings[SettingKeyWeChatContactEntryLabel],
+		ContactSectionStyle:                 settings[SettingKeyContactSectionStyle],
 		DocURL:                              settings[SettingKeyDocURL],
 		HomeContent:                         settings[SettingKeyHomeContent],
 		CompactHomeEnabled:                  settings[SettingKeyCompactHomeEnabled] == "true",
@@ -589,6 +595,12 @@ type PublicSettingsInjectionPayload struct {
 	ContactInfo                         string                   `json:"contact_info"`
 	TelegramGroupURL                    string                   `json:"telegram_group_url"`
 	WeChatGroupQRCode                   string                   `json:"wechat_group_qr_code"`
+	ContactSectionTitle                 string                   `json:"contact_section_title"`
+	ContactSectionDescription           string                   `json:"contact_section_description"`
+	TelegramEntryLabel                  string                   `json:"telegram_entry_label"`
+	WeChatGroupEntryLabel               string                   `json:"wechat_group_entry_label"`
+	WeChatContactEntryLabel             string                   `json:"wechat_contact_entry_label"`
+	ContactSectionStyle                 string                   `json:"contact_section_style"`
 	DocURL                              string                   `json:"doc_url"`
 	HomeContent                         string                   `json:"home_content"`
 	CompactHomeEnabled                  bool                     `json:"compact_home_enabled"`

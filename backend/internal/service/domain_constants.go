@@ -360,6 +360,12 @@ const (
 	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式
 	SettingKeyTelegramGroupURL            = "telegram_group_url"            // Telegram群组链接
 	SettingKeyWeChatGroupQRCode           = "wechat_group_qr_code"          // 微信群二维码图片
+	SettingKeyContactSectionTitle         = "contact_section_title"         // 客服板块标题
+	SettingKeyContactSectionDescription   = "contact_section_description"   // 客服板块描述文案
+	SettingKeyTelegramEntryLabel          = "telegram_entry_label"          // Telegram入口文案
+	SettingKeyWeChatGroupEntryLabel       = "wechat_group_entry_label"      // 微信群入口文案
+	SettingKeyWeChatContactEntryLabel     = "wechat_contact_entry_label"    // 微信客服入口文案
+	SettingKeyContactSectionStyle         = "contact_section_style"         // 客服板块样式: compact/list 或 card
 	SettingKeyDocURL                      = "doc_url"                       // 文档链接
 	SettingKeyHomeContent                 = "home_content"                  // 首页内容（支持 Markdown/HTML，或 URL 作为 iframe src）
 	SettingKeyCompactHomeEnabled          = "compact_home_enabled"          // 是否启用内置简洁首页

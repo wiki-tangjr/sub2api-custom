@@ -160,6 +160,12 @@ type UpdateSettingsRequest struct {
 	ContactInfo                 string                `json:"contact_info"`
 	TelegramGroupURL            string                `json:"telegram_group_url"`
 	WeChatGroupQRCode           string                `json:"wechat_group_qr_code"`
+	ContactSectionTitle         string                `json:"contact_section_title"`
+	ContactSectionDescription   string                `json:"contact_section_description"`
+	TelegramEntryLabel          string                `json:"telegram_entry_label"`
+	WeChatGroupEntryLabel       string                `json:"wechat_group_entry_label"`
+	WeChatContactEntryLabel     string                `json:"wechat_contact_entry_label"`
+	ContactSectionStyle         string                `json:"contact_section_style"`
 	DocURL                      string                `json:"doc_url"`
 	HomeContent                 string                `json:"home_content"`
 	CompactHomeEnabled          bool                  `json:"compact_home_enabled"`
@@ -1638,6 +1644,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ContactInfo:                            req.ContactInfo,
 		TelegramGroupURL:                       req.TelegramGroupURL,
 		WeChatGroupQRCode:                      req.WeChatGroupQRCode,
+		ContactSectionTitle:                    req.ContactSectionTitle,
+		ContactSectionDescription:              req.ContactSectionDescription,
+		TelegramEntryLabel:                     req.TelegramEntryLabel,
+		WeChatGroupEntryLabel:                  req.WeChatGroupEntryLabel,
+		WeChatContactEntryLabel:                req.WeChatContactEntryLabel,
+		ContactSectionStyle:                    req.ContactSectionStyle,
 		DocURL:                                 req.DocURL,
 		HomeContent:                            req.HomeContent,
 		CompactHomeEnabled:                     req.CompactHomeEnabled,
@@ -2274,6 +2286,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ContactInfo:                                            updatedSettings.ContactInfo,
 		TelegramGroupURL:                                       updatedSettings.TelegramGroupURL,
 		WeChatGroupQRCode:                                      updatedSettings.WeChatGroupQRCode,
+		ContactSectionTitle:                                    updatedSettings.ContactSectionTitle,
+		ContactSectionDescription:                              updatedSettings.ContactSectionDescription,
+		TelegramEntryLabel:                                     updatedSettings.TelegramEntryLabel,
+		WeChatGroupEntryLabel:                                  updatedSettings.WeChatGroupEntryLabel,
+		WeChatContactEntryLabel:                                updatedSettings.WeChatContactEntryLabel,
+		ContactSectionStyle:                                    updatedSettings.ContactSectionStyle,
 		DocURL:                                                 updatedSettings.DocURL,
 		HomeContent:                                            updatedSettings.HomeContent,
 		CompactHomeEnabled:                                     updatedSettings.CompactHomeEnabled,

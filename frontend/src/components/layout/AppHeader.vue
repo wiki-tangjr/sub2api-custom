@@ -198,35 +198,39 @@
               <!-- Contact Support (only show if configured) -->
               <div
                 v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
-                class="border-t border-gray-100 px-4 py-2.5 dark:border-dark-700"
+                class="border-t border-gray-100 px-4 py-3 dark:border-dark-700"
               >
-                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <svg
-                    class="h-3.5 w-3.5 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-                    />
-                  </svg>
-                  <span>{{ t('common.contactSupport') }}:</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">{{
-                    contactInfo
-                  }}</span>
+                <p class="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                  {{ contactSectionTitle }}
+                </p>
+                <p v-if="contactSectionDescription" class="mb-2 text-xs text-gray-400 dark:text-gray-500">{{ contactSectionDescription }}</p>
+                <div v-if="contactInfo" class="mb-1.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                    </svg>
+                  </span>
+                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ wechatContactLabel }}：{{ contactInfo }}</span>
                 </div>
                 <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer"
-                  class="mt-2 flex items-center gap-2 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">
-                  {{ t('common.telegramGroup') }}
+                  class="mb-1.5 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30">
+                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.115 5.19l.319 1.913A6.75 6.75 0 008.11 10.36L9.75 12l-.387.775c-.217.433-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.59l.295-.295a1.125 1.125 0 01.98-.314l1.17.195c.323.054.654-.035.905-.245l1.33-1.108a1.087 1.087 0 00.358-1.098 8.7 8.7 0 00-2.288-4.042l-.723-.724a1.125 1.125 0 00-1.298-.21l-.153.076a1.125 1.125 0 00-.622 1.006v1.089c0 .298.119.585.329.795l.295.295a1.125 1.125 0 010 1.59l-.295.295a1.125 1.125 0 01-.98.315l-1.17-.195a1.125 1.125 0 00-.905.244l-.295.295a1.125 1.125 0 000 1.59l.295.295c.21.21.329.497.329.795v.001c0 .426.24.816.622 1.006l.153.077a1.125 1.125 0 001.298-.21l.723-.723a8.7 8.7 0 012.288-4.042l.723-.723a1.125 1.125 0 011.298-.21l.153.076c.433.217.956.133 1.298-.21l.723-.724a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.357-1.098l-1.33-1.108c-.252-.21-.583-.299-.906-.245l-1.17.195a1.125 1.125 0 01-.98-.314M6.115 5.19h.319M9.75 12l-.5-.5" />
+                    </svg>
+                  </span>
+                  {{ telegramLabel }}
                 </a>
                 <button v-if="wechatGroupQrCode" type="button"
-                  class="mt-2 flex items-center gap-2 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                  class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30"
                   @click="wechatQrOpen = true">
-                  {{ t('common.wechatGroup') }}
+                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 15.75h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM16.5 7.5h.75v.75h-.75v-.75z" />
+                    </svg>
+                  </span>
+                  {{ wechatGroupLabel }}
                 </button>
               </div>
 
@@ -301,6 +305,11 @@ const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)
 const telegramGroupUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.telegram_group_url || ''))
 const wechatGroupQrCode = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.wechat_group_qr_code || '', { allowDataUrl: true }))
+const contactSectionTitle = computed(() => appStore.cachedPublicSettings?.contact_section_title || t('common.contactSectionDefaultTitle'))
+const contactSectionDescription = computed(() => appStore.cachedPublicSettings?.contact_section_description || '')
+const telegramLabel = computed(() => appStore.cachedPublicSettings?.telegram_entry_label || t('common.telegramGroup'))
+const wechatGroupLabel = computed(() => appStore.cachedPublicSettings?.wechat_group_entry_label || t('common.wechatGroup'))
+const wechatContactLabel = computed(() => appStore.cachedPublicSettings?.wechat_contact_entry_label || t('common.wechatContactDefault'))
 const wechatQrOpen = ref(false)
 const docUrl = computed(() => sanitizeUrl(appStore.docUrl))
 const modelPlazaEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.modelPlaza))

@@ -156,6 +156,12 @@ type SystemSettings struct {
 	ContactInfo                 string
 	TelegramGroupURL            string
 	WeChatGroupQRCode           string
+	ContactSectionTitle         string
+	ContactSectionDescription   string
+	TelegramEntryLabel          string
+	WeChatGroupEntryLabel       string
+	WeChatContactEntryLabel     string
+	ContactSectionStyle         string
 	DocURL                      string
 	HomeContent                 string
 	CompactHomeEnabled          bool
@@ -350,6 +356,12 @@ type PublicSettings struct {
 	ContactInfo                         string
 	TelegramGroupURL                    string
 	WeChatGroupQRCode                   string
+	ContactSectionTitle                 string
+	ContactSectionDescription           string
+	TelegramEntryLabel                  string
+	WeChatGroupEntryLabel               string
+	WeChatContactEntryLabel             string
+	ContactSectionStyle                 string
 	DocURL                              string
 	HomeContent                         string
 	CompactHomeEnabled                  bool

@@ -240,6 +240,12 @@ export interface PublicSettings {
   contact_info: string
   telegram_group_url?: string
   wechat_group_qr_code?: string
+  contact_section_title?: string
+  contact_section_description?: string
+  telegram_entry_label?: string
+  wechat_group_entry_label?: string
+  wechat_contact_entry_label?: string
+  contact_section_style?: string
   doc_url: string
   home_content: string
   compact_home_enabled: boolean

@@ -338,6 +338,24 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.WeChatGroupQRCode != after.WeChatGroupQRCode {
 		changed = append(changed, "wechat_group_qr_code")
 	}
+	if before.ContactSectionTitle != after.ContactSectionTitle {
+		changed = append(changed, "contact_section_title")
+	}
+	if before.ContactSectionDescription != after.ContactSectionDescription {
+		changed = append(changed, "contact_section_description")
+	}
+	if before.TelegramEntryLabel != after.TelegramEntryLabel {
+		changed = append(changed, "telegram_entry_label")
+	}
+	if before.WeChatGroupEntryLabel != after.WeChatGroupEntryLabel {
+		changed = append(changed, "wechat_group_entry_label")
+	}
+	if before.WeChatContactEntryLabel != after.WeChatContactEntryLabel {
+		changed = append(changed, "wechat_contact_entry_label")
+	}
+	if before.ContactSectionStyle != after.ContactSectionStyle {
+		changed = append(changed, "contact_section_style")
+	}
 	if before.DocURL != after.DocURL {
 		changed = append(changed, "doc_url")
 	}

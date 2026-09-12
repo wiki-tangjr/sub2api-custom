@@ -6549,6 +6549,81 @@
                   :hint="t('admin.settings.site.wechatGroupQrCodeHint')" :max-size="500 * 1024" />
               </div>
 
+              <!-- 客服板块样式与文案（后台可配置） -->
+              <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-700">
+                <p class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {{ t("admin.settings.site.contactSectionConfig") }}
+                </p>
+                <div class="space-y-4">
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.contactSectionTitle") }}
+                      </label>
+                      <input v-model="form.contact_section_title" type="text" class="input"
+                        :placeholder="t('admin.settings.site.contactSectionTitlePlaceholder')" />
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.contactSectionTitleHint") }}
+                      </p>
+                    </div>
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.contactSectionStyle") }}
+                      </label>
+                      <select v-model="form.contact_section_style" class="input">
+                        <option value="card">{{ t("admin.settings.site.contactStyleCard") }}</option>
+                        <option value="list">{{ t("admin.settings.site.contactStyleList") }}</option>
+                      </select>
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.contactSectionStyleHint") }}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactSectionDescription") }}
+                    </label>
+                    <input v-model="form.contact_section_description" type="text" class="input"
+                      :placeholder="t('admin.settings.site.contactSectionDescriptionPlaceholder')" />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactSectionDescriptionHint") }}
+                    </p>
+                  </div>
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.telegramEntryLabel") }}
+                      </label>
+                      <input v-model="form.telegram_entry_label" type="text" class="input"
+                        :placeholder="t('admin.settings.site.telegramEntryLabelPlaceholder')" />
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.telegramEntryLabelHint") }}
+                      </p>
+                    </div>
+                    <div>
+                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t("admin.settings.site.wechatGroupEntryLabel") }}
+                      </label>
+                      <input v-model="form.wechat_group_entry_label" type="text" class="input"
+                        :placeholder="t('admin.settings.site.wechatGroupEntryLabelPlaceholder')" />
+                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t("admin.settings.site.wechatGroupEntryLabelHint") }}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.wechatContactEntryLabel") }}
+                    </label>
+                    <input v-model="form.wechat_contact_entry_label" type="text" class="input"
+                      :placeholder="t('admin.settings.site.wechatContactEntryLabelPlaceholder')" />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.wechatContactEntryLabelHint") }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <!-- Doc URL -->
               <div>
                 <label
@@ -9621,6 +9696,12 @@ const form = reactive<SettingsForm>({
   contact_info: "",
   telegram_group_url: "",
   wechat_group_qr_code: "",
+  contact_section_title: "",
+  contact_section_description: "",
+  telegram_entry_label: "",
+  wechat_group_entry_label: "",
+  wechat_contact_entry_label: "",
+  contact_section_style: "card",
   doc_url: "",
   home_content: "",
   compact_home_enabled: false,
@@ -11267,6 +11348,12 @@ async function saveSettings() {
       contact_info: form.contact_info,
       telegram_group_url: form.telegram_group_url,
       wechat_group_qr_code: form.wechat_group_qr_code,
+      contact_section_title: form.contact_section_title,
+      contact_section_description: form.contact_section_description,
+      telegram_entry_label: form.telegram_entry_label,
+      wechat_group_entry_label: form.wechat_group_entry_label,
+      wechat_contact_entry_label: form.wechat_contact_entry_label,
+      contact_section_style: form.contact_section_style,
       doc_url: form.doc_url,
       home_content: form.home_content,
       compact_home_enabled: form.compact_home_enabled,
