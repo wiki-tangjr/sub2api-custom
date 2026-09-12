@@ -344,6 +344,8 @@ export const useAppStore = defineStore('app', () => {
         site_subtitle: '',
         api_base_url: apiBaseUrl.value,
         contact_info: contactInfo.value,
+        telegram_group_url: '',
+        wechat_group_qr_code: '',
         doc_url: docUrl.value,
         home_content: '',
         compact_home_enabled: false,

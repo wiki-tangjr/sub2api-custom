@@ -154,6 +154,8 @@ type SystemSettings struct {
 	SiteSubtitle                string           `json:"site_subtitle"`
 	APIBaseURL                  string           `json:"api_base_url"`
 	ContactInfo                 string           `json:"contact_info"`
+	TelegramGroupURL            string           `json:"telegram_group_url"`
+	WeChatGroupQRCode           string           `json:"wechat_group_qr_code"`
 	DocURL                      string           `json:"doc_url"`
 	HomeContent                 string           `json:"home_content"`
 	CompactHomeEnabled          bool             `json:"compact_home_enabled"`
@@ -382,6 +384,8 @@ type PublicSettings struct {
 	SiteSubtitle                        string                   `json:"site_subtitle"`
 	APIBaseURL                          string                   `json:"api_base_url"`
 	ContactInfo                         string                   `json:"contact_info"`
+	TelegramGroupURL                    string                   `json:"telegram_group_url"`
+	WeChatGroupQRCode                   string                   `json:"wechat_group_qr_code"`
 	DocURL                              string                   `json:"doc_url"`
 	HomeContent                         string                   `json:"home_content"`
 	CompactHomeEnabled                  bool                     `json:"compact_home_enabled"`

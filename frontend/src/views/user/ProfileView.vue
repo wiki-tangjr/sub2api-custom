@@ -16,7 +16,7 @@
       />
 
       <div
-        v-if="contactInfo"
+        v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
         class="card border-primary-200 bg-primary-50 p-6 dark:bg-primary-900/20"
       >
         <div class="flex items-center gap-4">
@@ -28,9 +28,17 @@
               {{ t('common.contactSupport') }}
             </h3>
             <p class="text-sm font-medium">{{ contactInfo }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">{{ t('common.telegramGroup') }}</a>
+              <button v-if="wechatGroupQrCode" type="button" class="btn btn-secondary btn-sm" @click="wechatQrOpen = true">{{ t('common.wechatGroup') }}</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <BaseDialog :show="wechatQrOpen" :title="t('common.wechatGroupQrCode')" width="narrow" @close="wechatQrOpen = false">
+        <img :src="wechatGroupQrCode" :alt="t('common.wechatGroupQrCode')" class="mx-auto max-h-[min(70vh,480px)] w-auto max-w-full object-contain" />
+      </BaseDialog>
 
       <ProfilePasswordForm />
 
@@ -59,9 +67,11 @@ import ProfileInfoCard from '@/components/user/profile/ProfileInfoCard.vue'
 import ProfilePasswordForm from '@/components/user/profile/ProfilePasswordForm.vue'
 import ProfileTotpCard from '@/components/user/profile/ProfileTotpCard.vue'
 import ProfilePasskeyCard from '@/components/user/profile/ProfilePasskeyCard.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import { isWeChatWebOAuthEnabled } from '@/api/auth'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { sanitizeUrl } from '@/utils/url'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -69,6 +79,9 @@ const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 
 const contactInfo = ref('')
+const telegramGroupUrl = ref('')
+const wechatGroupQrCode = ref('')
+const wechatQrOpen = ref(false)
 const balanceLowNotifyEnabled = ref(false)
 const systemDefaultThreshold = ref(0)
 const linuxdoOAuthEnabled = ref(false)
@@ -91,6 +104,8 @@ onMounted(async () => {
         return
       }
       contactInfo.value = settings.contact_info || ''
+      telegramGroupUrl.value = sanitizeUrl(settings.telegram_group_url || '')
+      wechatGroupQrCode.value = sanitizeUrl(settings.wechat_group_qr_code || '', { allowDataUrl: true })
       balanceLowNotifyEnabled.value = settings.balance_low_notify_enabled ?? false
       systemDefaultThreshold.value = settings.balance_low_notify_threshold ?? 0
       linuxdoOAuthEnabled.value = settings.linuxdo_oauth_enabled ?? false

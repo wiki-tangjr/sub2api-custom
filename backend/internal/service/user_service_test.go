@@ -230,7 +230,7 @@ func (m *mockUserRepo) RemoveGroupFromAllowedGroups(context.Context, int64) (int
 
 func (m *mockUserRepo) BatchSetConcurrency(context.Context, []int64, int) (int, error) { return 0, nil }
 func (m *mockUserRepo) BatchAddConcurrency(context.Context, []int64, int) (int, error) { return 0, nil }
-func (m *mockUserRepo) CountActiveAdmins(context.Context) (int, error)              { return 2, nil }
+func (m *mockUserRepo) CountActiveAdmins(context.Context) (int, error)                 { return 2, nil }
 func (m *mockUserRepo) BatchUpdateLimits(context.Context, []int64, *int, *int) (int, error) {
 	return 0, nil
 }

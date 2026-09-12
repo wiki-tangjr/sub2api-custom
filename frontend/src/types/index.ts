@@ -238,6 +238,8 @@ export interface PublicSettings {
   site_subtitle: string
   api_base_url: string
   contact_info: string
+  telegram_group_url?: string
+  wechat_group_qr_code?: string
   doc_url: string
   home_content: string
   compact_home_enabled: boolean

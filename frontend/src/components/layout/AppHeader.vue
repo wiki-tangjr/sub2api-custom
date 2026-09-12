@@ -197,7 +197,7 @@
 
               <!-- Contact Support (only show if configured) -->
               <div
-                v-if="contactInfo"
+                v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
                 class="border-t border-gray-100 px-4 py-2.5 dark:border-dark-700"
               >
                 <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -219,6 +219,15 @@
                     contactInfo
                   }}</span>
                 </div>
+                <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer"
+                  class="mt-2 flex items-center gap-2 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                  {{ t('common.telegramGroup') }}
+                </a>
+                <button v-if="wechatGroupQrCode" type="button"
+                  class="mt-2 flex items-center gap-2 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                  @click="wechatQrOpen = true">
+                  {{ t('common.wechatGroup') }}
+                </button>
               </div>
 
               <div v-if="showOnboardingButton" class="border-t border-gray-100 py-1 dark:border-dark-700">
@@ -259,6 +268,9 @@
       </div>
     </div>
   </header>
+  <BaseDialog :show="wechatQrOpen" :title="t('common.wechatGroupQrCode')" width="narrow" @close="wechatQrOpen = false">
+    <img :src="wechatGroupQrCode" :alt="t('common.wechatGroupQrCode')" class="mx-auto max-h-[min(70vh,480px)] w-auto max-w-full object-contain" />
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
@@ -271,6 +283,7 @@ import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import Icon from '@/components/icons/Icon.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 
@@ -286,6 +299,9 @@ const user = computed(() => authStore.user)
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)
+const telegramGroupUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.telegram_group_url || ''))
+const wechatGroupQrCode = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.wechat_group_qr_code || '', { allowDataUrl: true }))
+const wechatQrOpen = ref(false)
 const docUrl = computed(() => sanitizeUrl(appStore.docUrl))
 const modelPlazaEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.modelPlaza))
 const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')

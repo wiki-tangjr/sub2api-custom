@@ -185,11 +185,13 @@
                 <li>
                   {{ t('redeem.codeRule3') }}
                   <span
-                    v-if="contactInfo"
+                    v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
                     class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200"
                   >
                     {{ contactInfo }}
                   </span>
+                  <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300">{{ t('common.telegramGroup') }}</a>
+                  <button v-if="wechatGroupQrCode" type="button" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300" @click="wechatQrOpen = true">{{ t('common.wechatGroup') }}</button>
                 </li>
                 <li>{{ t('redeem.codeRule4') }}</li>
               </ul>
@@ -197,6 +199,10 @@
           </div>
         </div>
       </div>
+
+      <BaseDialog :show="wechatQrOpen" :title="t('common.wechatGroupQrCode')" width="narrow" @close="wechatQrOpen = false">
+        <img :src="wechatGroupQrCode" :alt="t('common.wechatGroupQrCode')" class="mx-auto max-h-[min(70vh,480px)] w-auto max-w-full object-contain" />
+      </BaseDialog>
 
       <!-- Recent Activity -->
       <div class="card">
@@ -350,7 +356,9 @@ import { useSubscriptionStore } from '@/stores/subscriptions'
 import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
+import BaseDialog from '@/components/common/BaseDialog.vue'
 import { formatDateTime } from '@/utils/format'
+import { sanitizeUrl } from '@/utils/url'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -376,6 +384,9 @@ const errorMessage = ref('')
 const history = ref<RedeemHistoryItem[]>([])
 const loadingHistory = ref(false)
 const contactInfo = ref('')
+const telegramGroupUrl = ref('')
+const wechatGroupQrCode = ref('')
+const wechatQrOpen = ref(false)
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
@@ -481,6 +492,8 @@ onMounted(async () => {
   try {
     const settings = await authAPI.getPublicSettings()
     contactInfo.value = settings.contact_info || ''
+    telegramGroupUrl.value = sanitizeUrl(settings.telegram_group_url || '')
+    wechatGroupQrCode.value = sanitizeUrl(settings.wechat_group_qr_code || '', { allowDataUrl: true })
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }

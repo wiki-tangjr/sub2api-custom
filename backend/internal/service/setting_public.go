@@ -185,6 +185,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
+		SettingKeyTelegramGroupURL,
+		SettingKeyWeChatGroupQRCode,
 		SettingKeyDocURL,
 		SettingKeyHomeContent,
 		SettingKeyCompactHomeEnabled,
@@ -327,6 +329,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SiteSubtitle:                        s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
 		APIBaseURL:                          settings[SettingKeyAPIBaseURL],
 		ContactInfo:                         settings[SettingKeyContactInfo],
+		TelegramGroupURL:                    strings.TrimSpace(settings[SettingKeyTelegramGroupURL]),
+		WeChatGroupQRCode:                   settings[SettingKeyWeChatGroupQRCode],
 		DocURL:                              settings[SettingKeyDocURL],
 		HomeContent:                         settings[SettingKeyHomeContent],
 		CompactHomeEnabled:                  settings[SettingKeyCompactHomeEnabled] == "true",
@@ -583,6 +587,8 @@ type PublicSettingsInjectionPayload struct {
 	SiteSubtitle                        string                   `json:"site_subtitle"`
 	APIBaseURL                          string                   `json:"api_base_url"`
 	ContactInfo                         string                   `json:"contact_info"`
+	TelegramGroupURL                    string                   `json:"telegram_group_url"`
+	WeChatGroupQRCode                   string                   `json:"wechat_group_qr_code"`
 	DocURL                              string                   `json:"doc_url"`
 	HomeContent                         string                   `json:"home_content"`
 	CompactHomeEnabled                  bool                     `json:"compact_home_enabled"`
@@ -675,6 +681,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		SiteSubtitle:                        settings.SiteSubtitle,
 		APIBaseURL:                          settings.APIBaseURL,
 		ContactInfo:                         settings.ContactInfo,
+		TelegramGroupURL:                    settings.TelegramGroupURL,
+		WeChatGroupQRCode:                   settings.WeChatGroupQRCode,
 		DocURL:                              settings.DocURL,
 		HomeContent:                         settings.HomeContent,
 		CompactHomeEnabled:                  settings.CompactHomeEnabled,

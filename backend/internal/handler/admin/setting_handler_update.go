@@ -158,6 +158,8 @@ type UpdateSettingsRequest struct {
 	SiteSubtitle                string                `json:"site_subtitle"`
 	APIBaseURL                  string                `json:"api_base_url"`
 	ContactInfo                 string                `json:"contact_info"`
+	TelegramGroupURL            string                `json:"telegram_group_url"`
+	WeChatGroupQRCode           string                `json:"wechat_group_qr_code"`
 	DocURL                      string                `json:"doc_url"`
 	HomeContent                 string                `json:"home_content"`
 	CompactHomeEnabled          bool                  `json:"compact_home_enabled"`
@@ -1255,6 +1257,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		}
 	}
 
+	// Telegram 群组链接验证
+	req.TelegramGroupURL = strings.TrimSpace(req.TelegramGroupURL)
+	if req.TelegramGroupURL != "" {
+		if err := config.ValidateAbsoluteHTTPURL(req.TelegramGroupURL); err != nil {
+			response.BadRequest(c, "Telegram group URL must be an absolute http(s) URL")
+			return
+		}
+	}
+
 	// 自定义菜单项验证
 	const (
 		maxCustomMenuItems    = 20
@@ -1625,6 +1636,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                           req.SiteSubtitle,
 		APIBaseURL:                             req.APIBaseURL,
 		ContactInfo:                            req.ContactInfo,
+		TelegramGroupURL:                       req.TelegramGroupURL,
+		WeChatGroupQRCode:                      req.WeChatGroupQRCode,
 		DocURL:                                 req.DocURL,
 		HomeContent:                            req.HomeContent,
 		CompactHomeEnabled:                     req.CompactHomeEnabled,
@@ -2259,6 +2272,8 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SiteSubtitle:                                           updatedSettings.SiteSubtitle,
 		APIBaseURL:                                             updatedSettings.APIBaseURL,
 		ContactInfo:                                            updatedSettings.ContactInfo,
+		TelegramGroupURL:                                       updatedSettings.TelegramGroupURL,
+		WeChatGroupQRCode:                                      updatedSettings.WeChatGroupQRCode,
 		DocURL:                                                 updatedSettings.DocURL,
 		HomeContent:                                            updatedSettings.HomeContent,
 		CompactHomeEnabled:                                     updatedSettings.CompactHomeEnabled,
