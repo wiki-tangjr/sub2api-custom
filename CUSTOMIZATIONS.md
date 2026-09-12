@@ -102,13 +102,14 @@
 - **关键文件**：`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppSidebar.vue`、`frontend/src/views/user/CustomPageView.vue`、`frontend/src/types/index.ts`、`frontend/src/i18n/locales/{zh,en}/admin/settings.ts`。
 - **验证**：前端 typecheck/build 通过；新增菜单默认选择 iframe；旧配置打开后台后显示 iframe；选 `new_tab` 保存后，侧栏以新标签页打开原始 URL；直接访问 `/custom/{id}` 时，回退链接和自动打开 URL 均不含 `token=`。
 
-### 12. 客服联系方式扩展（微信文本 + Telegram 群组 + 微信群二维码，2026-09-12）
+### 12. 客服联系方式扩展（微信文本 + Telegram 群组 + 微信群二维码，2026-09-12；可配置文案/样式 2026-09-12）
 - **永久保留要求**：这是正式本地魔改。每次升级/合并上游后，后台“系统设置 → 站点设置”必须继续保留三种客服入口及其保存、公开读取和用户端展示能力。
-- **内容**：保留原有 `contact_info` 微信文本联系方式；新增 `telegram_group_url` Telegram 群组 HTTPS 链接，以及 `wechat_group_qr_code` 微信群二维码图片。后台支持 Telegram URL 输入和二维码图片上传；公开设置 API、注入配置、管理员设置回显均包含这两个字段。
+- **内容**：保留原有 `contact_info` 微信文本联系方式；新增 `telegram_group_url` Telegram 群组 HTTPS 链接，以及 `wechat_group_qr_code` 微信群二维码图片。后台支持 Telegram URL 输入和二维码图片上传；公开设置 API、注入配置、管理员设置回显均包含这些字段。
+- **可配置文案与样式**：新增 `contact_section_title`（板块标题）、`contact_section_description`（板块描述）、`telegram_entry_label` / `wechat_group_entry_label` / `wechat_contact_entry_label`（各入口文案）、`contact_section_style`（`card` 卡片式 / `list` 列表式）。后台“站点设置”提供“客服板块展示配置”区块；用户端顶部用户菜单、个人资料页、兑换页按配置渲染，未配置时回退默认文案（如“加入 Telegram 群组”）。
 - **用户端展示**：顶部用户菜单、个人资料页、兑换页均展示已配置入口。Telegram 使用新标签页打开；微信群入口打开二维码弹窗。旧配置缺少新字段时按空值兼容，不影响原有微信文本。
 - **安全约束**：Telegram 只接受绝对 `http(s)` URL；用户端再次使用 `sanitizeUrl` 校验。二维码只允许 `data:image/*` 或 `http(s)` 图片地址，禁止将任意协议配置直接作为资源渲染。
-- **标记**：搜索 `telegram_group_url`、`wechat_group_qr_code`、`telegramGroupUrl`、`wechatGroupQrCode` 应存在；`setting_update.go` 中每个新设置键只能写入一次。
-- **关键文件**：`backend/internal/service/domain_constants.go`、`setting_parse.go`、`setting_update.go`、`setting_public.go`、`backend/internal/handler/admin/setting_handler_update.go`、`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppHeader.vue`、`frontend/src/views/user/ProfileView.vue`、`frontend/src/views/user/RedeemView.vue`。
+- **标记**：搜索 `telegram_group_url`、`wechat_group_qr_code`、`telegramGroupUrl`、`wechatGroupQrCode`、`contact_section_title`、`contact_section_style`、`telegram_entry_label` 应存在；`setting_update.go` 中每个新设置键只能写入一次。
+- **关键文件**：`backend/internal/service/domain_constants.go`、`setting_parse.go`、`setting_update.go`、`setting_public.go`、`backend/internal/handler/admin/setting_handler_update.go`、`backend/internal/handler/admin/setting_handler.go`（管理端回显组装，勿漏字段）、`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppHeader.vue`、`frontend/src/views/user/ProfileView.vue`、`frontend/src/views/user/RedeemView.vue`。
 
 ---
 
