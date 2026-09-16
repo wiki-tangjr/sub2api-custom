@@ -470,6 +470,37 @@ func isOpenAIImageGenerationModel(model string) bool {
 	return IsGPTImageGenerationModel(model) || isGrokImageGenerationModel(model)
 }
 
+// imageOnlyResponsesDriverAllowed lets an image-only model (gpt-image-*) stay the
+// driver model of a /v1/responses request. Official OpenAI rejects that shape, but
+// third-party relay upstreams selling image-only keys expose no text model at all, so
+// rewriting the driver to a text model always yields 503 model_not_found and burns the
+// whole failover budget. Enable with SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER=1.
+func imageOnlyResponsesDriverAllowed() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER"))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// isGeminiNativeImageModel matches Gemini/Imagen image models that the native
+// /v1/images/generations endpoint must accept. They are deliberately NOT part of
+// isOpenAIImageGenerationModel, because that predicate also drives the Codex
+// /responses image-only normalization, where Gemini image models are fine as a
+// plain pass-through driver.
+func isGeminiNativeImageModel(model string) bool {
+	m := strings.ToLower(strings.TrimSpace(model))
+	switch {
+	case strings.HasPrefix(m, "imagen-"):
+		return true
+	case strings.HasPrefix(m, "nano-banana"):
+		return true
+	case strings.HasPrefix(m, "gemini-") && strings.Contains(m, "-image"):
+		return true
+	}
+	return false
+}
+
 // IsGPTImageGenerationModel identifies the GPT native image-generation model family.
 func IsGPTImageGenerationModel(model string) bool {
 	model = strings.ToLower(strings.TrimSpace(model))
@@ -486,6 +517,9 @@ func isGrokImageGenerationModel(model string) bool {
 func validateOpenAIImagesModel(model string) error {
 	model = strings.TrimSpace(model)
 	if isOpenAIImageGenerationModel(model) {
+		return nil
+	}
+	if isGeminiNativeImageModel(model) {
 		return nil
 	}
 	if model == "" {

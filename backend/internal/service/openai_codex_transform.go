@@ -1144,6 +1144,10 @@ func validateOpenAIResponsesImageModel(reqBody map[string]any, model string) err
 	if !isOpenAIImageGenerationModel(model) {
 		return nil
 	}
+	if imageOnlyResponsesDriverAllowed() {
+		// Upstream is an image-only relay account: the driver must stay the image model.
+		return nil
+	}
 	return fmt.Errorf("/v1/responses image_generation requests require a Responses-capable text model; image-only model %q is not allowed", model)
 }
 
@@ -1217,6 +1221,10 @@ func normalizeOpenAIResponsesImageOnlyModel(reqBody map[string]any) bool {
 		modified = true
 	}
 	mainModel := openAIImagesResponsesMainModelValue()
+	if imageOnlyResponsesDriverAllowed() {
+		// Keep driver == tool.model == the image model the client asked for.
+		mainModel = imageModel
+	}
 	if imageModel != mainModel {
 		modified = true
 	}

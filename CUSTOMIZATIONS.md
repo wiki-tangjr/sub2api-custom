@@ -111,6 +111,17 @@
 - **标记**：搜索 `telegram_group_url`、`wechat_group_qr_code`、`telegramGroupUrl`、`wechatGroupQrCode`、`contact_section_title`、`contact_section_style`、`telegram_entry_label` 应存在；`setting_update.go` 中每个新设置键只能写入一次。
 - **关键文件**：`backend/internal/service/domain_constants.go`、`setting_parse.go`、`setting_update.go`、`setting_public.go`、`backend/internal/handler/admin/setting_handler_update.go`、`backend/internal/handler/admin/setting_handler.go`（管理端回显组装，勿漏字段）、`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppHeader.vue`、`frontend/src/views/user/ProfileView.vue`、`frontend/src/views/user/RedeemView.vue`。
 
+### 13. 图片模型 driver 放行（image-only responses driver + Gemini 原生图片模型，2026-09-16）
+- **永久保留要求**：这是正式本地魔改。每次升级/合并上游后必须保留，否则 `/v1/responses` 用 `gpt-image-*` 作 driver 会被改写成文本模型导致上游 503 `model_not_found` 并烧掉整个 failover 预算；`/v1/images/generations` 也会拒绝 `imagen-*` / `nano-banana*` / `gemini-*-image*` 等模型。
+- **内容**：
+  - `imageOnlyResponsesDriverAllowed()`：读环境变量 `SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER`（`1/true/yes/on` 为开）。开启时 `validateOpenAIResponsesImageModel()` 不再拒绝图片模型作 driver，`normalizeOpenAIResponsesImageOnlyModel()` 保持 driver == tool.model == 客户端请求的图片模型。
+  - `isGeminiNativeImageModel()`：识别 `imagen-*`、`nano-banana*`、`gemini-*-image*`，`validateOpenAIImagesModel()` 直接放行。该判定**故意不并入** `isOpenAIImageGenerationModel()`，因为后者还驱动 Codex `/responses` 的 image-only 归一化，那里 Gemini 图片模型作为普通直通 driver 是合法的。
+- **生产环境开关**：systemd drop-in `/etc/systemd/system/sub2api.service.d/50-image-only-driver.conf` 设置 `SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER=1`。默认（不设该变量）行为与官方一致，不影响存量用户。
+- **标记**：搜索 `SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER`、`imageOnlyResponsesDriverAllowed`、`isGeminiNativeImageModel` 应存在（各 2 处以上）。
+- **关键文件**：`backend/internal/service/openai_images.go`（+34 行）、`backend/internal/service/openai_codex_transform.go`（+8 行）。
+- **验证**：`go build ./...` 通过；开环境变量后 `/v1/responses` 带 `gpt-image-1` driver 不再返回模型不合法错误；`/v1/images/generations` 传 `nano-banana-pro`、`imagen-4.0-generate-preview-06-06`、`gemini-2.5-flash-image` 均不被 400 拒绝。
+- **来源**：2026-09-16 合并 0.2.5 时随补丁一起提交（原为工作区未提交改动，快照 `/tmp/wip-image-only-driver.patch`）。
+
 ---
 
 ## 合并后验证清单（照做即可）
