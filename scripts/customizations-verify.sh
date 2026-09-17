@@ -17,7 +17,7 @@ cd "$REPO_ROOT" || exit 1
 LIVE=0
 [ "${1:-}" = "--live" ] && LIVE=1
 
-C_OK=$'\033[32m'; C_BAD=$'\033[31m'; C_DIM=$'\033[2m'; C_RST=$'\033[0m'
+C_OK=$'\033[32m'; C_BAD=$'\033[31m'; C_WARN=$'\033[33m'; C_DIM=$'\033[2m'; C_RST=$'\033[0m'
 M_BAD=0; M_NAME=""; MOD_N=0; MOD_PASS=0; MOD_LOST=0; GBAD=0
 LOST_LIST=()
 
@@ -25,6 +25,7 @@ begin(){ MOD_N=$((MOD_N+1)); M_NAME="$1"; M_BAD=0; printf '\n%s[%d] %s%s\n' "$C_
 ok(){ printf "   ${C_OK}OK${C_RST}  %s\n" "$1"; }
 bad(){ M_BAD=$((M_BAD+1)); GBAD=$((GBAD+1)); printf "   ${C_BAD}XX${C_RST}  %s\n" "$1"; }
 end(){ if [ "$M_BAD" -eq 0 ]; then MOD_PASS=$((MOD_PASS+1)); else MOD_LOST=$((MOD_LOST+1)); LOST_LIST+=("$M_NAME"); fi; }
+warn(){ printf "   ${C_WARN}!!${C_RST}  %s\n" "$1"; }
 
 # --- 断言工具 ---
 f(){  [ -f "$2" ] && ok "$1" || bad "$1  [缺文件] $2"; }                      # 文件必须存在
@@ -147,10 +148,18 @@ g "driver 放行函数" imageOnlyResponsesDriverAllowed             backend/inte
 g "Gemini 图片模型" isGeminiNativeImageModel                    backend/internal/service/openai_images.go
 g "归一化改造"      imageOnlyResponsesDriverAllowed             backend/internal/service/openai_codex_transform.go
 upstream_main=$(git rev-parse --verify -q origin/main >/dev/null 2>&1 && echo yes || echo no)
-if [ -f /etc/systemd/system/sub2api.service.d/50-image-only-driver.conf ]; then
-  ok "生产开关 drop-in 存在"
+if [ -x scripts/install-deploy-assets.sh ]; then
+  if ./scripts/install-deploy-assets.sh --check >/tmp/.deploy-check.txt 2>&1; then
+    ok "部署资产一致（#13 生产开关 drop-in + 服务已生效）"
+  else
+    bad "部署资产缺失/不一致！跑 ./scripts/install-deploy-assets.sh 修复"
+    sed 's/^/        /' /tmp/.deploy-check.txt
+  fi
+  rm -f /tmp/.deploy-check.txt
+elif [ -f /etc/systemd/system/sub2api.service.d/50-image-only-driver.conf ]; then
+  warn "drop-in 存在，但缺 scripts/install-deploy-assets.sh，无法校验一致性"
 else
-  bad "生产开关 drop-in 缺失！/etc/systemd/system/sub2api.service.d/50-image-only-driver.conf（重装/迁移时必丢）"
+  bad "生产开关 drop-in 缺失！重装/迁移时必丢，跑 ./scripts/install-deploy-assets.sh"
 fi
 end
 
