@@ -58,7 +58,7 @@ if [ -x scripts/customizations-verify.sh ]; then
     tail -20 /tmp/custom-baseline-$TS.log
     die "基线不干净，拒绝开始合并。"
   fi
-  log "基线全绿，13 条魔改完好。开始合并。"
+  log "基线全绿，魔改与构建工具链完好。开始合并。"
 fi
 
 # 1. 开启 rerere（复用冲突解决记忆）

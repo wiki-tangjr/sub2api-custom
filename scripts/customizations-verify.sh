@@ -163,6 +163,16 @@ else
 fi
 end
 
+# ============ #14 构建工具链（魔改能否落地的前提）============
+begin "#14 构建工具链（前端 build 脚本内部调用 pnpm）"
+f "pnpm 构建白名单"     frontend/pnpm-workspace.yaml
+g "esbuild 允许构建"    'esbuild: true'   frontend/pnpm-workspace.yaml
+g "vue-demi 允许构建"   'vue-demi: true'  frontend/pnpm-workspace.yaml
+if command -v pnpm >/dev/null 2>&1; then ok "pnpm 可用 ($(pnpm --version))"; else bad "缺少 pnpm：npm run build 会 exit 127（修复：corepack enable pnpm）"; fi
+if command -v node >/dev/null 2>&1; then ok "node 可用 ($(node -v))";          else bad "缺少 node，无法构建前端"; fi
+if command -v go   >/dev/null 2>&1; then ok "go 可用 ($(go version | awk '{print $3}'))"; else bad "缺少 go，无法构建后端"; fi
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then
@@ -210,7 +220,7 @@ if [ "$LIVE" -eq 1 ]; then
 fi
 
 if [ "$GBAD" -eq 0 ]; then
-  printf '%s结论: 全部通过，13 条魔改与部署状态完好。%s\n' "$C_OK" "$C_RST"
+  printf '%s结论: 全部通过，%d 项检查（含构建工具链）与部署状态完好。%s\n' "$C_OK" "$MOD_N" "$C_RST"
   exit 0
 else
   printf '%s结论: 发现 %d 项问题，见上方 XX 行。不要部署，先修复。%s\n' "$C_BAD" "$GBAD" "$C_RST"

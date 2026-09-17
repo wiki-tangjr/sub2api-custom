@@ -144,6 +144,26 @@
 
 ---
 
+### 15. 构建工具链（pnpm）—— 2026-09-17
+
+> 上游 `frontend/package.json` 的 `build` 脚本是 `pnpm run check:i18n && vue-tsc -b && vite build`，**内部直接调用 pnpm**。
+
+- **现象**：本机环境里 pnpm 曾经消失（node 为 `/www/server/nodejs/v24.18.0`，并非标准安装），导致 `npm run build` **exit 127**（`sh: pnpm: command not found`）。这会让 `update-from-upstream.sh` 在验证阶段直接 `die`，没法完成发布。
+- **修复**：`corepack enable pnpm`（已执行，现为 pnpm 12.3.4）。备用：`npm i -g pnpm`。
+- **`frontend/pnpm-workspace.yaml`（已入库）**：pnpm 12 需要它才会跑 esbuild / vue-demi 的构建脚本：
+
+  ```yaml
+  allowBuilds:
+    esbuild: true
+    vue-demi: true
+  ```
+
+  上游仓库在该路径下**没有文件**，因此永远不会与官方产生合并冲突。
+- **预防**：`update-from-upstream.sh` 新增「0.4 工具链预检」，缺 node/go/pnpm 时直接拒绝开始合并并给出修复命令；`customizations-verify.sh` 新增第 14 项同步校验。
+- **备注**：因口径不一致，本机上 `node_modules/.bin/*` 可能残缺；建议用 `pnpm install --frozen-lockfile` 重建依赖。
+
+---
+
 ## ⚠️ 两个 git 看不见的盲区（最容易静默丢功能）
 
 官方更新合并完、`git status` 全绿，**不代表魔改没丢**。下面两处 git 不会报任何错：
@@ -159,8 +179,6 @@
 - `/etc/systemd/system/sub2api.service.d/50-image-only-driver.conf` 是**机器上的系统文件**，不在 git 里 —— 它跟着机器走，不跟着仓库走。
 - 后果：换机器 / 重装 / 恢复镜像后环境变量丢失 → #13 静默失效（图片生成 502 或极慢），而仓库代码却完全正常。
 - 对策：该文件已入库为 `deploy/50-image-only-driver.conf`；重装或迁移后跑 `bash scripts/install-deploy-assets.sh`，用 `--check` 确认。
-
----
 
 ## 合并后验证清单（照做即可）
 
