@@ -35,6 +35,18 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   die "工作区有未提交改动，请先 commit 或 stash 再更新。"
 fi
 
+# 0.5 合并前基线体检：确认「动手前」13 条魔改是完好的
+#     这样合并后一旦变红，就能确定是这次合并弄坏的，定位零成本。
+if [ -x scripts/customizations-verify.sh ]; then
+  log "合并前基线体检（确认起点是干净的）"
+  if ! ./scripts/customizations-verify.sh >/tmp/custom-baseline-$TS.log 2>&1; then
+    warn "合并前基线就是红的！请先修好这些再更新（日志：/tmp/custom-baseline-$TS.log）"
+    tail -20 /tmp/custom-baseline-$TS.log
+    die "基线不干净，拒绝开始合并。"
+  fi
+  log "基线全绿，13 条魔改完好。开始合并。"
+fi
+
 # 1. 开启 rerere（复用冲突解决记忆）
 git config rerere.enabled true
 git config rerere.autoupdate true
@@ -74,6 +86,21 @@ else
   die "合并暂停在冲突处（这是正常的，解决后继续）。回退可用：git merge --abort 或切回 protect-before-update-$TS"
 fi
 
+# 4.5 魔改完整性闸门（最重要：魔改丢了一条都不许继续）
+if [ -x scripts/customizations-verify.sh ]; then
+  log "魔改完整性体检（13 条，硬闸门）"
+  if ! ./scripts/customizations-verify.sh; then
+    warn "魔改体检未通过！上面标记 XX 的功能已被官方改动覆盖。"
+    echo "   1) 对照 CUSTOMIZATIONS.md 逐条恢复被覆盖的代码"
+    echo "   2) 重新跑 scripts/customizations-verify.sh 直到全绿"
+    echo "   3) 修复后重新 commit，再继续部署"
+    echo "   回退：git merge --abort 或切回 protect-before-update-$TS 分支"
+    die "魔改体检失败，已阻止继续（保护你的功能不被静默丢掉）。"
+  fi
+else
+  warn "缺少 scripts/customizations-verify.sh，无法自动核对魔改，请手工对照 CUSTOMIZATIONS.md。"
+fi
+
 # 5. 验证
 if [ "$VERIFY" = "1" ]; then
   log "验证：前端 typecheck + build"
@@ -90,5 +117,9 @@ fi
 log "推送到私有备份远程 $BACKUP_REMOTE/$WORK_BRANCH"
 git push "$BACKUP_REMOTE" "$WORK_BRANCH" || warn "推送备份失败（可稍后手动 git push $BACKUP_REMOTE $WORK_BRANCH）"
 
-log "完成。核对 CUSTOMIZATIONS.md 全部功能仍在，然后部署："
+log "部署前最后确认（含线上状态与二进制内容）："
+./scripts/customizations-verify.sh --live || die "部署前体检未通过，请勿部署。"
+
+log "完成。部署步骤："
 echo "   备份 /opt/sub2api/sub2api -> 替换为 /tmp/sub2api-update-$TS -> systemctl restart sub2api.service -> curl /health"
+echo "   部署后务必再跑一次： ./scripts/customizations-verify.sh --live"
