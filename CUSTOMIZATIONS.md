@@ -122,6 +122,44 @@
 - **验证**：`go build ./...` 通过；开环境变量后 `/v1/responses` 带 `gpt-image-1` driver 不再返回模型不合法错误；`/v1/images/generations` 传 `nano-banana-pro`、`imagen-4.0-generate-preview-06-06`、`gemini-2.5-flash-image` 均不被 400 拒绝。
 - **来源**：2026-09-16 合并 0.2.5 时随补丁一起提交（原为工作区未提交改动，快照 `/tmp/wip-image-only-driver.patch`）。
 
+### 14. 系统更新守护脚本（2026-09-17 新增）
+
+> 这一条不是业务功能，而是**保证上面 13 条不丢的机制**。将来新增魔改时，必须同步往验证脚本里加检查项。
+
+- **完整性验证脚本**：`scripts/customizations-verify.sh`
+  - 对上面 13 条魔改逐条做「文件存在 + 固定字符串(FIXED-STRING) 标记 grep + 出现次数」校验，全部通过才 `exit 0`，未通过 `exit 1`（可直接当 CI 闸门用）。
+  - `--live` 额外校验生产环境：二进制存在及 md5、二进制内字符串（ICP/公安备案、#13 开关、#5 guard、#8 seedance）、服务 active、`NRestarts=0`、`/health` 200、CORS OPTIONS 204、关键路由非 404（401 即通过）。
+  - 用法：`bash scripts/customizations-verify.sh`（代码层）、`bash scripts/customizations-verify.sh --live`（生产层）。
+- **部署资产安装脚本**：`scripts/install-deploy-assets.sh`
+  - 把 `deploy/50-image-only-driver.conf`（#13 的 systemd drop-in）安装到 `/etc/systemd/system/sub2api.service.d/`，幂等可重复执行。
+  - `--check` 只比对**生效指令**（忽略注释措辞差异），并额外断言服务进程里真的读到了该环境变量。
+  - 换机器 / 重装 / 迁移后**必须先跑这个脚本**，否则 #13 静默失效（表现：图片生成 502 或极慢）。
+- **更新脚本已内置三道闸门**：`scripts/update-from-upstream.sh`
+  1. 合并前基线检查：如果**合并前**就是红的，直接拒绝开始 —— 保证之后变红一定是这次合并造成的。
+  2. 合并后硬闸门：验证脚本不过直接 `die`。
+  3. 部署前 `--live` 检查：不过直接 `die`。
+  4. 部署后提示再跑一次 `--live` 复验。
+- **验证脚本已经过负向测试**（证明不是「永远绿」）：分别人为制造了 #5 guard 被覆盖、#10 备案号被删、#12 管理端回显字段丢失、#5 guard 文件被删、#9 CORS 只剩 1 处放行、drop-in 缺失/自愈/被篡改成 `=0` 等场景，全部被正确捕获；恢复后回到全绿。
+- **当前状态**：`bash scripts/customizations-verify.sh --live` → **13/13 全部保留**，退出码 0。
+
+---
+
+## ⚠️ 两个 git 看不见的盲区（最容易静默丢功能）
+
+官方更新合并完、`git status` 全绿，**不代表魔改没丢**。下面两处 git 不会报任何错：
+
+### 盲区 1：`backend/internal/web/dist` 不被 git 跟踪
+
+- `.gitignore:102` 把嵌入前端的目录 negate 掉了 —— 仓库里该目录 **0 个 tracked 文件**，改了也不会出现在 `git status`。
+- 后果：前端没重新构建，或后端编译**漏了 `-tags embed`** → 二进制里还是旧前端 → 备案号 / 自定义菜单 / 客服入口全部「消失」，而 git 一切正常。
+- 对策：每次部署前必须 `cd frontend && npm run typecheck && npm run build`，再 `cd backend && go build -tags embed`；用 `customizations-verify.sh --live` 检查二进制内字符串是否还在。
+
+### 盲区 2：#13 的 systemd drop-in 不在仓库里（现已版本化）
+
+- `/etc/systemd/system/sub2api.service.d/50-image-only-driver.conf` 是**机器上的系统文件**，不在 git 里 —— 它跟着机器走，不跟着仓库走。
+- 后果：换机器 / 重装 / 恢复镜像后环境变量丢失 → #13 静默失效（图片生成 502 或极慢），而仓库代码却完全正常。
+- 对策：该文件已入库为 `deploy/50-image-only-driver.conf`；重装或迁移后跑 `bash scripts/install-deploy-assets.sh`，用 `--check` 确认。
+
 ---
 
 ## 合并后验证清单（照做即可）
