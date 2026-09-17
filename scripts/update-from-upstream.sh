@@ -35,6 +35,20 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   die "工作区有未提交改动，请先 commit 或 stash 再更新。"
 fi
 
+# 0.4 工具链预检：前端 build 依赖 pnpm（官方 build 脚本内部调用 pnpm）。
+#     缺 pnpm 时 npm run build 会 exit 127，且报错很难懂。
+if [ "$VERIFY" = "1" ]; then
+  log "工具链预检"
+  command -v node >/dev/null 2>&1 || die "缺少 node，无法构建前端。"
+  command -v go   >/dev/null 2>&1 || die "缺少 go，无法构建后端。"
+  if ! command -v pnpm >/dev/null 2>&1; then
+    warn "缺少 pnpm（前端 build 脚本内部调用 pnpm，缺失会 exit 127）。"
+    echo "    修复：corepack enable pnpm   # 或 npm i -g pnpm"
+    die "工具链不完整，拒绝开始合并。"
+  fi
+  log "node $(node -v) / pnpm $(pnpm --version) / $(go version | awk '{print $3}')"
+fi
+
 # 0.5 合并前基线体检：确认「动手前」13 条魔改是完好的
 #     这样合并后一旦变红，就能确定是这次合并弄坏的，定位零成本。
 if [ -x scripts/customizations-verify.sh ]; then
