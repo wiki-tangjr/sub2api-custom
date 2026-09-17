@@ -62,6 +62,12 @@ if [ -x scripts/customizations-verify.sh ]; then
 fi
 
 # 1. 开启 rerere（复用冲突解决记忆）
+# 确保版本库内的 git hook 生效（core.hooksPath 存在 .git/config 里，不随仓库走，
+# 新克隆/新机器上会丢，所以每次更新时自愈一次）。
+if [ -d scripts/git-hooks ]; then
+  git config core.hooksPath scripts/git-hooks
+  log "已启用提交守卫 core.hooksPath=scripts/git-hooks"
+fi
 git config rerere.enabled true
 git config rerere.autoupdate true
 

@@ -139,6 +139,7 @@
   2. 合并后硬闸门：验证脚本不过直接 `die`。
   3. 部署前 `--live` 检查：不过直接 `die`。
   4. 部署后提示再跑一次 `--live` 复验。
+- **提交时守卫（第三层防线，2026-09-17 新增）**：`scripts/git-hooks/pre-commit` + `pre-merge-commit`。安装在 `core.hooksPath=scripts/git-hooks`（由 `update-from-upstream.sh` 每次自愈）。目的：手工 `git merge --continue` 或手工解决冲突后提交时，也能拦住被官方冲掉的魔改。行为：合并提交一律检查；普通提交只在动到 `backend/`、`frontend/`、`scripts/`、`CUSTOMIZATIONS.md` 时检查（约 0.3s），纯文档提交直接放行；失败时给出逐条清单。临时绕过：`git commit --no-verify`。
 - **验证脚本已经过负向测试**（证明不是「永远绿」）：分别人为制造了 #5 guard 被覆盖、#10 备案号被删、#12 管理端回显字段丢失、#5 guard 文件被删、#9 CORS 只剩 1 处放行、drop-in 缺失/自愈/被篡改成 `=0` 等场景，全部被正确捕获；恢复后回到全绿。
 - **当前状态**：`bash scripts/customizations-verify.sh --live` → **13/13 全部保留**，退出码 0。
 
