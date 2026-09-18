@@ -709,6 +709,12 @@ export default {
         wechatContactEntryLabel: 'WeChat Contact Entry Label',
         wechatContactEntryLabelPlaceholder: 'Add WeChat Contact',
         wechatContactEntryLabelHint: 'Label for the WeChat text contact info.',
+        contactLegacy: {
+          title: 'Compatibility: legacy single fields',
+          hint: 'Collapsed by default. Only applied when the Contact Entries list is empty.',
+          notice: 'As soon as the entry list above has any item, these legacy fields are no longer shown to users. Prefer the entry list above for new or updated contacts.',
+          entriesHeading: 'Legacy entry labels (apply to legacy fields only)',
+        },
         contactEntries: {
           title: 'Contact Entries',
           hint: 'Customize icon, label, type (link / QR code / text), and how each entry is shown. Up to 20 entries, order and enable/disable supported.',

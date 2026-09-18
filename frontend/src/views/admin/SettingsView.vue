@@ -6511,76 +6511,38 @@
                 </button>
               </div>
 
-              <!-- Contact Info -->
-              <div>
-                <label
-                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                  {{ t("admin.settings.site.contactInfo") }}
-                </label>
-                <input
-                  v-model="form.contact_info"
-                  type="text"
-                  class="input"
-                  :placeholder="t('admin.settings.site.contactInfoPlaceholder')"
-                />
-                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t("admin.settings.site.contactInfoHint") }}
-                </p>
-              </div>
+              <!-- 魔改 #12 / #19：客服与群组的唯一配置入口 —— 联系方式条目列表 -->
+              <ContactEntriesEditor v-model="form.contact_entries" />
 
-              <div>
-                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t("admin.settings.site.telegramGroupUrl") }}
-                </label>
-                <input v-model="form.telegram_group_url" type="url" class="input font-mono text-sm"
-                  :placeholder="t('admin.settings.site.telegramGroupUrlPlaceholder')" />
-                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t("admin.settings.site.telegramGroupUrlHint") }}
-                </p>
-              </div>
-
-              <div>
-                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t("admin.settings.site.wechatGroupQrCode") }}
-                </label>
-                <ImageUpload v-model="form.wechat_group_qr_code" mode="image"
-                  :upload-label="t('admin.settings.site.uploadImage')"
-                  :remove-label="t('admin.settings.site.remove')"
-                  :hint="t('admin.settings.site.wechatGroupQrCodeHint')" :max-size="500 * 1024" />
-              </div>
-
-              <!-- 客服板块样式与文案（后台可配置） -->
+              <!-- 客服板块标题与样式（始终生效，作用于顶栏菜单 / 个人中心 / 兑换页） -->
               <div class="rounded-lg border border-gray-200 p-4 dark:border-dark-700">
                 <p class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                   {{ t("admin.settings.site.contactSectionConfig") }}
                 </p>
-                <div class="space-y-4">
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {{ t("admin.settings.site.contactSectionTitle") }}
-                      </label>
-                      <input v-model="form.contact_section_title" type="text" class="input"
-                        :placeholder="t('admin.settings.site.contactSectionTitlePlaceholder')" />
-                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        {{ t("admin.settings.site.contactSectionTitleHint") }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {{ t("admin.settings.site.contactSectionStyle") }}
-                      </label>
-                      <select v-model="form.contact_section_style" class="input">
-                        <option value="card">{{ t("admin.settings.site.contactStyleCard") }}</option>
-                        <option value="list">{{ t("admin.settings.site.contactStyleList") }}</option>
-                      </select>
-                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        {{ t("admin.settings.site.contactSectionStyleHint") }}
-                      </p>
-                    </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactSectionTitle") }}
+                    </label>
+                    <input v-model="form.contact_section_title" type="text" class="input"
+                      :placeholder="t('admin.settings.site.contactSectionTitlePlaceholder')" />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactSectionTitleHint") }}
+                    </p>
                   </div>
                   <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactSectionStyle") }}
+                    </label>
+                    <select v-model="form.contact_section_style" class="input">
+                      <option value="card">{{ t("admin.settings.site.contactStyleCard") }}</option>
+                      <option value="list">{{ t("admin.settings.site.contactStyleList") }}</option>
+                    </select>
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactSectionStyleHint") }}
+                    </p>
+                  </div>
+                  <div class="sm:col-span-2">
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       {{ t("admin.settings.site.contactSectionDescription") }}
                     </label>
@@ -6590,43 +6552,117 @@
                       {{ t("admin.settings.site.contactSectionDescriptionHint") }}
                     </p>
                   </div>
-                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {{ t("admin.settings.site.telegramEntryLabel") }}
-                      </label>
-                      <input v-model="form.telegram_entry_label" type="text" class="input"
-                        :placeholder="t('admin.settings.site.telegramEntryLabelPlaceholder')" />
-                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        {{ t("admin.settings.site.telegramEntryLabelHint") }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {{ t("admin.settings.site.wechatGroupEntryLabel") }}
-                      </label>
-                      <input v-model="form.wechat_group_entry_label" type="text" class="input"
-                        :placeholder="t('admin.settings.site.wechatGroupEntryLabelPlaceholder')" />
-                      <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        {{ t("admin.settings.site.wechatGroupEntryLabelHint") }}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {{ t("admin.settings.site.wechatContactEntryLabel") }}
-                    </label>
-                    <input v-model="form.wechat_contact_entry_label" type="text" class="input"
-                      :placeholder="t('admin.settings.site.wechatContactEntryLabelPlaceholder')" />
-                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      {{ t("admin.settings.site.wechatContactEntryLabelHint") }}
-                    </p>
-                  </div>
                 </div>
               </div>
 
-              <!-- 客服联系方式条目（魔改 #12） -->
-              <ContactEntriesEditor v-model="form.contact_entries" />
+              <!-- 兼容设置：旧版单字段（默认收起；仅在条目列表为空时生效） -->
+              <div class="rounded-lg border border-gray-200 dark:border-dark-700">
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  @click="contactLegacyOpen = !contactLegacyOpen"
+                >
+                  <span class="min-w-0">
+                    <span class="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactLegacy.title") }}
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactLegacy.hint") }}
+                    </span>
+                  </span>
+                  <Icon
+                    :name="contactLegacyOpen ? 'chevronUp' : 'chevronDown'"
+                    size="sm"
+                    class="shrink-0 text-gray-400"
+                  />
+                </button>
+                <div
+                  v-show="contactLegacyOpen"
+                  class="space-y-4 border-t border-gray-200 px-4 py-4 dark:border-dark-700"
+                >
+                  <div class="rounded-md bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                    {{ t("admin.settings.site.contactLegacy.notice") }}
+                  </div>
+
+                  <div>
+                    <label
+                      class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
+                      {{ t("admin.settings.site.contactInfo") }}
+                    </label>
+                    <input
+                      v-model="form.contact_info"
+                      type="text"
+                      class="input"
+                      :placeholder="t('admin.settings.site.contactInfoPlaceholder')"
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.contactInfoHint") }}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.telegramGroupUrl") }}
+                    </label>
+                    <input v-model="form.telegram_group_url" type="url" class="input font-mono text-sm"
+                      :placeholder="t('admin.settings.site.telegramGroupUrlPlaceholder')" />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t("admin.settings.site.telegramGroupUrlHint") }}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.wechatGroupQrCode") }}
+                    </label>
+                    <ImageUpload v-model="form.wechat_group_qr_code" mode="image"
+                      :upload-label="t('admin.settings.site.uploadImage')"
+                      :remove-label="t('admin.settings.site.remove')"
+                      :hint="t('admin.settings.site.wechatGroupQrCodeHint')" :max-size="500 * 1024" />
+                  </div>
+
+                  <div class="border-t border-gray-200 pt-4 dark:border-dark-700">
+                    <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t("admin.settings.site.contactLegacy.entriesHeading") }}
+                    </p>
+                    <div class="space-y-4">
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ t("admin.settings.site.telegramEntryLabel") }}
+                          </label>
+                          <input v-model="form.telegram_entry_label" type="text" class="input"
+                            :placeholder="t('admin.settings.site.telegramEntryLabelPlaceholder')" />
+                          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            {{ t("admin.settings.site.telegramEntryLabelHint") }}
+                          </p>
+                        </div>
+                        <div>
+                          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {{ t("admin.settings.site.wechatGroupEntryLabel") }}
+                          </label>
+                          <input v-model="form.wechat_group_entry_label" type="text" class="input"
+                            :placeholder="t('admin.settings.site.wechatGroupEntryLabelPlaceholder')" />
+                          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            {{ t("admin.settings.site.wechatGroupEntryLabelHint") }}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {{ t("admin.settings.site.wechatContactEntryLabel") }}
+                        </label>
+                        <input v-model="form.wechat_contact_entry_label" type="text" class="input"
+                          :placeholder="t('admin.settings.site.wechatContactEntryLabelPlaceholder')" />
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                          {{ t("admin.settings.site.wechatContactEntryLabelHint") }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <!-- Doc URL -->
               <div>
@@ -9323,6 +9359,9 @@ const loading = ref(true);
 const loadFailed = ref(false);
 const saving = ref(false);
 const testingSmtp = ref(false);
+
+// 魔改 #19：后台客服旧字段折叠状态（默认收起，避免与条目列表混淆）
+const contactLegacyOpen = ref(false);
 const sendingTestEmail = ref(false);
 const smtpPasswordManuallyEdited = ref(false);
 const testEmailAddress = ref("");

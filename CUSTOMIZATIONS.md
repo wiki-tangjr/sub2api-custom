@@ -251,6 +251,22 @@
 
 ---
 
+### 21. 后台客服设置收敛为单一入口（2026-09-19）
+
+- **背景**：`设置 → 通用设置` 里同时存在三套客服/群组配置（上游原生旧单字段、我方 #12 的「客服板块展示配置」、以及 #12 的「客服联系方式条目」），管理员看着重复又混乱。
+- **结论**：全站**本来就只有这一处**能配置客服，不存在第二个管理页；乱的原因是**同一页里三套字段并存**。
+- **收敛方案（只动后台界面，不动后端、不动前台展示）**：
+  1. 「客服联系方式条目」（`contact_entries`）提升为**唯一主入口**，放在最前；
+  2. 「客服板块展示配置」保留**标题 / 描述 / 展示样式**（这三项在 `AppHeader.vue`、`ProfileView.vue` 里**始终生效**，不是旧字段，不能删）；
+  3. 旧单字段（`contact_info` / `telegram_group_url` / `wechat_group_qr_code`）与旧入口文案（`telegram_entry_label` / `wechat_group_entry_label` / `wechat_contact_entry_label`）一起收进**默认收起的「兼容设置：旧版单字段」折叠面板**，并明确提示「条目列表一旦有内容，旧字段就不再展示给用户」。
+- **为什么不能直接删旧字段**：`resolveContactEntries()` 的降级链依赖它们（`contact_entries` 为空时由旧字段合成条目），且 `customizations-verify.sh` 的 #12 段把旧字段列为**必须保留**的兼容项；线上当前用户端展示的那条「添加微信客服」正是由空 `contact_entries` + `contact_info` 合成而来。
+- **零影响保障**：纯前端后台模板 + i18n 文案改动；`form.*` 绑定字段名全部不变，提交 payload 与回填逻辑不变，后端设置读写与前台渲染完全不变 → 用户端展示零变化。
+- **标记**：`魔改 #12 / #19`、`contactLegacyOpen`、`contactLegacy.title`、`contactLegacy.notice`；`form.contact_info` / `form.telegram_group_url` / `form.wechat_group_qr_code` 各**只允许出现一次**。
+- **关键文件**：`frontend/src/views/admin/SettingsView.vue`、`frontend/src/i18n/locales/zh/admin/settings.ts`、`frontend/src/i18n/locales/en/admin/settings.ts`。
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#19**。
+
+---
+
 ## ⚠️ 两个 git 看不见的盲区（最容易静默丢功能）
 
 官方更新合并完、`git status` 全绿，**不代表魔改没丢**。下面两处 git 不会报任何错：

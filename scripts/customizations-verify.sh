@@ -289,6 +289,35 @@ done
 [ "$CRF" -eq 0 ] && ok "工具链脚本均为 LF 换行（无 CRLF 隐患）"
 end
 
+# ============ #19 后台客服设置收敛为单一入口（旧字段折叠，2026-09-19）============
+begin "#19 后台客服设置收敛（单一入口 + 旧字段折叠）"
+# 条目列表必须是后台的第一个（也是唯一的主）客服配置入口
+geq "唯一条目编辑器"     '<ContactEntriesEditor v-model="form.contact_entries" />' frontend/src/views/admin/SettingsView.vue 1
+lmx "条目编辑器不重复"   '<ContactEntriesEditor v-model="form.contact_entries" />' frontend/src/views/admin/SettingsView.vue 1
+g "唯一入口注释标记"     "魔改 #12 / #19"      frontend/src/views/admin/SettingsView.vue
+# 旧字段必须仍然存在且每个只出现一次（被收进折叠面板，不允许被删除）
+lmx "旧字段 contact_info 单处"        'v-model="form.contact_info"'           frontend/src/views/admin/SettingsView.vue 1
+lmx "旧字段 telegram 单处"            'v-model="form.telegram_group_url"'     frontend/src/views/admin/SettingsView.vue 1
+lmx "旧字段 微信群二维码 单处"        'v-model="form.wechat_group_qr_code"'   frontend/src/views/admin/SettingsView.vue 1
+# 折叠面板本体
+g "折叠状态 ref"         "const contactLegacyOpen = ref(false);" frontend/src/views/admin/SettingsView.vue
+g "折叠面板标题"         "contactLegacy.title"        frontend/src/views/admin/SettingsView.vue
+g "折叠面板说明"         "contactLegacy.notice"       frontend/src/views/admin/SettingsView.vue
+g "折叠图标切换"         "contactLegacyOpen ? 'chevronUp' : 'chevronDown'" frontend/src/views/admin/SettingsView.vue
+# 始终生效的板块标题 / 样式（被 AppHeader 与 ProfileView 消费，不能丢）
+g "板块标题字段"         "form.contact_section_title"       frontend/src/views/admin/SettingsView.vue
+g "板块样式字段"         "form.contact_section_style"       frontend/src/views/admin/SettingsView.vue
+g "板块描述字段"         "form.contact_section_description" frontend/src/views/admin/SettingsView.vue
+# 文案必须两种语言都有
+g "中文折叠文案"         "contactLegacy:" frontend/src/i18n/locales/zh/admin/settings.ts
+g "英文折叠文案"         "contactLegacy:" frontend/src/i18n/locales/en/admin/settings.ts
+g "提交仍带 contact_info"  "contact_info: form.contact_info"            frontend/src/views/admin/SettingsView.vue
+g "提交仍带 telegram"      "telegram_group_url: form.telegram_group_url"  frontend/src/views/admin/SettingsView.vue
+g "提交仍带 二维码"        "wechat_group_qr_code: form.wechat_group_qr_code" frontend/src/views/admin/SettingsView.vue
+g "文档已记录收敛"       "后台客服设置收敛" CUSTOMIZATIONS.md
+end
+
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then

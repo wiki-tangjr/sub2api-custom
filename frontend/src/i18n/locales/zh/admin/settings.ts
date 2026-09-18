@@ -701,6 +701,12 @@ export default {
         wechatContactEntryLabel: '微信客服入口文案',
         wechatContactEntryLabelPlaceholder: '添加微信客服',
         wechatContactEntryLabelHint: '显示微信文本联系方式的入口标签。',
+        contactLegacy: {
+          title: '兼容设置：旧版单字段',
+          hint: '默认收起。仅在「客服联系方式条目」为空时才生效，平时无需改动。',
+          notice: '上方条目列表只要有一条内容，下面这些旧字段就不会展示给用户。新增或修改联系方式，请优先使用上方的条目列表。',
+          entriesHeading: '旧版入口文案（仅对旧字段生效）',
+        },
         contactEntries: {
           title: '客服联系方式条目',
           hint: '可自定义图标、名称、类型（链接/二维码/文本）以及展示方式；支持排序与启用/停用，最多 20 条。',
