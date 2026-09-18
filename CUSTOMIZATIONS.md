@@ -102,14 +102,28 @@
 - **关键文件**：`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppSidebar.vue`、`frontend/src/views/user/CustomPageView.vue`、`frontend/src/types/index.ts`、`frontend/src/i18n/locales/{zh,en}/admin/settings.ts`。
 - **验证**：前端 typecheck/build 通过；新增菜单默认选择 iframe；旧配置打开后台后显示 iframe；选 `new_tab` 保存后，侧栏以新标签页打开原始 URL；直接访问 `/custom/{id}` 时，回退链接和自动打开 URL 均不含 `token=`。
 
-### 12. 客服联系方式扩展（微信文本 + Telegram 群组 + 微信群二维码，2026-09-12；可配置文案/样式 2026-09-12）
-- **永久保留要求**：这是正式本地魔改。每次升级/合并上游后，后台“系统设置 → 站点设置”必须继续保留三种客服入口及其保存、公开读取和用户端展示能力。
-- **内容**：保留原有 `contact_info` 微信文本联系方式；新增 `telegram_group_url` Telegram 群组 HTTPS 链接，以及 `wechat_group_qr_code` 微信群二维码图片。后台支持 Telegram URL 输入和二维码图片上传；公开设置 API、注入配置、管理员设置回显均包含这些字段。
-- **可配置文案与样式**：新增 `contact_section_title`（板块标题）、`contact_section_description`（板块描述）、`telegram_entry_label` / `wechat_group_entry_label` / `wechat_contact_entry_label`（各入口文案）、`contact_section_style`（`card` 卡片式 / `list` 列表式）。后台“站点设置”提供“客服板块展示配置”区块；用户端顶部用户菜单、个人资料页、兑换页按配置渲染，未配置时回退默认文案（如“加入 Telegram 群组”）。
-- **用户端展示**：顶部用户菜单、个人资料页、兑换页均展示已配置入口。Telegram 使用新标签页打开；微信群入口打开二维码弹窗。旧配置缺少新字段时按空值兼容，不影响原有微信文本。
-- **安全约束**：Telegram 只接受绝对 `http(s)` URL；用户端再次使用 `sanitizeUrl` 校验。二维码只允许 `data:image/*` 或 `http(s)` 图片地址，禁止将任意协议配置直接作为资源渲染。
-- **标记**：搜索 `telegram_group_url`、`wechat_group_qr_code`、`telegramGroupUrl`、`wechatGroupQrCode`、`contact_section_title`、`contact_section_style`、`telegram_entry_label` 应存在；`setting_update.go` 中每个新设置键只能写入一次。
-- **关键文件**：`backend/internal/service/domain_constants.go`、`setting_parse.go`、`setting_update.go`、`setting_public.go`、`backend/internal/handler/admin/setting_handler_update.go`、`backend/internal/handler/admin/setting_handler.go`（管理端回显组装，勿漏字段）、`frontend/src/views/admin/SettingsView.vue`、`frontend/src/components/layout/AppHeader.vue`、`frontend/src/views/user/ProfileView.vue`、`frontend/src/views/user/RedeemView.vue`。
+### 12. 客服联系方式扩展（可配置条目列表 contact_entries，2026-09-12 v1 / 2026-09-18 v2）
+- **永久保留要求**：这是正式本地魔改。每次升级/合并上游后，后台“系统设置 → 站点设置 → 客服板块”必须继续保留**可自由增删改的客服条目列表**（图标 / 名称 / 类型 / 展示方式 / 打开方式），以及保存、公开读取、用户端展示的完整链路。丢失任何一环都会让 `customizations-verify.sh` 变红。
+- **v2 核心数据结构**：设置键 `contact_entries`（JSON 数组字符串，字段名必须与 `dto.ContactEntry` / `types/index.ts` 完全一致）。每条字段：
+  - `id`：条目标识（缺省自动生成；≤32 字符，仅允许 `a-z A-Z 0-9 - _`）；
+  - `enabled`：是否启用；公开接口只下发启用项，禁用项不外泄；
+  - `label`：展示名称（必填，≤50 字符）；
+  - `icon_type`：`emoji` 或 `image`；
+  - `icon`：`emoji` 时是表情符号；`image` 时是 `data:image/*` 或 `http(s)` 图片地址（≤500KB）；
+  - `type`：`link`（链接） / `qrcode`（二维码） / `text`（纯文本）；
+  - `url`：`link` 必填，绝对 `http(s)` 地址，≤2048；
+  - `qr_code`：`qrcode` 必填，`data:image/*` 或 `http(s)`（≤2MB）；
+  - `value`：`text` 必填，纯文本内容（≤200）；
+  - `description`：补充说明（≤200 字符）；
+  - `display`：`modal`（点击弹窗） / `hover`（鼠标悬停浮层） / `inline`（内联直接展开）；
+  - `open_target`：`new_tab`（新标签页） / `current_tab`（当前标签页）；
+  - `sort_order`：后端按数组顺序回填，前端排序用。
+- **内容与安全约束**：最多 20 条；`label` ≤50；`url` ≤2048 且必须是 `http(s)` 绝对地址；`value`/`description` ≤200；图标 ≤500KB；二维码 ≤2MB；用户端再次用 `sanitizeUrl` 校验，二维码只允许 `data:image/*` 或 `http(s)`。
+- **旧字段降级兼容（v1，任何一条都不能丢）**：`contact_info`（微信文本）、`telegram_group_url`（Telegram 群组 HTTPS 链接）、`wechat_group_qr_code`（微信群二维码图片），以及文案/样式字段 `contact_section_title`、`contact_section_description`、`telegram_entry_label`、`wechat_group_entry_label`、`wechat_contact_entry_label`、`contact_section_style`（`card` 卡片式 / `list` 列表式）。当 `contact_entries` 为空时，`resolveContactEntries()` 必须自动从上述旧字段合成条目，保证老站点升级后入口不消失；一旦后台保存过 `contact_entries`，则以新列表为准。
+- **用户端展示**：顶栏用户菜单、个人资料页、兑换页均使用共享组件 `ContactEntries.vue` 渲染；支持 `card` / `list` / `dropdown` 三种版式；`modal` 打开弹窗（含二维码扫码提示 `contactScanHint`），`hover` 悬停浮层，`inline` 直接内联；`link` 按 `open_mode` 决定新标签页或当前页跳转。
+- **标记**：`contact_entries`、`ContactEntry`、`ContactEntries`、`ContactEntryBody`、`ContactEntryIcon`、`ContactEntriesEditor`、`resolveContactEntries`、`resolvePublicContactEntries`、`validateContactEntries`、`decodeContactEntriesJSON`、`contactScanHint` 应存在；`setting_update.go` 中 `updates[SettingKeyTelegramGroupURL]` 只能写入一次。
+- **关键文件**：`backend/internal/service/domain_constants.go`、`setting_parse.go`、`setting_update.go`、`setting_public.go`、`contact_entries.go`、`backend/internal/handler/admin/setting_handler.go`（管理端回显组装，勿漏字段）、`setting_handler_update.go`、`setting_handler_audit.go`、`setting_contact_entries.go`、`backend/internal/handler/dto/settings.go`、`dto/contact_entries.go`、`frontend/src/views/admin/SettingsView.vue`、`frontend/src/views/admin/settings/ContactEntriesEditor.vue`、`frontend/src/components/common/ContactEntries.vue`、`ContactEntryBody.vue`、`ContactEntryIcon.vue`、`frontend/src/utils/contactEntries.ts`、`frontend/src/components/layout/AppHeader.vue`、`frontend/src/views/user/ProfileView.vue`、`frontend/src/views/user/RedeemView.vue`、`frontend/src/types/index.ts`、`frontend/src/api/admin/settings.ts`。
+- **验证**：`./scripts/customizations-verify.sh` 覆盖源码标记；`--live` 额外检查二进制内含 `contact_entries`、`/api/v1/settings/public` 返回 `contact_entries`；前端 `npm run typecheck && npm run build`、后端 `go build -tags embed` 通过后替换二进制并重启。
 
 ### 13. 图片模型 driver 放行（image-only responses driver + Gemini 原生图片模型，2026-09-16）
 - **永久保留要求**：这是正式本地魔改。每次升级/合并上游后必须保留，否则 `/v1/responses` 用 `gpt-image-*` 作 driver 会被改写成文本模型导致上游 503 `model_not_found` 并烧掉整个 failover 预算；`/v1/images/generations` 也会拒绝 `imagen-*` / `nano-banana*` / `gemini-*-image*` 等模型。
@@ -124,10 +138,10 @@
 
 ### 14. 系统更新守护脚本（2026-09-17 新增）
 
-> 这一条不是业务功能，而是**保证上面 13 条不丢的机制**。将来新增魔改时，必须同步往验证脚本里加检查项。
+> 这一条不是业务功能，而是**保证上面所有魔改不丢的机制**。将来新增魔改时，必须同步往验证脚本里加检查项（数量以脚本实际检查的条目为准，不要在文档里写死数字）。
 
 - **完整性验证脚本**：`scripts/customizations-verify.sh`
-  - 对上面 13 条魔改逐条做「文件存在 + 固定字符串(FIXED-STRING) 标记 grep + 出现次数」校验，全部通过才 `exit 0`，未通过 `exit 1`（可直接当 CI 闸门用）。
+  - 对上面每一条魔改逐条做「文件存在 + 固定字符串(FIXED-STRING) 标记 grep + 出现次数」校验，全部通过才 `exit 0`，未通过 `exit 1`（可直接当 CI 闸门用）。
   - `--live` 额外校验生产环境：二进制存在及 md5、二进制内字符串（ICP/公安备案、#13 开关、#5 guard、#8 seedance）、服务 active、`NRestarts=0`、`/health` 200、CORS OPTIONS 204、关键路由非 404（401 即通过）。
   - 用法：`bash scripts/customizations-verify.sh`（代码层）、`bash scripts/customizations-verify.sh --live`（生产层）。
 - **部署资产安装脚本**：`scripts/install-deploy-assets.sh`

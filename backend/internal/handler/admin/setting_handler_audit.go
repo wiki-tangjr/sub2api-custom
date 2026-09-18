@@ -355,6 +355,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.ContactSectionStyle != after.ContactSectionStyle {
 		changed = append(changed, "contact_section_style")
+		if before.ContactEntries != after.ContactEntries {
+			changed = append(changed, "contact_entries")
+		}
 	}
 	if before.DocURL != after.DocURL {
 		changed = append(changed, "doc_url")

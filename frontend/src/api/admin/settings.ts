@@ -5,6 +5,7 @@
 
 import { apiClient } from "../client";
 import type {
+  ContactEntry,
   CustomEndpoint,
   CustomMenuItem,
   LoginAgreementDocument,
@@ -489,6 +490,8 @@ export interface SystemSettings {
   wechat_group_entry_label: string;
   wechat_contact_entry_label: string;
   contact_section_style: string;
+  // 魔改 #12: 客服联系方式条目列表
+  contact_entries: ContactEntry[];
   doc_url: string;
   home_content: string;
   compact_home_enabled: boolean;
@@ -841,6 +844,7 @@ export interface UpdateSettingsRequest {
   wechat_group_entry_label?: string;
   wechat_contact_entry_label?: string;
   contact_section_style?: string;
+  contact_entries?: ContactEntry[];
   doc_url?: string;
   home_content?: string;
   compact_home_enabled?: boolean;

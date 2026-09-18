@@ -128,17 +128,37 @@ g "侧栏新标签打开"       '_blank'         frontend/src/components/layout/
 g "DTO 字段"             open_mode        backend/internal/handler/dto/settings.go
 end
 
-# ============ #12 客服联系方式扩展 ============
-begin "#12 客服联系方式扩展（微信 / Telegram / 二维码）"
+# ============ #12 客服联系方式扩展（可配置条目 + 旧字段兼容）============
+begin "#12 客服联系方式扩展（可配置条目列表 + 旧字段兼容）"
+# --- 旧字段（v1）兼容，任何一条都不能丢 ---
 g "Telegram 字段解析"    TelegramGroupURL     backend/internal/service/setting_parse.go
 g "二维码字段解析"       WeChatGroupQRCode    backend/internal/service/setting_parse.go
 g "公开设置暴露"         SettingKeyTelegramGroupURL backend/internal/service/setting_public.go
 g "管理端回显(易漏)"     TelegramGroupURL     backend/internal/handler/admin/setting_handler.go
 g "后台设置界面"         telegram_group_url   frontend/src/views/admin/SettingsView.vue
-g "用户端展示"           telegramGroupUrl     frontend/src/components/layout/AppHeader.vue
 g "文案配置字段"         SettingKeyContactSectionTitle backend/internal/service/domain_constants.go
 geq "设置键唯一写入"      'updates[SettingKeyTelegramGroupURL]'   backend/internal/service/setting_update.go 1
 lmx "设置键不重复写入"    'updates[SettingKeyTelegramGroupURL]'   backend/internal/service/setting_update.go 1
+# --- 新版（v2, 2026-09-18）：后台可增删改的 contact_entries 条目列表 ---
+g "设置键 contact_entries" contact_entries        backend/internal/service/domain_constants.go
+f "条目解析服务"           backend/internal/service/contact_entries.go
+g "条目解析/归一化"        decodeContactEntriesJSON backend/internal/service/contact_entries.go
+g "旧字段降级兼容"         resolveContactEntries backend/internal/service/contact_entries.go
+g "公开只输出启用项"       resolvePublicContactEntries backend/internal/service/setting_public.go
+g "管理端写入校验"         validateContactEntries backend/internal/handler/admin/setting_handler_update.go
+g "条目 DTO"              ContactEntry          backend/internal/handler/dto/contact_entries.go
+g "后台条目编辑器"         ContactEntriesEditor  frontend/src/views/admin/SettingsView.vue
+f "编辑器组件"            frontend/src/views/admin/settings/ContactEntriesEditor.vue
+f "共享展示组件"          frontend/src/components/common/ContactEntries.vue
+f "条目内容渲染"          frontend/src/components/common/ContactEntryBody.vue
+f "条目图标渲染"          frontend/src/components/common/ContactEntryIcon.vue
+f "条目归一化工具"        frontend/src/utils/contactEntries.ts
+g "顶栏接入"              ContactEntries        frontend/src/components/layout/AppHeader.vue
+g "个人中心接入"          ContactEntries        frontend/src/views/user/ProfileView.vue
+g "兑换页接入"            ContactEntries        frontend/src/views/user/RedeemView.vue
+g "二维码扫码提示"        contactScanHint       frontend/src/i18n/locales/zh/common.ts
+g "条目表单 API"          contact_entries        frontend/src/api/admin/settings.ts
+g "条目类型定义"          ContactEntry          frontend/src/types/index.ts
 end
 
 # ============ #13 图片模型 driver 放行 ============
@@ -194,6 +214,7 @@ if [ "$LIVE" -eq 1 ]; then
     geq "库内含公安备案号"      53011102001665  "$ST" 1
     geq "库内含 #13 驱动开关"   SUB2API_ALLOW_IMAGE_ONLY_RESPONSES_DRIVER "$ST" 1
     geq "库内含 #5 专用护栏"    sanitizedGeminiUpstreamPath "$ST" 1
+    geq "库内含 #12 客服条目"   contact_entries "$ST" 1
     geq "库内含 #8 Seedance"    seedanceModelMap "$ST" 1
     rm -f "$ST"
   else
@@ -206,6 +227,12 @@ if [ "$LIVE" -eq 1 ]; then
 
   HC=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health 2>/dev/null)
   [ "$HC" = "200" ] && ok "/health 200" || bad "/health 返回 $HC"
+
+  if curl -s http://127.0.0.1:8080/api/v1/settings/public 2>/dev/null | grep -Fqs contact_entries; then
+    ok "#12 公开设置返回 contact_entries"
+  else
+    bad "#12 公开设置缺少 contact_entries（前台读不到客服条目）"
+  fi
 
   CC=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS http://127.0.0.1:8080/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST' 2>/dev/null)
   [ "$CC" = "204" ] && ok "#9 CORS 预检 204" || bad "#9 CORS 预检返回 $CC（应为 204）"

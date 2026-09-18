@@ -6625,6 +6625,9 @@
                 </div>
               </div>
 
+              <!-- 客服联系方式条目（魔改 #12） -->
+              <ContactEntriesEditor v-model="form.contact_entries" />
+
               <!-- Doc URL -->
               <div>
                 <label
@@ -8966,6 +8969,7 @@ import type {
 } from "@/api/admin/settings";
 import type {
   AdminGroup,
+  ContactEntry,
   LoginAgreementDocument,
   NotifyEmailEntry,
   Proxy,
@@ -8989,6 +8993,7 @@ import GroupOptionItem from "@/components/common/GroupOptionItem.vue";
 import Toggle from "@/components/common/Toggle.vue";
 import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
+import ContactEntriesEditor from "@/views/admin/settings/ContactEntriesEditor.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
 import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
@@ -9701,6 +9706,8 @@ type SettingsForm = Omit<
   // 系统全局平台限额 map；form 内始终归一化为全 4 平台对象（模板非空绑定依赖此不变量）
   default_platform_quotas: DefaultPlatformQuotasMap;
   account_scheduling_thresholds: ReturnType<typeof normalizeAccountSchedulingThresholdsMap>;
+  // 魔改 #12: 客服联系方式条目列表
+  contact_entries: ContactEntry[];
 };
 
 const schedulingThresholdPlatforms = SCHEDULING_THRESHOLD_PLATFORMS;
@@ -9751,6 +9758,7 @@ const form = reactive<SettingsForm>({
   wechat_group_entry_label: "",
   wechat_contact_entry_label: "",
   contact_section_style: "card",
+  contact_entries: [] as ContactEntry[],
   doc_url: "",
   home_content: "",
   compact_home_enabled: false,
@@ -11026,6 +11034,21 @@ async function loadSettings() {
           open_mode: item.open_mode === "new_tab" ? "new_tab" : "iframe",
         }))
       : [];
+    form.contact_entries = Array.isArray(settings.contact_entries)
+      ? settings.contact_entries.map((item, index) => ({
+          ...item,
+          enabled: item.enabled !== false,
+          icon_type: item.icon_type === "image" ? "image" : "emoji",
+          type:
+            item.type === "qrcode" || item.type === "text" ? item.type : "link",
+          display:
+            item.display === "hover" || item.display === "inline"
+              ? item.display
+              : "modal",
+          open_target: item.open_target === "current_tab" ? "current_tab" : "new_tab",
+          sort_order: index,
+        }))
+      : [];
     registrationEmailSuffixWhitelistTags.value =
       normalizeRegistrationEmailSuffixDomains(
         settings.registration_email_suffix_whitelist,
@@ -11424,6 +11447,7 @@ async function saveSettings() {
       wechat_group_entry_label: form.wechat_group_entry_label,
       wechat_contact_entry_label: form.wechat_contact_entry_label,
       contact_section_style: form.contact_section_style,
+      contact_entries: form.contact_entries,
       doc_url: form.doc_url,
       home_content: form.home_content,
       compact_home_enabled: form.compact_home_enabled,

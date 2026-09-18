@@ -381,6 +381,7 @@ const (
 	SettingKeySiteSubtitle                = "site_subtitle"                 // 网站副标题
 	SettingKeyAPIBaseURL                  = "api_base_url"                  // API端点地址（用于客户端配置和导入）
 	SettingKeyContactInfo                 = "contact_info"                  // 客服联系方式
+	SettingKeyContactEntries              = "contact_entries"               // 客服联系方式列表（JSON 数组，魔改 #12）
 	SettingKeyTelegramGroupURL            = "telegram_group_url"            // Telegram群组链接
 	SettingKeyWeChatGroupQRCode           = "wechat_group_qr_code"          // 微信群二维码图片
 	SettingKeyContactSectionTitle         = "contact_section_title"         // 客服板块标题

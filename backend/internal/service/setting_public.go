@@ -185,6 +185,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeySiteSubtitle,
 		SettingKeyAPIBaseURL,
 		SettingKeyContactInfo,
+		SettingKeyContactEntries,
 		SettingKeyTelegramGroupURL,
 		SettingKeyWeChatGroupQRCode,
 		SettingKeyDocURL,
@@ -339,6 +340,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		WeChatGroupEntryLabel:               settings[SettingKeyWeChatGroupEntryLabel],
 		WeChatContactEntryLabel:             settings[SettingKeyWeChatContactEntryLabel],
 		ContactSectionStyle:                 settings[SettingKeyContactSectionStyle],
+		ContactEntries:                      resolvePublicContactEntries(settings),
 		DocURL:                              settings[SettingKeyDocURL],
 		HomeContent:                         settings[SettingKeyHomeContent],
 		CompactHomeEnabled:                  settings[SettingKeyCompactHomeEnabled] == "true",
@@ -606,6 +608,7 @@ type PublicSettingsInjectionPayload struct {
 	WeChatGroupEntryLabel               string                   `json:"wechat_group_entry_label"`
 	WeChatContactEntryLabel             string                   `json:"wechat_contact_entry_label"`
 	ContactSectionStyle                 string                   `json:"contact_section_style"`
+	ContactEntries                      json.RawMessage          `json:"contact_entries"`
 	DocURL                              string                   `json:"doc_url"`
 	HomeContent                         string                   `json:"home_content"`
 	CompactHomeEnabled                  bool                     `json:"compact_home_enabled"`
@@ -702,6 +705,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ContactInfo:                         settings.ContactInfo,
 		TelegramGroupURL:                    settings.TelegramGroupURL,
 		WeChatGroupQRCode:                   settings.WeChatGroupQRCode,
+		ContactEntries:                      safeRawJSONArray(settings.ContactEntries),
 		DocURL:                              settings.DocURL,
 		HomeContent:                         settings.HomeContent,
 		CompactHomeEnabled:                  settings.CompactHomeEnabled,

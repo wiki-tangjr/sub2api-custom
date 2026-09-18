@@ -161,6 +161,7 @@ type SystemSettings struct {
 	TelegramEntryLabel          string
 	WeChatGroupEntryLabel       string
 	WeChatContactEntryLabel     string
+	ContactEntries              string // JSON array of contact entries (魔改 #12)
 	ContactSectionStyle         string
 	DocURL                      string
 	HomeContent                 string
@@ -367,6 +368,7 @@ type PublicSettings struct {
 	TelegramEntryLabel                  string
 	WeChatGroupEntryLabel               string
 	WeChatContactEntryLabel             string
+	ContactEntries                      string // JSON array of contact entries (魔改 #12)
 	ContactSectionStyle                 string
 	DocURL                              string
 	HomeContent                         string

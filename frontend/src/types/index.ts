@@ -198,6 +198,23 @@ export interface CustomMenuItem {
   sort_order: number
 }
 
+/** 魔改 #12: 后台可自定义的客服联系方式条目 */
+export interface ContactEntry {
+  id: string
+  enabled: boolean
+  label: string
+  icon_type: 'emoji' | 'image'
+  icon: string
+  type: 'link' | 'qrcode' | 'text'
+  url?: string
+  qr_code?: string
+  value?: string
+  description?: string
+  display: 'modal' | 'hover' | 'inline'
+  open_target: 'new_tab' | 'current_tab'
+  sort_order: number
+}
+
 export interface CustomEndpoint {
   name: string
   endpoint: string
@@ -247,6 +264,8 @@ export interface PublicSettings {
   wechat_group_entry_label?: string
   wechat_contact_entry_label?: string
   contact_section_style?: string
+  /** 魔改 #12: 客服联系方式条目列表 */
+  contact_entries?: ContactEntry[]
   doc_url: string
   home_content: string
   compact_home_enabled: boolean

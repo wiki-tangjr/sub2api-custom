@@ -38,13 +38,12 @@
           <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
         </a>
 
-        <!-- Contact Support: copy configured contact info -->
+        <!-- Contact Support: open a contact sheet with all configured entries -->
         <button
-          v-if="contactInfo"
+          v-if="contactEntries.length"
           type="button"
-          :title="contactInfo"
           class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white sm:flex"
-          @click="copyContactInfo"
+          @click="showContactModal = true"
         >
           <Icon name="chat" size="sm" />
           <span class="hidden sm:inline">{{ t('common.contactSupport') }}</span>
@@ -195,45 +194,15 @@
 
               </div>
 
-              <!-- Contact Support (only show if configured) -->
-              <div
-                v-if="contactInfo || telegramGroupUrl || wechatGroupQrCode"
-                class="border-t border-gray-100 px-4 py-3 dark:border-dark-700"
-              >
-                <p class="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                  {{ contactSectionTitle }}
-                </p>
-                <p v-if="contactSectionDescription" class="mb-2 text-xs text-gray-400 dark:text-gray-500">{{ contactSectionDescription }}</p>
-                <div v-if="contactInfo" class="mb-1.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                    </svg>
-                  </span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ wechatContactLabel }}：{{ contactInfo }}</span>
+                <!-- Contact Support (魔改 #12: 后台可自定义条目) -->
+                <div v-if="contactEntries.length" class="border-t border-gray-100 px-4 py-3 dark:border-dark-700">
+                  <ContactEntries
+                    variant="dropdown"
+                    :entries="contactEntries"
+                    :title="contactSectionTitle"
+                    :description="contactSectionDescription"
+                  />
                 </div>
-                <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer"
-                  class="mb-1.5 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30">
-                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.115 5.19l.319 1.913A6.75 6.75 0 008.11 10.36L9.75 12l-.387.775c-.217.433-.132.956.21 1.298l1.348 1.348c.21.21.329.497.329.795v1.089c0 .426.24.815.622 1.006l.153.076c.433.217.956.132 1.298-.21l.723-.723a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.358-1.099l-1.33-1.108c-.251-.21-.582-.299-.905-.245l-1.17.195a1.125 1.125 0 01-.98-.314l-.295-.295a1.125 1.125 0 010-1.59l.295-.295a1.125 1.125 0 01.98-.314l1.17.195c.323.054.654-.035.905-.245l1.33-1.108a1.087 1.087 0 00.358-1.098 8.7 8.7 0 00-2.288-4.042l-.723-.724a1.125 1.125 0 00-1.298-.21l-.153.076a1.125 1.125 0 00-.622 1.006v1.089c0 .298.119.585.329.795l.295.295a1.125 1.125 0 010 1.59l-.295.295a1.125 1.125 0 01-.98.315l-1.17-.195a1.125 1.125 0 00-.905.244l-.295.295a1.125 1.125 0 000 1.59l.295.295c.21.21.329.497.329.795v.001c0 .426.24.816.622 1.006l.153.077a1.125 1.125 0 001.298-.21l.723-.723a8.7 8.7 0 012.288-4.042l.723-.723a1.125 1.125 0 011.298-.21l.153.076c.433.217.956.133 1.298-.21l.723-.724a8.7 8.7 0 002.288-4.042 1.087 1.087 0 00-.357-1.098l-1.33-1.108c-.252-.21-.583-.299-.906-.245l-1.17.195a1.125 1.125 0 01-.98-.314M6.115 5.19h.319M9.75 12l-.5-.5" />
-                    </svg>
-                  </span>
-                  {{ telegramLabel }}
-                </a>
-                <button v-if="wechatGroupQrCode" type="button"
-                  class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30"
-                  @click="wechatQrOpen = true">
-                  <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 15.75h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75zM16.5 7.5h.75v.75h-.75v-.75z" />
-                    </svg>
-                  </span>
-                  {{ wechatGroupLabel }}
-                </button>
-              </div>
-
               <div v-if="showOnboardingButton" class="border-t border-gray-100 py-1 dark:border-dark-700">
                 <button @click="handleReplayGuide" class="dropdown-item w-full">
                   <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
@@ -272,8 +241,16 @@
       </div>
     </div>
   </header>
-  <BaseDialog :show="wechatQrOpen" :title="t('common.wechatGroupQrCode')" width="narrow" @close="wechatQrOpen = false">
-    <img :src="wechatGroupQrCode" :alt="t('common.wechatGroupQrCode')" class="mx-auto max-h-[min(70vh,480px)] w-auto max-w-full object-contain" />
+  <BaseDialog
+    :show="showContactModal"
+    :title="contactSectionTitle"
+    width="normal"
+    @close="showContactModal = false"
+  >
+    <p v-if="contactSectionDescription" class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+      {{ contactSectionDescription }}
+    </p>
+    <ContactEntries variant="list" force-inline :entries="contactEntries" />
   </BaseDialog>
 </template>
 
@@ -288,10 +265,12 @@ import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMi
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
 import Icon from '@/components/icons/Icon.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import ContactEntries from '@/components/common/ContactEntries.vue'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveRouteMetaKeys } from '@/router/title'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { resolveContactEntries } from '@/utils/contactEntries'
 
 const router = useRouter()
 const route = useRoute()
@@ -304,15 +283,17 @@ const onboardingStore = useOnboardingStore()
 const user = computed(() => authStore.user)
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
-const contactInfo = computed(() => appStore.contactInfo)
-const telegramGroupUrl = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.telegram_group_url || ''))
-const wechatGroupQrCode = computed(() => sanitizeUrl(appStore.cachedPublicSettings?.wechat_group_qr_code || '', { allowDataUrl: true }))
-const contactSectionTitle = computed(() => appStore.cachedPublicSettings?.contact_section_title || t('common.contactSectionDefaultTitle'))
-const contactSectionDescription = computed(() => appStore.cachedPublicSettings?.contact_section_description || '')
-const telegramLabel = computed(() => appStore.cachedPublicSettings?.telegram_entry_label || t('common.telegramGroup'))
-const wechatGroupLabel = computed(() => appStore.cachedPublicSettings?.wechat_group_entry_label || t('common.wechatGroup'))
-const wechatContactLabel = computed(() => appStore.cachedPublicSettings?.wechat_contact_entry_label || t('common.wechatContactDefault'))
-const wechatQrOpen = ref(false)
+const contactSectionTitle = computed(
+  () => appStore.cachedPublicSettings?.contact_section_title || t('common.contactSectionDefaultTitle'),
+)
+const contactSectionDescription = computed(
+  () => appStore.cachedPublicSettings?.contact_section_description || '',
+)
+// 魔改 #12: 后台可自定义的客服联系方式条目（旧配置自动兼容）
+const contactEntries = computed(() =>
+  resolveContactEntries(appStore.cachedPublicSettings, t, appStore.contactInfo),
+)
+const showContactModal = ref(false)
 const docUrl = computed(() => sanitizeUrl(appStore.docUrl))
 const modelPlazaEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.modelPlaza))
 const avatarUrl = computed(() => user.value?.avatar_url?.trim() || '')
@@ -390,30 +371,6 @@ function toggleDropdown() {
 
 function closeDropdown() {
   dropdownOpen.value = false
-}
-
-async function copyContactInfo() {
-  const value = contactInfo.value.trim()
-  if (!value) return
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(value)
-    } else {
-      const textarea = document.createElement('textarea')
-      textarea.value = value
-      textarea.setAttribute('readonly', '')
-      textarea.style.position = 'fixed'
-      textarea.style.opacity = '0'
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-    }
-    appStore.showSuccess(t('common.copiedToClipboard'))
-  } catch (error) {
-    console.error('Copy contact info failed:', error)
-    appStore.showError(t('common.copyFailed'))
-  }
 }
 
 async function handleLogout() {

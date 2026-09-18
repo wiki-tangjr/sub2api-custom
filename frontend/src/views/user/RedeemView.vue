@@ -184,11 +184,13 @@
                 <li>{{ t('redeem.codeRule2') }}</li>
                 <li>
                   {{ t('redeem.codeRule3') }}
-                  <span v-if="contactInfo" class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200">
-                    {{ wechatContactLabel }}：{{ contactInfo }}
-                  </span>
-                  <a v-if="telegramGroupUrl" :href="telegramGroupUrl" target="_blank" rel="noopener noreferrer" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300">{{ telegramLabel }}</a>
-                  <button v-if="wechatGroupQrCode" type="button" class="ml-1.5 text-xs font-medium text-primary-700 underline dark:text-primary-300" @click="wechatQrOpen = true">{{ wechatGroupLabel }}</button>
+                  <ContactEntries
+                    v-if="contactEntries.length"
+                    class="ml-1.5"
+                    variant="list"
+                    force-inline
+                    :entries="contactEntries"
+                  />
                 </li>
                 <li>{{ t('redeem.codeRule4') }}</li>
               </ul>
@@ -197,9 +199,6 @@
         </div>
       </div>
 
-      <BaseDialog :show="wechatQrOpen" :title="t('common.wechatGroupQrCode')" width="narrow" @close="wechatQrOpen = false">
-        <img :src="wechatGroupQrCode" :alt="t('common.wechatGroupQrCode')" class="mx-auto max-h-[min(70vh,480px)] w-auto max-w-full object-contain" />
-      </BaseDialog>
 
       <!-- Recent Activity -->
       <div class="card">
@@ -353,9 +352,10 @@ import { useSubscriptionStore } from '@/stores/subscriptions'
 import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
-import BaseDialog from '@/components/common/BaseDialog.vue'
+import ContactEntries from '@/components/common/ContactEntries.vue'
 import { formatDateTime } from '@/utils/format'
-import { sanitizeUrl } from '@/utils/url'
+import { resolveContactEntries } from '@/utils/contactEntries'
+import type { ContactEntry } from '@/types'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -380,13 +380,7 @@ const errorMessage = ref('')
 // History data
 const history = ref<RedeemHistoryItem[]>([])
 const loadingHistory = ref(false)
-const contactInfo = ref('')
-const telegramGroupUrl = ref('')
-const wechatGroupQrCode = ref('')
-const telegramLabel = ref('')
-const wechatGroupLabel = ref('')
-const wechatContactLabel = ref('')
-const wechatQrOpen = ref(false)
+const contactEntries = ref<ContactEntry[]>([])
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
@@ -496,12 +490,7 @@ onMounted(async () => {
   fetchHistory()
   try {
     const settings = await authAPI.getPublicSettings()
-    contactInfo.value = settings.contact_info || ''
-    telegramGroupUrl.value = sanitizeUrl(settings.telegram_group_url || '')
-    wechatGroupQrCode.value = sanitizeUrl(settings.wechat_group_qr_code || '', { allowDataUrl: true })
-    telegramLabel.value = settings.telegram_entry_label || t('common.telegramGroup')
-    wechatGroupLabel.value = settings.wechat_group_entry_label || t('common.wechatGroup')
-    wechatContactLabel.value = settings.wechat_contact_entry_label || t('common.wechatContactDefault')
+    contactEntries.value = resolveContactEntries(settings, t)
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }

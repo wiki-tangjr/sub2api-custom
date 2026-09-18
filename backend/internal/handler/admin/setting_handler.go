@@ -259,6 +259,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		WeChatGroupEntryLabel:                                  settings.WeChatGroupEntryLabel,
 		WeChatContactEntryLabel:                                settings.WeChatContactEntryLabel,
 		ContactSectionStyle:                                    settings.ContactSectionStyle,
+		ContactEntries:                                         dto.ParseContactEntries(settings.ContactEntries),
 		DocURL:                                                 settings.DocURL,
 		HomeContent:                                            settings.HomeContent,
 		CompactHomeEnabled:                                     settings.CompactHomeEnabled,

@@ -349,6 +349,7 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	updates[SettingKeyWeChatGroupEntryLabel] = strings.TrimSpace(settings.WeChatGroupEntryLabel)
 	updates[SettingKeyWeChatContactEntryLabel] = strings.TrimSpace(settings.WeChatContactEntryLabel)
 	updates[SettingKeyContactSectionStyle] = strings.TrimSpace(settings.ContactSectionStyle)
+	updates[SettingKeyContactEntries] = normalizeContactEntriesJSON(settings.ContactEntries)
 	updates[SettingKeyDocURL] = settings.DocURL
 	updates[SettingKeyHomeContent] = settings.HomeContent
 	updates[SettingKeyCompactHomeEnabled] = strconv.FormatBool(settings.CompactHomeEnabled)

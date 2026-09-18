@@ -352,6 +352,7 @@ export const useAppStore = defineStore('app', () => {
         wechat_group_entry_label: '',
         wechat_contact_entry_label: '',
         contact_section_style: 'card',
+        contact_entries: [],
         doc_url: docUrl.value,
         home_content: '',
         compact_home_enabled: false,

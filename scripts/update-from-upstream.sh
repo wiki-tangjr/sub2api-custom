@@ -49,7 +49,7 @@ if [ "$VERIFY" = "1" ]; then
   log "node $(node -v) / pnpm $(pnpm --version) / $(go version | awk '{print $3}')"
 fi
 
-# 0.5 合并前基线体检：确认「动手前」13 条魔改是完好的
+# 0.5 合并前基线体检：确认「动手前」全部魔改是完好的
 #     这样合并后一旦变红，就能确定是这次合并弄坏的，定位零成本。
 if [ -x scripts/customizations-verify.sh ]; then
   log "合并前基线体检（确认起点是干净的）"
@@ -108,7 +108,7 @@ fi
 
 # 4.5 魔改完整性闸门（最重要：魔改丢了一条都不许继续）
 if [ -x scripts/customizations-verify.sh ]; then
-  log "魔改完整性体检（13 条，硬闸门）"
+  log "魔改完整性体检（硬闸门，逐条核对 CUSTOMIZATIONS.md）"
   if ! ./scripts/customizations-verify.sh; then
     warn "魔改体检未通过！上面标记 XX 的功能已被官方改动覆盖。"
     echo "   1) 对照 CUSTOMIZATIONS.md 逐条恢复被覆盖的代码"

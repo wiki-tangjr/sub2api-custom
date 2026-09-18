@@ -15,7 +15,7 @@ type CustomMenuItem struct {
 	URL            string `json:"url"`
 	PageSlug       string `json:"page_slug,omitempty"`
 	OpenMode       string `json:"open_mode,omitempty"` // "iframe" or "new_tab"
-	Visibility     string `json:"visibility"` // "user" or "admin"
+	Visibility     string `json:"visibility"`          // "user" or "admin"
 	SortOrder      int    `json:"sort_order"`
 	HideOpenButton bool   `json:"hide_open_button,omitempty"`
 }
@@ -171,6 +171,7 @@ type SystemSettings struct {
 	PurchaseSubscriptionURL     string           `json:"purchase_subscription_url"`
 	TableDefaultPageSize        int              `json:"table_default_page_size"`
 	TablePageSizeOptions        []int            `json:"table_page_size_options"`
+	ContactEntries              []ContactEntry   `json:"contact_entries"`
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
 
@@ -411,6 +412,7 @@ type PublicSettings struct {
 	PurchaseSubscriptionURL             string                   `json:"purchase_subscription_url"`
 	TableDefaultPageSize                int                      `json:"table_default_page_size"`
 	TablePageSizeOptions                []int                    `json:"table_page_size_options"`
+	ContactEntries                      []ContactEntry           `json:"contact_entries"`
 	CustomMenuItems                     []CustomMenuItem         `json:"custom_menu_items"`
 	CustomEndpoints                     []CustomEndpoint         `json:"custom_endpoints"`
 	DingTalkOAuthEnabled                bool                     `json:"dingtalk_oauth_enabled"`

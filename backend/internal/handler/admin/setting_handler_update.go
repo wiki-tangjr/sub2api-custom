@@ -166,6 +166,7 @@ type UpdateSettingsRequest struct {
 	WeChatGroupEntryLabel       string                `json:"wechat_group_entry_label"`
 	WeChatContactEntryLabel     string                `json:"wechat_contact_entry_label"`
 	ContactSectionStyle         string                `json:"contact_section_style"`
+	ContactEntries              *[]dto.ContactEntry   `json:"contact_entries"`
 	DocURL                      string                `json:"doc_url"`
 	HomeContent                 string                `json:"home_content"`
 	CompactHomeEnabled          bool                  `json:"compact_home_enabled"`
@@ -1285,6 +1286,12 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 	)
 
 	customMenuJSON := previousSettings.CustomMenuItems
+	// 客服联系方式列表校验（魔改 #12）
+	contactEntriesJSON, entriesOK := validateContactEntries(req.ContactEntries, previousSettings.ContactEntries, c)
+	if !entriesOK {
+		return
+	}
+
 	if req.CustomMenuItems != nil {
 		items := *req.CustomMenuItems
 		if len(items) > maxCustomMenuItems {
@@ -1653,6 +1660,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		WeChatGroupEntryLabel:                  req.WeChatGroupEntryLabel,
 		WeChatContactEntryLabel:                req.WeChatContactEntryLabel,
 		ContactSectionStyle:                    req.ContactSectionStyle,
+		ContactEntries:                         contactEntriesJSON,
 		DocURL:                                 req.DocURL,
 		HomeContent:                            req.HomeContent,
 		CompactHomeEnabled:                     req.CompactHomeEnabled,
@@ -2301,6 +2309,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		WeChatGroupEntryLabel:                                  updatedSettings.WeChatGroupEntryLabel,
 		WeChatContactEntryLabel:                                updatedSettings.WeChatContactEntryLabel,
 		ContactSectionStyle:                                    updatedSettings.ContactSectionStyle,
+		ContactEntries:                                         dto.ParseContactEntries(updatedSettings.ContactEntries),
 		DocURL:                                                 updatedSettings.DocURL,
 		HomeContent:                                            updatedSettings.HomeContent,
 		CompactHomeEnabled:                                     updatedSettings.CompactHomeEnabled,
