@@ -148,6 +148,14 @@ g "设置键 contact_entries" contact_entries        backend/internal/service/do
 f "条目解析服务"           backend/internal/service/contact_entries.go
 g "条目解析/归一化"        decodeContactEntriesJSON backend/internal/service/contact_entries.go
 g "旧字段降级兼容"         resolveContactEntries backend/internal/service/contact_entries.go
+g "公开白名单含板块标题"   'SettingKeyContactSectionTitle,'           backend/internal/service/setting_public.go
+g "公开白名单含板块描述"   'SettingKeyContactSectionDescription,'     backend/internal/service/setting_public.go
+g "公开白名单含板块样式"   'SettingKeyContactSectionStyle,'           backend/internal/service/setting_public.go
+g "公开白名单含 TG 文案"     'SettingKeyTelegramEntryLabel,'            backend/internal/service/setting_public.go
+g "公开白名单含微信群文案"   'SettingKeyWeChatGroupEntryLabel,'         backend/internal/service/setting_public.go
+g "公开白名单含微信客服文案" 'SettingKeyWeChatContactEntryLabel,'       backend/internal/service/setting_public.go
+g "SSR 注入含板块标题"     'ContactSectionTitle:                 settings.ContactSectionTitle' backend/internal/service/setting_public.go
+g "SSR 注入含板块样式"     'ContactSectionStyle:                 settings.ContactSectionStyle' backend/internal/service/setting_public.go
 g "公开只输出启用项"       resolvePublicContactEntries backend/internal/service/setting_public.go
 g "管理端写入校验"         validateContactEntries backend/internal/handler/admin/setting_handler_update.go
 g "条目 DTO"              ContactEntry          backend/internal/handler/dto/contact_entries.go

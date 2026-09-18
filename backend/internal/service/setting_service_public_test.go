@@ -309,3 +309,48 @@ func TestSettingService_GetPublicSettings_PaymentBalanceDisabledStrictTrue(t *te
 		})
 	}
 }
+
+// 魔改 #12: 客服板块标题/描述/样式与入口文案必须同时出现在公开设置白名单与 SSR 注入组装块里。
+// 否则后台设置了这两类字段，前台读到的一直是空字符串，只能靠 i18n 兜底，
+// 管理员改了标题/描述/样式完全不生效（曾于 2026-09-19 发现该缺陷）。
+func TestSettingService_GetPublicSettings_ExposesContactSectionFields(t *testing.T) {
+	const (
+		wantTitle       = "联系客服-白名单哨兵"
+		wantDescription = "描述-白名单哨兵"
+		wantStyle       = "list"
+		wantTgLabel     = "TG-文案哨兵"
+		wantWxGroup     = "微信群-文案哨兵"
+		wantWxContact   = "微信客服-文案哨兵"
+	)
+	repo := &settingPublicRepoStub{
+		values: map[string]string{
+			SettingKeyContactSectionTitle:       wantTitle,
+			SettingKeyContactSectionDescription: wantDescription,
+			SettingKeyContactSectionStyle:       wantStyle,
+			SettingKeyTelegramEntryLabel:        wantTgLabel,
+			SettingKeyWeChatGroupEntryLabel:     wantWxGroup,
+			SettingKeyWeChatContactEntryLabel:   wantWxContact,
+		},
+	}
+	svc := NewSettingService(repo, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, wantTitle, settings.ContactSectionTitle)
+	require.Equal(t, wantDescription, settings.ContactSectionDescription)
+	require.Equal(t, wantStyle, settings.ContactSectionStyle)
+	require.Equal(t, wantTgLabel, settings.TelegramEntryLabel)
+	require.Equal(t, wantWxGroup, settings.WeChatGroupEntryLabel)
+	require.Equal(t, wantWxContact, settings.WeChatContactEntryLabel)
+
+	raw, err := svc.GetPublicSettingsForInjection(context.Background())
+	require.NoError(t, err)
+	payload, ok := raw.(*PublicSettingsInjectionPayload)
+	require.True(t, ok)
+	require.Equal(t, wantTitle, payload.ContactSectionTitle, "SSR 注入缺 ContactSectionTitle")
+	require.Equal(t, wantDescription, payload.ContactSectionDescription, "SSR 注入缺 ContactSectionDescription")
+	require.Equal(t, wantStyle, payload.ContactSectionStyle, "SSR 注入缺 ContactSectionStyle")
+	require.Equal(t, wantTgLabel, payload.TelegramEntryLabel, "SSR 注入缺 TelegramEntryLabel")
+	require.Equal(t, wantWxGroup, payload.WeChatGroupEntryLabel, "SSR 注入缺 WeChatGroupEntryLabel")
+	require.Equal(t, wantWxContact, payload.WeChatContactEntryLabel, "SSR 注入缺 WeChatContactEntryLabel")
+}
