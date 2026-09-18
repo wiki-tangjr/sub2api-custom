@@ -140,6 +140,9 @@ git push "$BACKUP_REMOTE" "$WORK_BRANCH" || warn "推送备份失败（可稍后
 log "部署前最后确认（含线上状态与二进制内容）："
 ./scripts/customizations-verify.sh --live || die "部署前体检未通过，请勿部署。"
 
-log "完成。部署步骤："
-echo "   备份 /opt/sub2api/sub2api -> 替换为 /tmp/sub2api-update-$TS -> systemctl restart sub2api.service -> curl /health"
+log "完成。部署步骤（零中断，禁止直接 systemctl restart —— 会掐断在途 AI 流式调用）："
+echo "   bash scripts/build-and-stage.sh                 # 构建 + 8081 灰度体检（线上无感知）"
+echo "   bash scripts/zero-downtime-deploy.sh --dry-run  # 可选：只体检并打印计划，不改任何东西"
+echo "   bash scripts/zero-downtime-deploy.sh            # 蓝绿切换 + 连接排空，零中断"
 echo "   部署后务必再跑一次： ./scripts/customizations-verify.sh --live"
+echo "   详见 CUSTOMIZATIONS.md 第 19 节「零中断更新工具链」。"

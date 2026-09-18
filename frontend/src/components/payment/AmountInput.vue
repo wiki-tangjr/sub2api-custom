@@ -5,22 +5,45 @@
       <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
         {{ t('payment.quickAmounts') }}
       </label>
-      <div class="grid grid-cols-3 gap-2">
+      <!-- Customization (#16): when the admin configures tiered discounts, each quick
+           button shows the credited amount, the discount and, if relevant, the amount
+           actually charged, mirroring the common "more credit, more discount" layout.
+           With no tiers configured this renders exactly the historic plain buttons. -->
+      <div :class="showTierDetails ? 'grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid grid-cols-3 gap-2'">
         <button
           v-for="amt in filteredAmounts"
           :key="amt"
           type="button"
           :class="[
-            'rounded-lg border-2 px-4 py-3 text-center font-medium transition-colors',
+            'rounded-lg border-2 text-center transition-colors',
+            showTierDetails ? 'px-3 py-2.5' : 'px-4 py-3 font-medium',
             modelValue === amt
               ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/40 dark:text-primary-300'
               : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-dark-500',
           ]"
           @click="selectAmount(amt)"
         >
-          {{ amt }}
+          <template v-if="showTierDetails">
+            <span class="block text-xs text-gray-400 dark:text-dark-500">{{ t('payment.creditedAmount') }}</span>
+            <span class="mt-0.5 block text-base font-semibold">
+              {{ formatAmount(creditedFor(amt)) }}
+            </span>
+            <span
+              v-if="tierPercentFor(amt) > 0"
+              class="mt-0.5 block text-xs font-medium text-green-600 dark:text-green-400"
+            >
+              {{ t('payment.discount') }} {{ trimPercent(tierPercentFor(amt)) }}%
+            </span>
+          </template>
+          <template v-else>{{ amt }}</template>
         </button>
       </div>
+      <p
+        v-if="showTierDetails && hasAnyDiscount"
+        class="mt-1.5 text-xs text-gray-400 dark:text-dark-500"
+      >
+        {{ t('payment.tierDiscountHint') }}
+      </p>
     </div>
 
     <!-- Custom Amount Input -->
@@ -48,16 +71,27 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatPaymentAmount } from '@/components/payment/currency'
+import type { RechargeDiscountTier } from '@/types/payment'
 
 const props = withDefaults(defineProps<{
   amounts?: number[]
   modelValue: number | null
   min?: number
   max?: number
+  /** Customization (#16): admin-configured tiered discount rules. */
+  discountTiers?: RechargeDiscountTier[]
+  /** Customization (#16): credit multiplier applied to the chosen amount. */
+  multiplier?: number
+  /** Customization (#16): currency used to render the credited amount. */
+  currency?: string
 }>(), {
   amounts: () => [10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
   min: 0,
   max: 0,
+  discountTiers: () => [],
+  multiplier: 1,
+  currency: 'CNY',
 })
 
 const emit = defineEmits<{
@@ -81,6 +115,41 @@ const placeholderText = computed(() => {
 })
 
 const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/
+
+// Customization (#16): tier metadata for the quick-amount cards. Everything below is
+// inert until an admin saves discount tiers in the back office.
+const tiers = computed<RechargeDiscountTier[]>(() =>
+  (props.discountTiers || [])
+    .filter((tier) => Number.isFinite(tier?.threshold) && Number.isFinite(tier?.percent))
+    .filter((tier) => tier.threshold > 0 && tier.percent > 0 && tier.percent < 100)
+    .slice()
+    .sort((a, b) => a.threshold - b.threshold)
+)
+
+const showTierDetails = computed(() => tiers.value.length > 0)
+const hasAnyDiscount = computed(() => tiers.value.some((tier) => tier.percent > 0))
+
+function tierPercentFor(amount: number): number {
+  let best = 0
+  for (const tier of tiers.value) {
+    if (tier.threshold > amount) break
+    best = tier.percent
+  }
+  return best
+}
+
+function creditedFor(amount: number): number {
+  const multiplier = Number.isFinite(props.multiplier) && props.multiplier > 0 ? props.multiplier : 1
+  return Math.round(amount * multiplier * 100) / 100
+}
+
+function formatAmount(value: number): string {
+  return formatPaymentAmount(value, props.currency)
+}
+
+function trimPercent(value: number): string {
+  return String(Math.round(value * 10000) / 10000)
+}
 
 function selectAmount(amt: number) {
   customText.value = String(amt)

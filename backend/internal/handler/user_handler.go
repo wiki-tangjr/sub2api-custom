@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -231,6 +232,83 @@ func (h *UserHandler) TransferAffiliateQuota(c *gin.Context) {
 		"transferred_quota": transferred,
 		"balance":           balance,
 	})
+}
+
+// GetAffiliateAgents 一级代理查看自己邀请来的用户列表（含二级代理与返佣状态）。
+// GET /api/v1/user/aff/agents
+func (h *UserHandler) GetAffiliateAgents(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	items, err := h.affiliateService.GetAgentInvitees(c.Request.Context(), subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"invitees": items})
+}
+
+type SetAffiliateSubAgentRequest struct {
+	UserID      int64    `json:"user_id" binding:"required"`
+	Level       int      `json:"level"`
+	RatePercent *float64 `json:"rate_percent"`
+	ClearRate   bool     `json:"clear_rate"`
+}
+
+// SetAffiliateSubAgent 一级代理把自己邀请来的用户设置/取消为二级代理。
+// POST /api/v1/user/aff/agents/set
+func (h *UserHandler) SetAffiliateSubAgent(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	var req SetAffiliateSubAgentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	rate := req.RatePercent
+	if req.ClearRate {
+		rate = nil
+	}
+	updated, err := h.affiliateService.SetSubAgent(c.Request.Context(), subject.UserID, req.UserID, req.Level, rate)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"user_id": updated.UserID, "agent_level": updated.AgentLevel})
+}
+
+type SetInviteeAffiliateHiddenRequest struct {
+	Hide bool `json:"hide"`
+}
+
+// SetInviteeAffiliateHidden 一级代理单独控制某个自己邀请来的账号是否可用邀请返利。
+// PUT /api/v1/user/aff/invitees/:user_id/hide
+func (h *UserHandler) SetInviteeAffiliateHidden(c *gin.Context) {
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
+	userID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil || userID <= 0 {
+		response.BadRequest(c, "Invalid user_id")
+		return
+	}
+	var req SetInviteeAffiliateHiddenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if err := h.affiliateService.SetInviteeAffiliateHidden(c.Request.Context(), subject.UserID, userID, req.Hide); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"user_id": userID, "hide": req.Hide})
 }
 
 type StartIdentityBindingRequest struct {

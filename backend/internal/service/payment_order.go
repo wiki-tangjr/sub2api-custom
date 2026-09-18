@@ -62,6 +62,12 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 		orderAmount = calculateCreditedBalance(req.Amount, cfg.BalanceRechargeMultiplier)
 	}
 	feeRate := cfg.RechargeFeeRate
+	// Customization (#16): 充值阶梯优惠只作用于余额充值订单的"本次应付"，
+	// 到账额度（orderAmount）保持按倍率计算，不影响既有返利基数与账务语义。
+	rechargeDiscountPercent := 0.0
+	if req.OrderType == payment.OrderTypeBalance {
+		rechargeDiscountPercent = resolveRechargeDiscountPercent(limitAmount, cfg.RechargeDiscountTiers)
+	}
 	methodCurrency := payment.DefaultPaymentCurrency
 	if s.configService != nil {
 		methodCurrency, err = s.configService.ValidateMethodCurrencyConsistency(ctx, req.PaymentType)
@@ -69,7 +75,7 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 			return nil, err
 		}
 	}
-	payAmountStr, payAmount, err := calculateCreateOrderPayAmountForOrderType(limitAmount, feeRate, methodCurrency, req.OrderType, cfg.SubscriptionUSDToCNYRate)
+	payAmountStr, payAmount, err := calculateCreateOrderPayAmountForOrderTypeWithDiscount(limitAmount, feeRate, methodCurrency, req.OrderType, cfg.SubscriptionUSDToCNYRate, rechargeDiscountPercent)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +91,7 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 		selectedCurrency = paymentProviderConfigCurrency(sel.ProviderKey, sel.Config)
 	}
 	if selectedCurrency != methodCurrency {
-		payAmountStr, payAmount, err = calculateCreateOrderPayAmountForOrderType(limitAmount, feeRate, selectedCurrency, req.OrderType, cfg.SubscriptionUSDToCNYRate)
+		payAmountStr, payAmount, err = calculateCreateOrderPayAmountForOrderTypeWithDiscount(limitAmount, feeRate, selectedCurrency, req.OrderType, cfg.SubscriptionUSDToCNYRate, rechargeDiscountPercent)
 		if err != nil {
 			return nil, err
 		}
@@ -644,9 +650,18 @@ func calculateCreateOrderPayAmount(limitAmount, feeRate float64, currency string
 }
 
 func calculateCreateOrderPayAmountForOrderType(limitAmount, feeRate float64, currency, orderType string, usdToCnyRate float64) (string, float64, error) {
+	return calculateCreateOrderPayAmountForOrderTypeWithDiscount(limitAmount, feeRate, currency, orderType, usdToCnyRate, 0)
+}
+
+// calculateCreateOrderPayAmountForOrderTypeWithDiscount 在既有计算之上支持充值阶梯优惠。
+// Customization (#16): discountPercent 为 0 时与历史行为完全一致；优惠先作用于
+// 充值本金，再叠加既有手续费，最终向上取整到币种最小支付单位。
+func calculateCreateOrderPayAmountForOrderTypeWithDiscount(limitAmount, feeRate float64, currency, orderType string, usdToCnyRate float64, discountPercent float64) (string, float64, error) {
 	paymentAmount := limitAmount
 	if orderType == payment.OrderTypeSubscription {
 		paymentAmount = calculateSubscriptionGatewayBaseAmount(limitAmount, usdToCnyRate, currency)
+	} else {
+		paymentAmount = applyRechargeDiscount(paymentAmount, discountPercent, currency)
 	}
 	return calculateCreateOrderPayAmount(paymentAmount, feeRate, currency)
 }

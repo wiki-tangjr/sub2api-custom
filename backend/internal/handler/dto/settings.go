@@ -291,6 +291,13 @@ type SystemSettings struct {
 	PaymentProductNameSuffix         string   `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              string   `json:"payment_help_image_url"`
 	PaymentHelpText                  string   `json:"payment_help_text"`
+	// Customization (#15): page notices and subscription grid density.
+	PaymentRechargeNotice          string `json:"payment_recharge_notice"`
+	PaymentSubscriptionNotice      string `json:"payment_subscription_notice"`
+	PaymentSubscriptionPlansPerRow int    `json:"payment_subscription_plans_per_row"`
+	// Customization (#16): quick recharge buttons and tiered recharge discount.
+	PaymentRechargeQuickAmounts  string `json:"payment_recharge_quick_amounts"`
+	PaymentRechargeDiscountTiers string `json:"payment_recharge_discount_tiers"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`

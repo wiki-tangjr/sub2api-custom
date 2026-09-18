@@ -49,12 +49,21 @@
               <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
             </div>
             <template v-else>
+            <div v-if="checkout.recharge_notice" class="card border border-primary-100 bg-primary-50/60 p-4 dark:border-dark-700 dark:bg-dark-800">
+              <div class="flex items-start gap-2">
+                <Icon name="bell" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
+                <div class="markdown-body min-w-0 flex-1 overflow-x-auto break-words text-sm text-gray-700 dark:text-gray-200" v-html="renderedRechargeNotice"></div>
+              </div>
+            </div>
             <div class="card p-6">
               <AmountInput
                 v-model="amount"
-                :amounts="[10, 20, 50, 100, 200, 500, 1000, 2000, 5000]"
+                :amounts="quickAmounts"
                 :min="globalMinAmount"
                 :max="globalMaxAmount"
+                :discount-tiers="checkout.recharge_discount_tiers || []"
+                :multiplier="balanceRechargeMultiplier"
+                :currency="selectedCurrency"
               />
               <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
             </div>
@@ -75,11 +84,21 @@
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.fee') }} ({{ feeRate }}%)</span>
                   <span class="text-gray-900 dark:text-white">{{ formatSelectedPaymentAmount(feeAmount) }}</span>
                 </div>
+                <!-- Customization (#16): tiered discount line, only rendered when a tier is hit. -->
+                <div v-if="rechargeDiscountPercent > 0" class="flex justify-between">
+                  <span class="text-gray-500 dark:text-gray-400">{{ t('payment.discount') }} ({{ trimPercent(rechargeDiscountPercent) }}%)</span>
+                  <span class="font-medium text-green-600 dark:text-green-400">-{{ formatSelectedPaymentAmount(rechargeDiscountAmount) }}</span>
+                </div>
                 <div v-if="feeRate > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
                   <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('payment.actualPay') }}</span>
                   <span class="text-lg font-bold text-primary-600 dark:text-primary-400">{{ formatSelectedPaymentAmount(totalAmount) }}</span>
                 </div>
-                <div v-if="balanceRechargeMultiplier !== 1" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': feeRate <= 0 }">
+                <!-- Customization (#16): with a discount but no fee the payable total still needs a row. -->
+                <div v-else-if="rechargeDiscountPercent > 0" class="flex justify-between border-t border-gray-200 pt-2 dark:border-dark-600">
+                  <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('payment.actualPay') }}</span>
+                  <span class="text-lg font-bold text-primary-600 dark:text-primary-400">{{ formatSelectedPaymentAmount(totalAmount) }}</span>
+                </div>
+                <div v-if="balanceRechargeMultiplier !== 1" class="flex justify-between" :class="{ 'border-t border-gray-200 pt-2 dark:border-dark-600': feeRate <= 0 && rechargeDiscountPercent <= 0 }">
                   <span class="text-gray-500 dark:text-gray-400">{{ t('payment.creditedBalance') }}</span>
                   <span class="text-gray-900 dark:text-white">${{ creditedAmount.toFixed(2) }}</span>
                 </div>
@@ -187,6 +206,12 @@
             </template>
             <!-- Plan list -->
             <template v-else>
+              <div v-if="checkout.subscription_notice" class="card border border-primary-100 bg-primary-50/60 p-4 dark:border-dark-700 dark:bg-dark-800">
+                <div class="flex items-start gap-2">
+                  <Icon name="bell" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
+                  <div class="markdown-body min-w-0 flex-1 overflow-x-auto break-words text-sm text-gray-700 dark:text-gray-200" v-html="renderedSubscriptionNotice"></div>
+                </div>
+              </div>
               <div v-if="checkout.plans.length === 0" class="card py-16 text-center">
                 <Icon name="gift" size="xl" class="mx-auto mb-3 text-gray-300 dark:text-dark-600" />
                 <p class="text-gray-500 dark:text-gray-400">{{ t('payment.noPlans') }}</p>
@@ -275,7 +300,7 @@ import { paymentAPI } from '@/api/payment'
 import { extractApiErrorMessage, extractI18nErrorMessage } from '@/utils/apiError'
 import { isMobileDevice } from '@/utils/device'
 import { hasPeakRate, formatPeakRateWindow, serverTimezoneLabel, type PeakRateFields } from '@/utils/peak-rate'
-import type { SubscriptionPlan, CheckoutInfoResponse, CreateOrderResult, OrderType } from '@/types/payment'
+import type { SubscriptionPlan, CheckoutInfoResponse, CreateOrderResult, OrderType, RechargeDiscountTier } from '@/types/payment'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import AmountInput from '@/components/payment/AmountInput.vue'
 import PaymentMethodSelector from '@/components/payment/PaymentMethodSelector.vue'
@@ -511,11 +536,20 @@ function onPaymentSettled() {
 const checkout = ref<CheckoutInfoResponse>({
   methods: {}, global_min: 0, global_max: 0,
   plans: [], balance_disabled: false, balance_recharge_multiplier: 1, subscription_usd_to_cny_rate: 0, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
+  recharge_notice: '', subscription_notice: '', subscription_plans_per_row: 3,
+  recharge_quick_amounts: [], recharge_discount_tiers: [],
 })
 
 const renderedHelpText = computed(() => DOMPurify.sanitize(
   marked.parse(checkout.value.help_text || '', { async: false, gfm: true, breaks: false }),
 ))
+
+// Customization (#15): optional admin-authored announcements for the top-up and subscription tabs.
+function renderMarkdown(source: string) {
+  return DOMPurify.sanitize(marked.parse(source || '', { async: false, gfm: true, breaks: true }))
+}
+const renderedRechargeNotice = computed(() => renderMarkdown(checkout.value.recharge_notice || ''))
+const renderedSubscriptionNotice = computed(() => renderMarkdown(checkout.value.subscription_notice || ''))
 
 // 订阅功能开关（public settings 的 subscription_enabled，opt-out）。关闭后购买页只保留充值：
 // 不再渲染「订阅」tab，只剩单个 tab 时顶部切换器也随之隐藏。
@@ -551,11 +585,74 @@ const subscriptionUsdToCnyRate = computed(() => {
 })
 const creditedAmount = computed(() => Math.round((validAmount.value * balanceRechargeMultiplier.value) * 100) / 100)
 
-// Adaptive grid: center single card, 2-col for 2 plans, 3-col for 3+
+// Customization (#16): admin-configured quick recharge buttons. An empty list from the
+// backend means "not configured", in which case the historic defaults are kept so the
+// page is unchanged until an admin opts in.
+const DEFAULT_QUICK_AMOUNTS = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
+const quickAmounts = computed<number[]>(() => {
+  const configured = checkout.value.recharge_quick_amounts
+  if (!Array.isArray(configured)) return DEFAULT_QUICK_AMOUNTS
+  const cleaned = configured
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  return cleaned.length > 0 ? cleaned : DEFAULT_QUICK_AMOUNTS
+})
+
+// Customization (#16): tiered recharge discount. Mirrors the backend rule so the preview
+// matches what the gateway will actually charge; the backend remains the source of truth.
+const rechargeDiscountTiers = computed<RechargeDiscountTier[]>(() =>
+  (Array.isArray(checkout.value.recharge_discount_tiers) ? checkout.value.recharge_discount_tiers : [])
+    .filter((tier) => Number.isFinite(tier?.threshold) && Number.isFinite(tier?.percent))
+    .filter((tier) => tier.threshold > 0 && tier.percent > 0 && tier.percent < 100)
+    .slice()
+    .sort((a, b) => a.threshold - b.threshold)
+)
+
+const rechargeDiscountPercent = computed(() => {
+  const amount = validAmount.value
+  if (amount <= 0) return 0
+  let best = 0
+  for (const tier of rechargeDiscountTiers.value) {
+    if (tier.threshold > amount) break
+    best = tier.percent
+  }
+  return best
+})
+
+const rechargeDiscountAmount = computed(() => {
+  const percent = rechargeDiscountPercent.value
+  if (percent <= 0 || validAmount.value <= 0) return 0
+  return roundPaymentAmount((validAmount.value * percent) / 100, selectedCurrency.value)
+})
+
+// Customization (#15): admin-configurable subscription card density. Tailwind needs
+// literal class names, so map the 1-6 range explicitly instead of interpolating.
+const PLANS_PER_ROW_CLASS: Record<number, string> = {
+  1: 'grid grid-cols-1 gap-5',
+  2: 'grid grid-cols-1 gap-5 sm:grid-cols-2',
+  3: 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
+  4: 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4',
+  5: 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5',
+  6: 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-6',
+}
+
+function normalizePlansPerRow(value: number): number {
+  const n = Math.trunc(Number(value))
+  if (!Number.isFinite(n) || n < 1) return 3
+  return Math.min(n, 6)
+}
+
+// Adaptive grid: center single card, 2-col for 2 plans, 3-col for 3+.
+// The default (3) keeps the historic layout exactly; only an explicit admin
+// override changes the rendered density.
 const planGridClass = computed(() => {
   const n = checkout.value.plans.length
-  if (n <= 2) return 'grid grid-cols-1 gap-5 sm:grid-cols-2'
-  return 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
+  const configured = normalizePlansPerRow(checkout.value.subscription_plans_per_row)
+  if (configured === 3) {
+    if (n <= 2) return 'grid grid-cols-1 gap-5 sm:grid-cols-2'
+    return PLANS_PER_ROW_CLASS[3]
+  }
+  return PLANS_PER_ROW_CLASS[configured] ?? PLANS_PER_ROW_CLASS[3]
 })
 
 // Check if an amount fits a method's [min, max]. 0 = no limit.
@@ -627,6 +724,11 @@ function formatSelectedPaymentAmount(value: number): string {
   return formatPaymentAmount(value, selectedCurrency.value, localeCode.value)
 }
 
+// Customization (#16): keep tier percentages tidy in the preview (2.5 stays "2.5").
+function trimPercent(value: number): string {
+  return String(Math.round(value * 10000) / 10000)
+}
+
 function formatSelectedSubscriptionPaymentAmount(value: number): string {
   return formatSelectedPaymentAmount(subscriptionPaymentAmountForCurrency(value, selectedCurrency.value))
 }
@@ -644,16 +746,27 @@ const methodOptions = computed<PaymentMethodOption[]>(() =>
 )
 
 const feeRate = computed(() => checkout.value?.recharge_fee_rate ?? 0)
-const feeAmount = computed(() =>
-  feeRate.value > 0 && validAmount.value > 0
-    ? Math.ceil(((validAmount.value * feeRate.value) / 100) * 100) / 100
+// Customization (#16): the tier discount reduces the top-up principal first, then the
+// existing fee applies on the discounted amount and rounds up, matching the backend.
+const discountedRechargeAmount = computed(() =>
+  validAmount.value > 0
+    ? roundPaymentAmount(validAmount.value - rechargeDiscountAmount.value, selectedCurrency.value)
     : 0
 )
-const totalAmount = computed(() =>
-  feeRate.value > 0 && validAmount.value > 0
-    ? Math.round((validAmount.value + feeAmount.value) * 100) / 100
-    : validAmount.value
+const feeAmount = computed(() =>
+  feeRate.value > 0 && discountedRechargeAmount.value > 0
+    ? ceilPaymentAmount((discountedRechargeAmount.value * feeRate.value) / 100, selectedCurrency.value)
+    : 0
 )
+const totalAmount = computed(() => {
+  if (validAmount.value <= 0) return validAmount.value
+  if (rechargeDiscountPercent.value > 0) {
+    return roundPaymentAmount(discountedRechargeAmount.value + feeAmount.value, selectedCurrency.value)
+  }
+  return feeRate.value > 0
+    ? roundPaymentAmount(validAmount.value + feeAmount.value, selectedCurrency.value)
+    : validAmount.value
+})
 
 const amountError = computed(() => {
   if (validAmount.value <= 0) return ''

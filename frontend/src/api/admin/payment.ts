@@ -31,6 +31,14 @@ export interface AdminPaymentConfig {
   product_name_suffix: string
   help_image_url: string
   help_text: string
+  /** Customization (#15): page notices + subscription grid density. */
+  recharge_notice: string
+  subscription_notice: string
+  subscription_plans_per_row: number
+  /** Customization (#16): comma separated quick amounts, e.g. "10,50,100". */
+  recharge_quick_amounts: string
+  /** Customization (#16): comma separated `threshold:percent` tiers, e.g. "100:2,500:3". */
+  recharge_discount_tiers: string
 }
 
 /** Fields accepted by PUT /admin/payment/config (all optional via pointer semantics) */
@@ -51,6 +59,11 @@ export interface UpdatePaymentConfigRequest {
   product_name_suffix?: string
   help_image_url?: string
   help_text?: string
+  recharge_notice?: string
+  subscription_notice?: string
+  subscription_plans_per_row?: number
+  recharge_quick_amounts?: string
+  recharge_discount_tiers?: string
 }
 
 export interface RefundResult {

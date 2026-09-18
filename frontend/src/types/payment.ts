@@ -25,6 +25,15 @@ export type OrderType = 'balance' | 'subscription'
 
 // ==================== Configuration ====================
 
+/**
+ * Customization (#16): one tiered recharge discount rule. When the user's top-up
+ * amount reaches `threshold`, the gateway charge is reduced by `percent`.
+ */
+export interface RechargeDiscountTier {
+  threshold: number
+  percent: number
+}
+
 export interface PaymentConfig {
   payment_enabled: boolean
   min_amount: number
@@ -73,6 +82,16 @@ export interface CheckoutInfoResponse {
   recharge_fee_rate: number
   help_text: string
   help_image_url: string
+  /** Customization (#15): optional announcement rendered on the top-up tab. */
+  recharge_notice: string
+  /** Customization (#15): optional announcement rendered on the subscription tab. */
+  subscription_notice: string
+  /** Customization (#15): admin-configurable subscription grid density (1-6). */
+  subscription_plans_per_row: number
+  /** Customization (#16): admin-configured quick recharge amounts; empty = built-in defaults. */
+  recharge_quick_amounts?: number[]
+  /** Customization (#16): admin-configured tiered recharge discount; empty = disabled. */
+  recharge_discount_tiers?: RechargeDiscountTier[]
   stripe_publishable_key: string
   /** When true, Alipay payments on mobile always show the QR code instead of redirecting */
   alipay_force_qrcode?: boolean

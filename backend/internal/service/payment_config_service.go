@@ -40,13 +40,50 @@ const (
 	SettingCancelWindowMode              = "CANCEL_RATE_LIMIT_WINDOW_MODE"
 	SettingAlipayForceQRCode             = "ALIPAY_FORCE_QRCODE"
 	SettingAlipayMobilePrecreateDeepLink = "ALIPAY_MOBILE_PRECREATE_DEEP_LINK"
+	// Customization (#15): page notices and subscription grid density.
+	SettingRechargeNotice          = "PAYMENT_RECHARGE_NOTICE"
+	SettingSubscriptionNotice      = "PAYMENT_SUBSCRIPTION_NOTICE"
+	SettingSubscriptionPlansPerRow = "SUBSCRIPTION_PLANS_PER_ROW"
+	// Customization (#16): admin-configurable quick recharge buttons and tiered discount.
+	SettingRechargeQuickAmounts = "RECHARGE_QUICK_AMOUNTS"
+	SettingRechargeDiscountTiers = "RECHARGE_DISCOUNT_TIERS"
 )
 
 // Default values for payment configuration settings.
 const (
 	defaultOrderTimeoutMin  = 30
 	defaultMaxPendingOrders = 3
+	// Customization (#15): default keeps the historic 3-per-row subscription grid.
+	defaultSubscriptionPlansPerRow = 3
+	// Customization (#15): supported range for the admin-configurable grid density.
+	minSubscriptionPlansPerRow = 1
+	maxSubscriptionPlansPerRow = 6
+	// Customization (#16): bounds for the admin-configured quick amounts / discount tiers.
+	maxRechargeQuickAmounts  = 24
+	maxRechargeDiscountTiers = 24
 )
+
+// normalizeSubscriptionPlansPerRow clamps the admin setting into a safe range so a
+// malformed value can never break the public subscription grid.
+func normalizeSubscriptionPlansPerRow(n int) int {
+	if n < minSubscriptionPlansPerRow {
+		return defaultSubscriptionPlansPerRow
+	}
+	if n > maxSubscriptionPlansPerRow {
+		return maxSubscriptionPlansPerRow
+	}
+	return n
+}
+
+// RechargeDiscountTier 表示充值阶梯优惠：充值金额达到 Threshold 时，
+// 本次应付金额减免 Percent%（0 < Percent < 100）。
+//
+// Customization (#16): tiered recharge discount. 阈值按用户输入的充值金额
+// （即订单的 limitAmount）判定，与既有的 BALANCE_RECHARGE_MULTIPLIER 互不影响。
+type RechargeDiscountTier struct {
+	Threshold float64 `json:"threshold"`
+	Percent   float64 `json:"percent"`
+}
 
 // PaymentConfig holds the payment system configuration.
 type PaymentConfig struct {
@@ -80,6 +117,17 @@ type PaymentConfig struct {
 	AlipayForceQRCode bool `json:"alipay_force_qrcode"`
 	// Use Alipay face-to-face precreate and an app deep link on mobile clients.
 	AlipayMobilePrecreateDeepLink bool `json:"alipay_mobile_precreate_deep_link"`
+
+	// Customization (#15): page notices and subscription grid density.
+	RechargeNotice          string `json:"recharge_notice"`
+	SubscriptionNotice      string `json:"subscription_notice"`
+	SubscriptionPlansPerRow int    `json:"subscription_plans_per_row"`
+
+	// Customization (#16): quick recharge buttons and tiered recharge discount.
+	// Empty quick amounts mean "keep the built-in front-end defaults" so the
+	// historical page is unchanged until an admin opts in.
+	RechargeQuickAmounts []float64              `json:"recharge_quick_amounts"`
+	RechargeDiscountTiers []RechargeDiscountTier `json:"recharge_discount_tiers"`
 }
 
 // UpdatePaymentConfigRequest contains fields to update payment configuration.
@@ -112,6 +160,14 @@ type UpdatePaymentConfigRequest struct {
 	AlipayForceQRCode *bool `json:"alipay_force_qrcode"`
 	// Use Alipay face-to-face precreate and an app deep link on mobile clients.
 	AlipayMobilePrecreateDeepLink *bool `json:"alipay_mobile_precreate_deep_link"`
+
+	// Customization (#15): page notices and subscription grid density.
+	RechargeNotice          *string `json:"recharge_notice"`
+	SubscriptionNotice      *string `json:"subscription_notice"`
+	SubscriptionPlansPerRow *int    `json:"subscription_plans_per_row"`
+	// Customization (#16): comma separated quick amounts / `threshold:percent` tiers.
+	RechargeQuickAmounts  *string `json:"recharge_quick_amounts"`
+	RechargeDiscountTiers *string `json:"recharge_discount_tiers"`
 
 	VisibleMethodAlipaySource  *string `json:"payment_visible_method_alipay_source"`
 	VisibleMethodWxpaySource   *string `json:"payment_visible_method_wxpay_source"`
@@ -225,6 +281,8 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 		SettingCancelRateLimitOn, SettingCancelRateLimitMax,
 		SettingCancelWindowSize, SettingCancelWindowUnit, SettingCancelWindowMode,
 		SettingAlipayForceQRCode, SettingAlipayMobilePrecreateDeepLink,
+		SettingRechargeNotice, SettingSubscriptionNotice, SettingSubscriptionPlansPerRow,
+		SettingRechargeQuickAmounts, SettingRechargeDiscountTiers,
 		SettingPaymentVisibleMethodAlipayEnabled, SettingPaymentVisibleMethodAlipaySource,
 		SettingPaymentVisibleMethodWxpayEnabled, SettingPaymentVisibleMethodWxpaySource,
 	}
@@ -264,6 +322,13 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 
 		AlipayForceQRCode:             vals[SettingAlipayForceQRCode] == "true",
 		AlipayMobilePrecreateDeepLink: vals[SettingAlipayMobilePrecreateDeepLink] == "true",
+
+		RechargeNotice:          vals[SettingRechargeNotice],
+		SubscriptionNotice:      vals[SettingSubscriptionNotice],
+		SubscriptionPlansPerRow: normalizeSubscriptionPlansPerRow(pcParseInt(vals[SettingSubscriptionPlansPerRow], defaultSubscriptionPlansPerRow)),
+
+		RechargeQuickAmounts: parseRechargeQuickAmounts(vals[SettingRechargeQuickAmounts]),
+		RechargeDiscountTiers: parseRechargeDiscountTiers(vals[SettingRechargeDiscountTiers]),
 	}
 	cfg.AlipayMobilePrecreateDeepLink = pcEnvBoolOverride(
 		SettingAlipayMobilePrecreateDeepLink,
@@ -424,6 +489,21 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 	}
 	if req.VisibleMethodWxpayEnabled != nil {
 		m[SettingPaymentVisibleMethodWxpayEnabled] = formatBoolOrEmpty(req.VisibleMethodWxpayEnabled)
+	}
+	if req.RechargeNotice != nil {
+		m[SettingRechargeNotice] = *req.RechargeNotice
+	}
+	if req.SubscriptionNotice != nil {
+		m[SettingSubscriptionNotice] = *req.SubscriptionNotice
+	}
+	if req.SubscriptionPlansPerRow != nil {
+		m[SettingSubscriptionPlansPerRow] = strconv.Itoa(normalizeSubscriptionPlansPerRow(*req.SubscriptionPlansPerRow))
+	}
+	if req.RechargeQuickAmounts != nil {
+		m[SettingRechargeQuickAmounts] = formatRechargeQuickAmounts(parseRechargeQuickAmounts(*req.RechargeQuickAmounts))
+	}
+	if req.RechargeDiscountTiers != nil {
+		m[SettingRechargeDiscountTiers] = formatRechargeDiscountTiers(parseRechargeDiscountTiers(*req.RechargeDiscountTiers))
 	}
 	return s.settingRepo.SetMultiple(ctx, m)
 }

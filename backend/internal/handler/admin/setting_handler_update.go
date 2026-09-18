@@ -324,6 +324,13 @@ type UpdateSettingsRequest struct {
 	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
 	PaymentHelpText                  *string  `json:"payment_help_text"`
+	// Customization (#15): page notices and subscription grid density.
+	PaymentRechargeNotice          *string `json:"payment_recharge_notice"`
+	PaymentSubscriptionNotice      *string `json:"payment_subscription_notice"`
+	PaymentSubscriptionPlansPerRow *int    `json:"payment_subscription_plans_per_row"`
+	// Customization (#16): quick recharge buttons and tiered recharge discount.
+	PaymentRechargeQuickAmounts  *string `json:"payment_recharge_quick_amounts"`
+	PaymentRechargeDiscountTiers *string `json:"payment_recharge_discount_tiers"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -2132,6 +2139,11 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			ProductNameSuffix:             req.PaymentProductNameSuffix,
 			HelpImageURL:                  req.PaymentHelpImageURL,
 			HelpText:                      req.PaymentHelpText,
+			RechargeNotice:                req.PaymentRechargeNotice,
+			SubscriptionNotice:            req.PaymentSubscriptionNotice,
+			SubscriptionPlansPerRow:       req.PaymentSubscriptionPlansPerRow,
+			RechargeQuickAmounts:          req.PaymentRechargeQuickAmounts,
+			RechargeDiscountTiers:         req.PaymentRechargeDiscountTiers,
 			CancelRateLimitEnabled:        req.PaymentCancelRateLimitEnabled,
 			CancelRateLimitMax:            req.PaymentCancelRateLimitMax,
 			CancelRateLimitWindow:         req.PaymentCancelRateLimitWindow,
@@ -2417,6 +2429,11 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentProductNameSuffix:                               updatedPaymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                                    updatedPaymentCfg.HelpImageURL,
 		PaymentHelpText:                                        updatedPaymentCfg.HelpText,
+		PaymentRechargeNotice:                                  updatedPaymentCfg.RechargeNotice,
+		PaymentSubscriptionNotice:                              updatedPaymentCfg.SubscriptionNotice,
+		PaymentSubscriptionPlansPerRow:                         updatedPaymentCfg.SubscriptionPlansPerRow,
+		PaymentRechargeQuickAmounts:                            service.FormatRechargeQuickAmounts(updatedPaymentCfg.RechargeQuickAmounts),
+		PaymentRechargeDiscountTiers:                           service.FormatRechargeDiscountTiers(updatedPaymentCfg.RechargeDiscountTiers),
 		PaymentCancelRateLimitEnabled:                          updatedPaymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:                              updatedPaymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:                           updatedPaymentCfg.CancelRateLimitWindow,
@@ -2489,7 +2506,10 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentRechargeFeeRate != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
 		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
-		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
+		req.PaymentHelpText != nil || req.PaymentRechargeNotice != nil ||
+		req.PaymentSubscriptionNotice != nil || req.PaymentSubscriptionPlansPerRow != nil ||
+		req.PaymentRechargeQuickAmounts != nil || req.PaymentRechargeDiscountTiers != nil ||
+		req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
 		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
 		req.PaymentAlipayForceQRCode != nil || req.PaymentAlipayMobilePrecreateDeepLink != nil

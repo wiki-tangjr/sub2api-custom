@@ -174,6 +174,22 @@ func (r *paymentFulfillmentAffiliateRepoStub) SetHideAffiliateForInvitees(contex
 	panic("unexpected SetHideAffiliateForInvitees call")
 }
 
+func (r *paymentFulfillmentAffiliateRepoStub) SetAgentLevel(context.Context, int64, int, *int64) error {
+	panic("unexpected SetAgentLevel call")
+}
+
+func (r *paymentFulfillmentAffiliateRepoStub) SetShowFullEmail(context.Context, int64, bool) error {
+	panic("unexpected SetShowFullEmail call")
+}
+
+func (r *paymentFulfillmentAffiliateRepoStub) SetHideAffiliateForSelf(context.Context, int64, bool) error {
+	panic("unexpected SetHideAffiliateForSelf call")
+}
+
+func (r *paymentFulfillmentAffiliateRepoStub) ListSubAgents(context.Context, int64) ([]AffiliateInvitee, error) {
+	panic("unexpected ListSubAgents call")
+}
+
 func (r *paymentFulfillmentAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
 	panic("unexpected BatchSetUserRebateRate call")
 }

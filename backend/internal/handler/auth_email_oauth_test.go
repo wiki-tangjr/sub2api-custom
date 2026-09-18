@@ -435,6 +435,22 @@ func (r *oauthEmailAffiliateRepoStub) IsAffiliateHiddenByInviter(context.Context
 	return false, nil
 }
 
+func (r *oauthEmailAffiliateRepoStub) SetAgentLevel(context.Context, int64, int, *int64) error {
+	panic("unexpected SetAgentLevel call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) SetShowFullEmail(context.Context, int64, bool) error {
+	panic("unexpected SetShowFullEmail call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) SetHideAffiliateForSelf(context.Context, int64, bool) error {
+	panic("unexpected SetHideAffiliateForSelf call")
+}
+
+func (r *oauthEmailAffiliateRepoStub) ListSubAgents(context.Context, int64) ([]service.AffiliateInvitee, error) {
+	panic("unexpected ListSubAgents call")
+}
+
 func (r *oauthEmailAffiliateRepoStub) BatchSetUserRebateRate(context.Context, []int64, *float64) error {
 	panic("unexpected BatchSetUserRebateRate call")
 }

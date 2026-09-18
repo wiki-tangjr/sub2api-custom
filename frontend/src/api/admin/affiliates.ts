@@ -17,6 +17,11 @@ export interface AffiliateAdminEntry {
   aff_rebate_freeze_hours?: number | null
   aff_rebate_duration_days?: number | null
   hide_affiliate_for_invitees: boolean
+  /** 0=普通 1=一级代理 2=二级代理 */
+  agent_level: number
+  agent_parent_user_id?: number | null
+  show_full_email: boolean
+  hide_affiliate_for_self: boolean
   aff_count: number
 }
 
@@ -86,6 +91,10 @@ export interface AffiliateUserOverview {
   username: string
   aff_code: string
   rebate_rate_percent: number
+  hide_affiliate_for_invitees: boolean
+  agent_level: number
+  show_full_email: boolean
+  hide_affiliate_for_self: boolean
   invited_count: number
   rebated_invitee_count: number
   available_quota: number
@@ -98,6 +107,13 @@ export interface UpdateAffiliateUserRequest {
   aff_rebate_freeze_hours?: number | null
   aff_rebate_duration_days?: number | null
   hide_affiliate_for_invitees?: boolean
+  /** 0=普通 1=一级代理 2=二级代理（设置 2 时需同时传 agent_parent_user_id） */
+  agent_level?: number
+  agent_parent_user_id?: number | null
+  /** 是否允许该用户在其邀请返利页面看到完整邮箱 */
+  show_full_email?: boolean
+  /** 是否隐藏该账号自身的邀请返利入口（隐藏后无法再发展下级） */
+  hide_affiliate_for_self?: boolean
   /** Set true to explicitly clear the per-user rate (sets it to NULL). */
   clear_rebate_rate?: boolean
   clear_rebate_freeze_hours?: boolean

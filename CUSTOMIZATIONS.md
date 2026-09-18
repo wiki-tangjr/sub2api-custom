@@ -155,11 +155,83 @@
   4. 部署后提示再跑一次 `--live` 复验。
 - **提交时守卫（第三层防线，2026-09-17 新增）**：`scripts/git-hooks/pre-commit` + `pre-merge-commit`。安装在 `core.hooksPath=scripts/git-hooks`（由 `update-from-upstream.sh` 每次自愈）。目的：手工 `git merge --continue` 或手工解决冲突后提交时，也能拦住被官方冲掉的魔改。行为：合并提交一律检查；普通提交只在动到 `backend/`、`frontend/`、`scripts/`、`CUSTOMIZATIONS.md` 时检查（约 0.3s），纯文档提交直接放行；失败时给出逐条清单。临时绕过：`git commit --no-verify`。
 - **验证脚本已经过负向测试**（证明不是「永远绿」）：分别人为制造了 #5 guard 被覆盖、#10 备案号被删、#12 管理端回显字段丢失、#5 guard 文件被删、#9 CORS 只剩 1 处放行、drop-in 缺失/自愈/被篡改成 `=0` 等场景，全部被正确捕获；恢复后回到全绿。
-- **当前状态**：`bash scripts/customizations-verify.sh --live` → **13/13 全部保留**，退出码 0。
+- **当前状态**：`bash scripts/customizations-verify.sh --live` → **全部保留**，退出码 0。
 
 ---
 
-### 15. 构建工具链（pnpm）—— 2026-09-17
+### 15. 充值/订阅公告 + 订阅套餐每排数量 —— 2026-09-18
+
+- **需求**：管理员能在后台为「充值页」和「订阅页」各设置一段公告（开发票说明 / 退款说明 / 联系客服等）；并把「订阅套餐一排展示几个」做成可配置项，放在「创建套餐」按钮旁边。
+- **实现**：
+  - 新设置键：`PAYMENT_RECHARGE_NOTICE`、`PAYMENT_SUBSCRIPTION_NOTICE`、`SUBSCRIPTION_PLANS_PER_ROW`（1–6 夹取，默认 3）。
+  - 后台：`SettingsView.vue` 支付设置区新增两个公告文本框 + 每排套餐数输入；`AdminPaymentPlansView.vue` 在创建套餐按钮旁新增「每排数量」控件，保存后立即生效。
+  - 前台：`PaymentView.vue` 在充值区 / 订阅区顶部渲染公告（Markdown 渲染，空值时不渲染任何东西）。
+- **零影响保障**：三个设置键默认空 / 默认 3（与上游现有的「一排 3 个」完全一致），未配置时前台 DOM 与改动前**没有任何差别**。
+
+### 16. 充值档位 / 快捷金额 / 阶梯优惠 —— 2026-09-18
+
+- **需求**：管理员能控制充值的最小 / 最大金额、有几个快捷充值按钮；并支持「充得越多送得越多」的阶梯优惠，快捷按钮直接显示「到账多少 / 优惠多少 / 实际支付多少」。
+- **实现**：
+  - 新设置键：`RECHARGE_QUICK_AMOUNTS`（逗号分隔，如 `10,50,100,500`；**留空 = 沿用前端原有硬编码默认**）、`RECHARGE_DISCOUNT_TIERS`（如 `100:2,500:3,1000:5` 表示满 100 减 2%、满 500 减 3% 等；**留空 = 关闭优惠**）。
+  - 新增 `backend/internal/service/payment_amounts.go`（解析 + 金额/优惠计算）与 `payment_order.go` 的优惠应用逻辑；旧签名保留并转发 `discount=0`，保证既有调用方行为不变。
+  - 前台 `AmountInput.vue` / `PaymentView.vue` 按配置渲染快捷按钮与优惠文案。
+- **零影响保障**：两个键默认留空 → 快捷金额回退到原硬编码、优惠关闭 → 充值金额与到账数额与改动前完全一致。
+
+### 17. 代理商体系 + 邀请返利入口隐藏 —— 2026-09-18
+
+- **需求**：
+  1. 管理员可对单个账号设置「其邀请来的客户是否看得到邀请返利入口」（整体隐藏，看不到邀请码自然无法发展下级）。
+  2. 管理员可把某账号设为**一级代理**；一级代理登录后在邀请返利页可查看自己邀请用户的注册 / 返利明细（邮箱默认打码），并可自主把某个下级设为**二级代理**、设置其专属返利比例（**不得超过一级代理自己的比例**），也可开关下级的邀请返利入口。
+  3. 管理员可单独控制某账号在邀请返利页**是否显示完整（不打码）邮箱**。
+- **实现**：
+  - 迁移 `239_affiliate_agent_hierarchy.sql`（幂等 `ADD COLUMN IF NOT EXISTS`）：`agent_level`(0 普通 / 1 一级 / 2 二级)、`agent_parent_user_id`、`show_full_email`、`hide_affiliate_for_self` + 索引。
+  - 后端：仓储新增 `SetAgentLevel` / `SetShowFullEmail` / `SetHideAffiliateForSelf` / `ListSubAgents`；`IsAffiliateHiddenByInviter` 改为「自身开关 OR 邀请人开关」；服务层新增 `GetAgentInvitees` / `SetSubAgent` / `SetInviteeAffiliateHidden`，比例校验 `ErrAffiliateAgentRateTooHigh`，并在返利入账时对二级代理比例**运行时兜底夹到父级比例**。
+  - 用户端路由：`GET /user/aff/agents`、`POST /user/aff/agents/set`、`PUT /user/aff/invitees/:user_id/hide`。
+  - 后台：专属用户配置弹窗新增「代理商等级 / 上级代理ID / 完整邮箱 / 隐藏自身返利」，列表新增徽标列。
+  - 前台：`AffiliateView.vue` 一级代理可见「我的下级代理」卡片（邮箱、用户名、注册时间、返佣、当前比例、设为二级代理 / 改比例 / 取消 / 开关对方返利）。
+- **零影响保障**：`agent_level` 默认 0、`show_full_email` 默认 false、`hide_affiliate_for_self` 默认 false → 所有账号默认行为与改动前一致（邮箱照样打码、入口照样可见）。
+
+---
+
+### 19. 零中断更新工具链（蓝绿 + 连接排空）—— 2026-09-18
+
+> 同样不是业务功能，而是**「每次更新系统都要保留魔改、且不能让网站掉线」**的执行机制。
+> 背景：上游原先的 `deploy_final.sh` 走 `systemctl restart`，而 `main.go` 里 `Shutdown` 超时只有 5 秒 →
+> 重启会直接切断在途请求，**正在进行中的流式 AI 调用（SSE）会被掐断**。用户明确要求「更新期间禁止网站不可访问、禁止影响正在调用 AI 的客户」，故废弃单次 restart。
+
+- **两个脚本，职责分离**：
+  1. `scripts/build-and-stage.sh` —— 只构建 + 起灰度，**绝不碰线上 8080、绝不碰 nginx**
+     - 前置先查线上 `/health`，不健康直接拒绝开始
+     - 构建前端（`pnpm run build`）→ 后端（**必须 `go build -tags embed`**，漏了 embed 就会丢全部前端魔改）
+     - 跑代码层体检；通过后在 **8081** 起灰度实例（`systemd-run --unit=sub2api-canary`，用 `--uid=sub2api`）
+     - 再跑 `CUSTOM_VERIFY_PORT=8081 customizations-verify.sh --live` 灰度体检
+     - 任何一步失败立刻退出并停掉灰度，**线上全程无感知**
+     - ⚠️ 灰度实例必须隔离日志：`LOG_OUTPUT_FILE_PATH=/tmp/sub2api_canary.log`、`SUB2API_DEBUG_GATEWAY_BODY=/tmp/gateway_debug_canary.log`，否则会和线上双写同一个 300MB+ 的 `gateway_debug.log`
+  2. `scripts/zero-downtime-deploy.sh` —— 蓝绿切换 + 连接排空，**全程 nginx 始终指向健康后端**
+     - Phase 1：给 nginx 加 `upstream sub2api_backend`（仍指向 8080），reload
+     - Phase 2：`upstream` 切到 **8081（新代码）**，reload —— 新用户流量从此走新代码
+     - Phase 3：轮询 `ss` 等 **8080 的连接数归零**（在途 SSE 自然结束）→ 才 `systemctl stop` → 换二进制 → `start`
+     - Phase 4：`upstream` 切回 **8080（已是新代码）**，reload
+     - Phase 5：排空 8081 → 灰度下线（`systemctl stop` + `reset-failed`）
+     - Phase 6：健康检查 + `customizations-verify.sh --live` + 可用性报告
+     - 灾备：任一环节失败 → `point_nginx_at_healthy()` 自动把 nginx 指回仍健康的端口；新二进制起不来 → 自动装回旧二进制。备份落在 `/root/deploy_stage/`
+- **零中断证明（可复现）**：脚本内部以 **1 秒**间隔采样 `https://api.pixelqd.cn/health`，结束时打印
+  `可用性采样: N 次, 非200: 0 次, 最长连续不可用: 0s`。2026-09-18 实际发布：**106/106 采样全 200，非 200 为 0**；
+  同时 8080 排空耗时 39s、8081 排空 116s —— 这段时间正是被保护的**在途长连接**。
+- **`--dry-run`**：只做发布前体检并打印计划，**不写任何文件**（实测 nginx 配置 md5 前后一致），可用于上线前预演。
+- **发布标准流程**：
+  ```bash
+  cd /root/.openclaw/workspace/sub2api-src
+  bash scripts/build-and-stage.sh            # 构建 + 灰度体检（线上无感知）
+  bash scripts/zero-downtime-deploy.sh --dry-run   # 可选：预演
+  bash scripts/zero-downtime-deploy.sh       # 零中断发布
+  bash scripts/customizations-verify.sh --live     # 发布后复验
+  ```
+- **⚠️ CRITICAL 教训：不要用 `sed -i 's/\r$//'` 清理 CRLF**。GNU sed 会把 `\r` 当成字符 `r`，从而把脚本里**所有字母 r 删掉**
+  （曾把 `start_monitor` 变成 `start_monito`、`report_monitor` 变成 `report_monito`，导致调用报 `command not found`，切换虽成功但可用性报告没打印）。
+  正确做法：本地用 PowerShell `[System.IO.File]::WriteAllText($p, ($s -replace "`r`n","`n"), (New-Object System.Text.UTF8Encoding($false)))` 写 LF-only 再上传，或上传后用 `bash -n` + `grep -c $'\r'` 双重校验。
+
+### 20. 构建工具链（pnpm）—— 2026-09-17
 
 > 上游 `frontend/package.json` 的 `build` 脚本是 `pnpm run check:i18n && vue-tsc -b && vite build`，**内部直接调用 pnpm**。
 
@@ -209,7 +281,17 @@ cd backend && go build -tags embed -o /tmp/sub2api-new ./cmd/server
 #   POST /v1/videos, /v1/jimeng/videos/generations, /v1beta/models/{m}:predictLongRunning
 ```
 
-部署：备份 `/opt/sub2api/sub2api` → 替换 → `systemctl restart sub2api.service` → 查 `/health`。
+部署（**禁止再直接 `systemctl restart`**，会掐断在途 AI 流式调用）：
+
+```bash
+cd /root/.openclaw/workspace/sub2api-src
+bash scripts/build-and-stage.sh            # 构建 + 8081 灰度体检，线上无感知
+bash scripts/zero-downtime-deploy.sh --dry-run   # 可选：只体检并打印计划，不改任何东西
+bash scripts/zero-downtime-deploy.sh       # 蓝绿切换 + 连接排空，零中断
+bash scripts/customizations-verify.sh --live     # 发布后复验
+```
+
+详见第 19 节「零中断更新工具链」。旧脚本 `deploy_final.sh` 已废弃，仅保留作参考。
 
 ---
 

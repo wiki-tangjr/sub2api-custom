@@ -11,6 +11,10 @@
 # ============================================================
 set -uo pipefail
 
+# 允许对灰度实例验证：CUSTOM_VERIFY_PORT=8081 ./scripts/customizations-verify.sh --live
+VERIFY_PORT="${CUSTOM_VERIFY_PORT:-8080}"
+CB="http://127.0.0.1:${VERIFY_PORT}"
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 1
 
@@ -32,7 +36,7 @@ f(){  [ -f "$2" ] && ok "$1" || bad "$1  [缺文件] $2"; }                     
 g(){  if [ -f "$3" ] && grep -Fqs -- "$2" "$3"; then ok "$1"; else bad "$1  [标记 '$2' 不在 $3]"; fi; }   # 内容必须含标记
 geq(){ local n; n=$(grep -Fo -- "$2" "$3" 2>/dev/null | wc -l); [ "$n" -ge "$4" ] && ok "$1" || bad "$1  [标记 '$2' 期望>=$4 实际 $n]"; }
 lmx(){ local n; n=$(grep -Fo -- "$2" "$3" 2>/dev/null | wc -l); [ "$n" -le "$4" ] && ok "$1" || bad "$1  [标记 '$2' 期望<=$4 实际 $n]"; }
-not404(){ local c; c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:8080$2" -H 'Content-Type: application/json' -d '{}' 2>/dev/null); if [ "$c" != "404" ] && [ -n "$c" ]; then ok "$1 (HTTP $c)"; else bad "$1 (HTTP $c = 路由丢了)"; fi; }
+not404(){ local c; c=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${CB}$2" -H 'Content-Type: application/json' -d '{}' 2>/dev/null); if [ "$c" != "404" ] && [ -n "$c" ]; then ok "$1 (HTTP $c)"; else bad "$1 (HTTP $c = 路由丢了)"; fi; }
 
 printf '%sSub2API 魔改完整性体检%s  仓库: %s\n' "$C_DIM" "$C_RST" "$REPO_ROOT"
 
@@ -193,6 +197,98 @@ if command -v node >/dev/null 2>&1; then ok "node 可用 ($(node -v))";         
 if command -v go   >/dev/null 2>&1; then ok "go 可用 ($(go version | awk '{print $3}'))"; else bad "缺少 go，无法构建后端"; fi
 end
 
+# ============ #15 充值/订阅公告 + 订阅套餐每排数量 ============
+begin "#15 充值/订阅公告 + 订阅套餐每排数量"
+g "设置键 充值公告"        PAYMENT_RECHARGE_NOTICE        backend/internal/service/payment_config_service.go
+g "设置键 订阅公告"        PAYMENT_SUBSCRIPTION_NOTICE    backend/internal/service/payment_config_service.go
+g "设置键 每排套餐数"      SUBSCRIPTION_PLANS_PER_ROW     backend/internal/service/payment_config_service.go
+g "DTO 字段 充值公告"      RechargeNotice                 backend/internal/handler/dto/settings.go
+g "DTO 字段 订阅公告"      SubscriptionNotice             backend/internal/handler/dto/settings.go
+g "管理端写入校验"         recharge_notice                backend/internal/handler/admin/setting_handler_update.go
+g "公开配置输出"           RechargeNotice                 backend/internal/service/payment_config_service.go
+g "后台设置界面"           subscriptionNotice             frontend/src/views/admin/SettingsView.vue
+g "充值页公告渲染"         renderedRechargeNotice         frontend/src/views/user/PaymentView.vue
+g "订阅页公告渲染"         renderedSubscriptionNotice     frontend/src/views/user/PaymentView.vue
+g "前台读取每排套餐数"     normalizePlansPerRow           frontend/src/views/user/PaymentView.vue
+g "套餐页每排设置入口"     savePlansPerRow                frontend/src/views/admin/orders/AdminPaymentPlansView.vue
+end
+
+# ============ #16 充值档位 / 快捷金额 / 阶梯优惠 ============
+begin "#16 充值档位 / 快捷金额 / 阶梯优惠"
+g "设置键 快捷金额"        RECHARGE_QUICK_AMOUNTS         backend/internal/service/payment_config_service.go
+g "设置键 阶梯优惠"        RECHARGE_DISCOUNT_TIERS        backend/internal/service/payment_config_service.go
+f "金额计算服务"           backend/internal/service/payment_amounts.go
+g "快捷金额解析"           parseRechargeQuickAmounts      backend/internal/service/payment_amounts.go
+g "阶梯优惠解析"           parseRechargeDiscountTiers     backend/internal/service/payment_amounts.go
+g "订单应用优惠"           resolveRechargeDiscount        backend/internal/service/payment_order.go
+g "DTO 快捷金额"           RechargeQuickAmounts           backend/internal/handler/dto/settings.go
+g "管理端写入校验"         recharge_quick_amounts         backend/internal/handler/admin/setting_handler_update.go
+g "后台设置界面"           recharge_quick_amounts         frontend/src/views/admin/SettingsView.vue
+g "前台快捷金额组件"       quickAmounts                   frontend/src/components/payment/AmountInput.vue
+g "前台优惠提示"           rechargeDiscountTiers          frontend/src/views/user/PaymentView.vue
+end
+
+# ============ #17 代理商体系 + 邀请返利隐藏 ============
+begin "#17 代理商体系 + 邀请返利隐藏"
+f "代理商迁移"            backend/migrations/239_affiliate_agent_hierarchy.sql
+g "迁移 agent_level"      agent_level                    backend/migrations/239_affiliate_agent_hierarchy.sql
+g "迁移 上级代理"         agent_parent_user_id           backend/migrations/239_affiliate_agent_hierarchy.sql
+g "迁移 完整邮箱"         show_full_email                backend/migrations/239_affiliate_agent_hierarchy.sql
+g "迁移 隐藏自身返利"     hide_affiliate_for_self        backend/migrations/239_affiliate_agent_hierarchy.sql
+g "仓储 设置代理商等级"   SetAgentLevel                  backend/internal/repository/affiliate_repo.go
+g "仓储 下级代理列表"     ListSubAgents                  backend/internal/repository/affiliate_repo.go
+g "隐藏判定含自身开关"    hide_affiliate_for_self        backend/internal/repository/affiliate_repo.go
+g "服务 一级代理常量"     AffiliateAgentLevelFirst       backend/internal/service/affiliate_service.go
+g "服务 二级代理常量"     AffiliateAgentLevelSecond      backend/internal/service/affiliate_service.go
+g "服务 比例不得超过上级" AgentRateTooHigh               backend/internal/service/affiliate_service.go
+g "服务 二级比例兜底夹取" AffiliateAgentLevelSecond      backend/internal/service/affiliate_service.go
+g "服务 代理商列表"       GetAgentInvitees               backend/internal/service/affiliate_service.go
+g "服务 设置二级代理"     SetSubAgent                    backend/internal/service/affiliate_service.go
+g "服务 隐藏下级入口"     SetInviteeAffiliateHidden      backend/internal/service/affiliate_service.go
+g "服务 完整邮箱策略"     showFullEmail                  backend/internal/service/affiliate_service.go
+g "用户端处理器"          SetAffiliateSubAgent           backend/internal/handler/user_handler.go
+g "用户端路由 代理商列表" "/aff/agents"                   backend/internal/server/routes/user.go
+g "用户端路由 设置二级"   "/aff/agents/set"               backend/internal/server/routes/user.go
+g "用户端路由 隐藏下级"   invitees/:user_id/hide         backend/internal/server/routes/user.go
+g "管理端 代理商等级"     agent_level                    backend/internal/handler/admin/affiliate_handler.go
+g "管理端 完整邮箱"       show_full_email                backend/internal/handler/admin/affiliate_handler.go
+g "管理端 隐藏自身返利"   hide_affiliate_for_self        backend/internal/handler/admin/affiliate_handler.go
+g "前台 一级代理卡片"     is_level_one_agent             frontend/src/views/user/AffiliateView.vue
+g "前台 API 代理商"       getAffiliateAgents             frontend/src/api/user.ts
+g "后台 代理商等级列"     agentLevel                     frontend/src/views/admin/SettingsView.vue
+g "后台 完整邮箱选项"     showFullEmail                  frontend/src/views/admin/SettingsView.vue
+g "后台 隐藏自身返利"     hideSelf                       frontend/src/views/admin/SettingsView.vue
+end
+
+# ============ #18 零中断更新工具链（蓝绿 + 连接排空）============
+begin "#18 零中断更新工具链（蓝绿 + 连接排空）"
+f "构建+灰度脚本"        scripts/build-and-stage.sh
+f "零中断发布脚本"       scripts/zero-downtime-deploy.sh
+f "只读健康检查脚本"     scripts/healthcheck.sh
+g "连线排空"             drain                    scripts/zero-downtime-deploy.sh
+g "灾备回指健康后端"     point_nginx_at_healthy   scripts/zero-downtime-deploy.sh
+g "可用性采样"           start_monitor            scripts/zero-downtime-deploy.sh
+g "可用性报告"           report_monitor           scripts/zero-downtime-deploy.sh
+g "演练模式"             --dry-run                scripts/zero-downtime-deploy.sh
+g "二进制差异闸门"       "新旧二进制完全相同"     scripts/zero-downtime-deploy.sh
+g "embed 构建"           "go build -tags embed"   scripts/build-and-stage.sh
+g "灰度日志隔离"         LOG_OUTPUT_FILE_PATH      scripts/build-and-stage.sh
+g "灰度端口隔离"         SERVER_PORT              scripts/build-and-stage.sh
+g "文档已记录工具链"     "零中断更新工具链"       CUSTOMIZATIONS.md
+if bash -n scripts/build-and-stage.sh 2>/dev/null \
+   && bash -n scripts/zero-downtime-deploy.sh 2>/dev/null \
+   && bash -n scripts/healthcheck.sh 2>/dev/null; then
+  ok "三个脚本 bash -n 语法检查通过"
+else
+  bad "脚本语法检查失败（bash -n）"
+fi
+CRF=0
+for f in scripts/build-and-stage.sh scripts/zero-downtime-deploy.sh scripts/healthcheck.sh scripts/customizations-verify.sh; do
+  if grep -q $'\r' "$f" 2>/dev/null; then bad "$f 含 CRLF（禁止用 sed 清 CR，会删掉所有字母 r）"; CRF=1; fi
+done
+[ "$CRF" -eq 0 ] && ok "工具链脚本均为 LF 换行（无 CRLF 隐患）"
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then
@@ -225,16 +321,16 @@ if [ "$LIVE" -eq 1 ]; then
   NR=$(systemctl show sub2api.service -p NRestarts --value 2>/dev/null)
   [ "${NR:-x}" = "0" ] && ok "NRestarts=0（未发生崩溃重启）" || bad "NRestarts=$NR（发生过崩溃重启）"
 
-  HC=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health 2>/dev/null)
+  HC=$(curl -s -o /dev/null -w '%{http_code}' ${CB}/health 2>/dev/null)
   [ "$HC" = "200" ] && ok "/health 200" || bad "/health 返回 $HC"
 
-  if curl -s http://127.0.0.1:8080/api/v1/settings/public 2>/dev/null | grep -Fqs contact_entries; then
+  if curl -s ${CB}/api/v1/settings/public 2>/dev/null | grep -Fqs contact_entries; then
     ok "#12 公开设置返回 contact_entries"
   else
     bad "#12 公开设置缺少 contact_entries（前台读不到客服条目）"
   fi
 
-  CC=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS http://127.0.0.1:8080/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST' 2>/dev/null)
+  CC=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS ${CB}/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST' 2>/dev/null)
   [ "$CC" = "204" ] && ok "#9 CORS 预检 204" || bad "#9 CORS 预检返回 $CC（应为 204）"
 
   not404 "#4 /v1/videos"                       /v1/videos
@@ -247,7 +343,7 @@ if [ "$LIVE" -eq 1 ]; then
 fi
 
 if [ "$GBAD" -eq 0 ]; then
-  printf '%s结论: 全部通过，%d 项检查（含构建工具链）与部署状态完好。%s\n' "$C_OK" "$MOD_N" "$C_RST"
+  printf '%s结论: 全部通过，%d 项检查（含构建 + 零中断发布工具链）与部署状态完好。%s\n' "$C_OK" "$MOD_N" "$C_RST"
   exit 0
 else
   printf '%s结论: 发现 %d 项问题，见上方 XX 行。不要部署，先修复。%s\n' "$C_BAD" "$GBAD" "$C_RST"

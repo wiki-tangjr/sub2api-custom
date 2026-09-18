@@ -151,6 +151,11 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		RechargeFeeRate:               cfg.RechargeFeeRate,
 		HelpText:                      cfg.HelpText,
 		HelpImageURL:                  cfg.HelpImageURL,
+		RechargeNotice:                cfg.RechargeNotice,
+		SubscriptionNotice:            cfg.SubscriptionNotice,
+		SubscriptionPlansPerRow:       cfg.SubscriptionPlansPerRow,
+		RechargeQuickAmounts:          cfg.RechargeQuickAmounts,
+		RechargeDiscountTiers:         cfg.RechargeDiscountTiers,
 		StripePublishableKey:          cfg.StripePublishableKey,
 		AlipayForceQRCode:             cfg.AlipayForceQRCode,
 		AlipayMobilePrecreateDeepLink: alipayMobilePrecreateDeepLink,
@@ -168,6 +173,13 @@ type checkoutInfoResponse struct {
 	RechargeFeeRate               float64                         `json:"recharge_fee_rate"`
 	HelpText                      string                          `json:"help_text"`
 	HelpImageURL                  string                          `json:"help_image_url"`
+	// Customization (#15): page notices and subscription grid density.
+	RechargeNotice                string                          `json:"recharge_notice"`
+	SubscriptionNotice            string                          `json:"subscription_notice"`
+	SubscriptionPlansPerRow       int                             `json:"subscription_plans_per_row"`
+	// Customization (#16): admin-configured quick amounts and tiered discount.
+	RechargeQuickAmounts          []float64                       `json:"recharge_quick_amounts"`
+	RechargeDiscountTiers         []service.RechargeDiscountTier `json:"recharge_discount_tiers"`
 	StripePublishableKey          string                          `json:"stripe_publishable_key"`
 	AlipayForceQRCode             bool                            `json:"alipay_force_qrcode"`
 	AlipayMobilePrecreateDeepLink bool                            `json:"alipay_mobile_precreate_deep_link"`

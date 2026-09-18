@@ -2,7 +2,27 @@
   <AppLayout>
     <div class="space-y-4">
       <!-- Actions -->
-      <div class="flex items-center justify-end gap-2">
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <!-- Customization (#15): quick control for subscription grid density -->
+        <div class="mr-auto flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 dark:border-dark-700 dark:bg-dark-800">
+          <label class="whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('payment.admin.plansPerRow') }}</label>
+          <input
+            v-model.number="plansPerRow"
+            type="number"
+            min="1"
+            max="6"
+            class="input h-8 w-16 px-2 py-0 text-center text-sm"
+            @keyup.enter="savePlansPerRow"
+          />
+          <button
+            class="btn btn-secondary btn-sm"
+            :disabled="savingPlansPerRow || plansPerRow === (paymentConfig?.subscription_plans_per_row ?? 3)"
+            @click="savePlansPerRow"
+          >
+            <span v-if="savingPlansPerRow" class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+            <span v-else>{{ t('common.save') }}</span>
+          </button>
+        </div>
         <button @click="loadPlans" :disabled="plansLoading" class="btn btn-secondary" :title="t('common.refresh')">
           <Icon name="refresh" size="md" :class="plansLoading ? 'animate-spin' : ''" />
         </button>
@@ -105,6 +125,9 @@ function planCurrencySymbol(currency?: string): string {
 
 const groups = ref<AdminGroup[]>([])
 const paymentConfig = ref<AdminPaymentConfig | null>(null)
+// Customization (#15): quick subscription grid-density editor (1-6, default 3).
+const plansPerRow = ref(3)
+const savingPlansPerRow = ref(false)
 
 async function loadGroups() {
   try {
@@ -116,7 +139,26 @@ async function loadPaymentConfig() {
   try {
     const res = await adminPaymentAPI.getConfig()
     paymentConfig.value = res.data
+    if (typeof res.data?.subscription_plans_per_row === 'number') {
+      plansPerRow.value = res.data.subscription_plans_per_row
+    }
   } catch { /* preview only */ }
+}
+
+// Customization (#15): persist the grid density straight from the plans toolbar.
+async function savePlansPerRow() {
+  const n = Math.min(6, Math.max(1, Math.trunc(Number(plansPerRow.value)) || 3))
+  plansPerRow.value = n
+  savingPlansPerRow.value = true
+  try {
+    await adminPaymentAPI.updateConfig({ subscription_plans_per_row: n })
+    if (paymentConfig.value) paymentConfig.value.subscription_plans_per_row = n
+    appStore.showSuccess(t('payment.admin.plansPerRowSaved'))
+  } catch (err: unknown) {
+    appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error')))
+  } finally {
+    savingPlansPerRow.value = false
+  }
 }
 
 function getGroup(id: number): AdminGroup | undefined {

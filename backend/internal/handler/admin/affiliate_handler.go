@@ -56,6 +56,10 @@ type UpdateAffiliateUserRequest struct {
 	AffRebateFreezeHours     *int     `json:"aff_rebate_freeze_hours"`
 	AffRebateDurationDays    *int     `json:"aff_rebate_duration_days"`
 	HideAffiliateForInvitees *bool    `json:"hide_affiliate_for_invitees"`
+	AgentLevel               *int     `json:"agent_level"`
+	AgentParentUserID        *int64   `json:"agent_parent_user_id"`
+	ShowFullEmail            *bool    `json:"show_full_email"`
+	HideAffiliateForSelf     *bool    `json:"hide_affiliate_for_self"`
 	// ClearRebateRate explicitly clears the per-user rate (sets it to NULL).
 	// Used to disambiguate from "field not provided".
 	ClearRebateRate         bool `json:"clear_rebate_rate"`
@@ -117,6 +121,32 @@ func (h *AffiliateHandler) UpdateUserSettings(c *gin.Context) {
 		}
 	}
 
+	if req.HideAffiliateForSelf != nil {
+		if err := h.affiliateService.AdminSetHideAffiliateForSelf(c.Request.Context(), userID, *req.HideAffiliateForSelf); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+	}
+
+	if req.ShowFullEmail != nil {
+		if err := h.affiliateService.AdminSetShowFullEmail(c.Request.Context(), userID, *req.ShowFullEmail); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+	}
+
+	if req.AgentLevel != nil {
+		level := *req.AgentLevel
+		var parentUserID *int64
+		if level == service.AffiliateAgentLevelSecond {
+			parentUserID = req.AgentParentUserID
+		}
+		if err := h.affiliateService.AdminSetAgentLevel(c.Request.Context(), userID, level, parentUserID); err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+	}
+
 	response.Success(c, gin.H{"user_id": userID})
 }
 
@@ -142,6 +172,18 @@ func (h *AffiliateHandler) ClearUserSettings(c *gin.Context) {
 		return
 	}
 	if err := h.affiliateService.AdminSetHideAffiliateForInvitees(c.Request.Context(), userID, false); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if err := h.affiliateService.AdminSetAgentLevel(c.Request.Context(), userID, service.AffiliateAgentLevelNone, nil); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if err := h.affiliateService.AdminSetShowFullEmail(c.Request.Context(), userID, false); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	if err := h.affiliateService.AdminSetHideAffiliateForSelf(c.Request.Context(), userID, false); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}

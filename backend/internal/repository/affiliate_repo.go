@@ -18,6 +18,9 @@ import (
 const (
 	affiliateCodeLength      = 12
 	affiliateCodeMaxAttempts = 12
+	// affiliateSubAgentsLimit caps how many direct sub-agents are listed on
+	// the level-1 agent affiliate page, mirroring ListInvitees' default cap.
+	affiliateSubAgentsLimit = 100
 )
 
 var affiliateCodeCharset = []byte("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
@@ -31,6 +34,9 @@ SELECT ua.user_id,
        (ua.aff_rebate_rate_percent IS NOT NULL) AS has_custom_rate,
        ua.aff_count,
        COALESCE(ua.hide_affiliate_for_invitees, false),
+       ua.agent_level,
+       COALESCE(ua.show_full_email, false),
+       COALESCE(ua.hide_affiliate_for_self, false),
        COALESCE(rebated.rebated_invitee_count, 0),
        (ua.aff_quota + COALESCE(matured.matured_frozen_quota, 0))::double precision,
        ua.aff_history_quota::double precision
@@ -352,7 +358,11 @@ SELECT ua.user_id,
        COALESCE(u.email, ''),
        COALESCE(u.username, ''),
        ua.created_at,
-       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate
+       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+       ua.agent_level,
+       ua.aff_rebate_rate_percent,
+       COALESCE(ua.hide_affiliate_for_self, false),
+       ua.agent_parent_user_id
 FROM user_affiliates ua
 LEFT JOIN users u ON u.id = ua.user_id
 LEFT JOIN user_affiliate_ledger ual
@@ -360,7 +370,8 @@ LEFT JOIN user_affiliate_ledger ual
       AND ual.source_user_id = ua.user_id
       AND ual.action = 'accrue'
 WHERE ua.inviter_id = $1
-GROUP BY ua.user_id, u.email, u.username, ua.created_at
+GROUP BY ua.user_id, u.email, u.username, ua.created_at, ua.agent_level,
+         ua.aff_rebate_rate_percent, ua.hide_affiliate_for_self, ua.agent_parent_user_id
 ORDER BY ua.created_at DESC
 LIMIT $2`, inviterID, limit)
 	if err != nil {
@@ -372,10 +383,21 @@ LIMIT $2`, inviterID, limit)
 	for rows.Next() {
 		var item service.AffiliateInvitee
 		var createdAt time.Time
-		if err := rows.Scan(&item.UserID, &item.Email, &item.Username, &createdAt, &item.TotalRebate); err != nil {
+		var rate sql.NullFloat64
+		var parentID sql.NullInt64
+		if err := rows.Scan(&item.UserID, &item.Email, &item.Username, &createdAt, &item.TotalRebate,
+			&item.AgentLevel, &rate, &item.AffiliateHidden, &parentID); err != nil {
 			return nil, err
 		}
 		item.CreatedAt = &createdAt
+		if rate.Valid {
+			v := rate.Float64
+			item.RebateRatePercent = &v
+		}
+		if parentID.Valid {
+			v := parentID.Int64
+			item.AgentParentUserID = &v
+		}
 		invitees = append(invitees, item)
 	}
 	if err := rows.Err(); err != nil {
@@ -661,6 +683,9 @@ func (r *affiliateRepository) GetAffiliateUserOverview(ctx context.Context, user
 		&hasCustomRate,
 		&overview.InvitedCount,
 		&overview.HideAffiliateForInvitees,
+		&overview.AgentLevel,
+		&overview.ShowFullEmail,
+		&overview.HideAffiliateForSelf,
 		&overview.RebatedInviteeCount,
 		&overview.AvailableQuota,
 		&overview.HistoryQuota,
@@ -789,6 +814,10 @@ SELECT user_id,
        aff_rebate_freeze_hours,
        aff_rebate_duration_days,
        inviter_id,
+       agent_level,
+       agent_parent_user_id,
+       show_full_email,
+       hide_affiliate_for_self,
        aff_count,
        aff_quota::double precision,
        aff_frozen_quota::double precision,
@@ -810,6 +839,7 @@ WHERE user_id = $1`, userID)
 
 	var out service.AffiliateSummary
 	var inviterID sql.NullInt64
+	var agentParentID sql.NullInt64
 	var rebateRate sql.NullFloat64
 	var freezeHours sql.NullInt64
 	var durationDays sql.NullInt64
@@ -821,6 +851,10 @@ WHERE user_id = $1`, userID)
 		&freezeHours,
 		&durationDays,
 		&inviterID,
+		&out.AgentLevel,
+		&agentParentID,
+		&out.ShowFullEmail,
+		&out.HideAffiliateForSelf,
 		&out.AffCount,
 		&out.AffQuota,
 		&out.AffFrozenQuota,
@@ -832,6 +866,10 @@ WHERE user_id = $1`, userID)
 	}
 	if inviterID.Valid {
 		out.InviterID = &inviterID.Int64
+	}
+	if agentParentID.Valid {
+		v := agentParentID.Int64
+		out.AgentParentUserID = &v
 	}
 	if rebateRate.Valid {
 		v := rebateRate.Float64
@@ -857,6 +895,10 @@ SELECT user_id,
        aff_rebate_freeze_hours,
        aff_rebate_duration_days,
        inviter_id,
+       agent_level,
+       agent_parent_user_id,
+       show_full_email,
+       hide_affiliate_for_self,
        aff_count,
        aff_quota::double precision,
        aff_frozen_quota::double precision,
@@ -880,6 +922,7 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 
 	var out service.AffiliateSummary
 	var inviterID sql.NullInt64
+	var agentParentID sql.NullInt64
 	var rebateRate sql.NullFloat64
 	var freezeHours sql.NullInt64
 	var durationDays sql.NullInt64
@@ -891,6 +934,10 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 		&freezeHours,
 		&durationDays,
 		&inviterID,
+		&out.AgentLevel,
+		&agentParentID,
+		&out.ShowFullEmail,
+		&out.HideAffiliateForSelf,
 		&out.AffCount,
 		&out.AffQuota,
 		&out.AffFrozenQuota,
@@ -899,6 +946,10 @@ LIMIT 1`, strings.ToUpper(strings.TrimSpace(code)))
 		&out.UpdatedAt,
 	); err != nil {
 		return nil, err
+	}
+	if agentParentID.Valid {
+		v := agentParentID.Int64
+		out.AgentParentUserID = &v
 	}
 	if inviterID.Valid {
 		out.InviterID = &inviterID.Int64
@@ -1162,6 +1213,151 @@ WHERE user_id = $2`, hide, userID)
 	})
 }
 
+// SetAgentLevel 设置用户的代理商等级（0=普通 1=一级代理 2=二级代理）。
+// level==2 时 parentUserID 为所属一级代理；其他等级 parentUserID 必须为 nil。
+func (r *affiliateRepository) SetAgentLevel(ctx context.Context, userID int64, level int, parentUserID *int64) error {
+	if userID <= 0 {
+		return service.ErrUserNotFound
+	}
+	if level < service.AffiliateAgentLevelNone || level > service.AffiliateAgentLevelSecond {
+		return service.ErrAffiliateAgentLevelInvalid
+	}
+	if level == service.AffiliateAgentLevelSecond {
+		if parentUserID == nil || *parentUserID <= 0 || *parentUserID == userID {
+			return service.ErrAffiliateAgentParentInvalid
+		}
+	} else {
+		parentUserID = nil
+	}
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+		res, err := txClient.ExecContext(txCtx, `
+UPDATE user_affiliates
+SET agent_level = $1,
+    agent_parent_user_id = $2,
+    updated_at = NOW()
+WHERE user_id = $3`, level, nullableInt64Arg(parentUserID), userID)
+		if err != nil {
+			return fmt.Errorf("set affiliate agent level: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrUserNotFound
+		}
+		return nil
+	})
+}
+
+// SetShowFullEmail 设置该用户邀请返利页面是否可见邀请用户完整邮箱。
+func (r *affiliateRepository) SetShowFullEmail(ctx context.Context, userID int64, show bool) error {
+	if userID <= 0 {
+		return service.ErrUserNotFound
+	}
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+		res, err := txClient.ExecContext(txCtx, `
+UPDATE user_affiliates
+SET show_full_email = $1,
+    updated_at = NOW()
+WHERE user_id = $2`, show, userID)
+		if err != nil {
+			return fmt.Errorf("set affiliate show full email: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrUserNotFound
+		}
+		return nil
+	})
+}
+
+// SetHideAffiliateForSelf 设置该账号自身的邀请返利入口是否隐藏（由管理员或上级代理控制）。
+func (r *affiliateRepository) SetHideAffiliateForSelf(ctx context.Context, userID int64, hide bool) error {
+	if userID <= 0 {
+		return service.ErrUserNotFound
+	}
+	return r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
+		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {
+			return err
+		}
+		res, err := txClient.ExecContext(txCtx, `
+UPDATE user_affiliates
+SET hide_affiliate_for_self = $1,
+    updated_at = NOW()
+WHERE user_id = $2`, hide, userID)
+		if err != nil {
+			return fmt.Errorf("set affiliate hide for self: %w", err)
+		}
+		affected, _ := res.RowsAffected()
+		if affected == 0 {
+			return service.ErrUserNotFound
+		}
+		return nil
+	})
+}
+
+// ListSubAgents 返回某代理直接发展的下级代理（agent_parent_user_id 指向该代理）。
+func (r *affiliateRepository) ListSubAgents(ctx context.Context, agentID int64) ([]service.AffiliateInvitee, error) {
+	if agentID <= 0 {
+		return nil, service.ErrUserNotFound
+	}
+	client := clientFromContext(ctx, r.client)
+	rows, err := client.QueryContext(ctx, `
+SELECT ua.user_id,
+       COALESCE(u.email, ''),
+       COALESCE(u.username, ''),
+       ua.created_at,
+       COALESCE(SUM(ual.amount), 0)::double precision AS total_rebate,
+       ua.agent_level,
+       ua.aff_rebate_rate_percent,
+       COALESCE(ua.hide_affiliate_for_self, false),
+       ua.agent_parent_user_id
+FROM user_affiliates ua
+LEFT JOIN users u ON u.id = ua.user_id
+LEFT JOIN user_affiliate_ledger ual
+       ON ual.user_id = ua.user_id
+      AND ual.action = 'accrue'
+WHERE ua.agent_parent_user_id = $1
+GROUP BY ua.user_id, u.email, u.username, ua.created_at, ua.agent_level,
+         ua.aff_rebate_rate_percent, ua.hide_affiliate_for_self, ua.agent_parent_user_id
+ORDER BY ua.created_at DESC
+LIMIT $2`, agentID, affiliateSubAgentsLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	items := make([]service.AffiliateInvitee, 0)
+	for rows.Next() {
+		var item service.AffiliateInvitee
+		var createdAt time.Time
+		var rate sql.NullFloat64
+		var parentID sql.NullInt64
+		if err := rows.Scan(&item.UserID, &item.Email, &item.Username, &createdAt, &item.TotalRebate,
+			&item.AgentLevel, &rate, &item.AffiliateHidden, &parentID); err != nil {
+			return nil, err
+		}
+		item.CreatedAt = &createdAt
+		if rate.Valid {
+			v := rate.Float64
+			item.RebateRatePercent = &v
+		}
+		if parentID.Valid {
+			v := parentID.Int64
+			item.AgentParentUserID = &v
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 // IsAffiliateHiddenByInviter 返回用户是否因为其邀请人配置而被隐藏邀请返利功能。
 func (r *affiliateRepository) IsAffiliateHiddenByInviter(ctx context.Context, userID int64) (bool, error) {
 	if userID <= 0 {
@@ -1169,7 +1365,8 @@ func (r *affiliateRepository) IsAffiliateHiddenByInviter(ctx context.Context, us
 	}
 	client := clientFromContext(ctx, r.client)
 	rows, err := client.QueryContext(ctx, `
-SELECT COALESCE(inviter.hide_affiliate_for_invitees, false)
+SELECT COALESCE(invitee.hide_affiliate_for_self, false)
+       OR COALESCE(inviter.hide_affiliate_for_invitees, false)
 FROM user_affiliates invitee
 LEFT JOIN user_affiliates inviter ON inviter.user_id = invitee.inviter_id
 WHERE invitee.user_id = $1
@@ -1257,7 +1454,7 @@ func (r *affiliateRepository) ListUsersWithCustomSettings(ctx context.Context, f
 	const baseFrom = `
 FROM user_affiliates ua
 JOIN users u ON u.id = ua.user_id
-WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL OR ua.aff_rebate_freeze_hours IS NOT NULL OR ua.aff_rebate_duration_days IS NOT NULL OR ua.hide_affiliate_for_invitees = true)
+WHERE (ua.aff_code_custom = true OR ua.aff_rebate_rate_percent IS NOT NULL OR ua.aff_rebate_freeze_hours IS NOT NULL OR ua.aff_rebate_duration_days IS NOT NULL OR ua.hide_affiliate_for_invitees = true OR ua.hide_affiliate_for_self = true OR ua.agent_level > 0 OR ua.show_full_email = true)
   AND (u.email ILIKE $1 OR u.username ILIKE $1)`
 
 	client := clientFromContext(ctx, r.client)
@@ -1277,6 +1474,10 @@ SELECT ua.user_id,
        ua.aff_rebate_freeze_hours,
        ua.aff_rebate_duration_days,
        ua.hide_affiliate_for_invitees,
+       ua.hide_affiliate_for_self,
+       ua.agent_level,
+       ua.agent_parent_user_id,
+       ua.show_full_email,
        ua.aff_count` + baseFrom + `
 ORDER BY ua.updated_at DESC
 LIMIT $2 OFFSET $3`
@@ -1293,9 +1494,15 @@ LIMIT $2 OFFSET $3`
 		var rebate sql.NullFloat64
 		var freezeHours sql.NullInt64
 		var durationDays sql.NullInt64
+		var agentParentID sql.NullInt64
 		if err := rows.Scan(&e.UserID, &e.Email, &e.Username, &e.AffCode,
-			&e.AffCodeCustom, &rebate, &freezeHours, &durationDays, &e.HideAffiliateForInvitees, &e.AffCount); err != nil {
+			&e.AffCodeCustom, &rebate, &freezeHours, &durationDays, &e.HideAffiliateForInvitees,
+			&e.HideAffiliateForSelf, &e.AgentLevel, &agentParentID, &e.ShowFullEmail, &e.AffCount); err != nil {
 			return nil, 0, err
+		}
+		if agentParentID.Valid {
+			v := agentParentID.Int64
+			e.AgentParentUserID = &v
 		}
 		if rebate.Valid {
 			v := rebate.Float64

@@ -682,6 +682,12 @@ export interface SystemSettings {
   payment_product_name_suffix: string;
   payment_help_image_url: string;
   payment_help_text: string;
+  /** Customization (#15): page notices + subscription grid density. */
+  payment_recharge_notice: string;
+  payment_subscription_notice: string;
+  payment_subscription_plans_per_row: number;
+  payment_recharge_quick_amounts: string;
+  payment_recharge_discount_tiers: string;
   payment_cancel_rate_limit_enabled: boolean;
   payment_cancel_rate_limit_max: number;
   payment_cancel_rate_limit_window: number;
@@ -1008,6 +1014,11 @@ export interface UpdateSettingsRequest {
   payment_product_name_suffix?: string;
   payment_help_image_url?: string;
   payment_help_text?: string;
+  payment_recharge_notice?: string;
+  payment_subscription_notice?: string;
+  payment_subscription_plans_per_row?: number;
+  payment_recharge_quick_amounts?: string;
+  payment_recharge_discount_tiers?: string;
   payment_cancel_rate_limit_enabled?: boolean;
   payment_cancel_rate_limit_max?: number;
   payment_cancel_rate_limit_window?: number;

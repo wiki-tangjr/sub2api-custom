@@ -15,6 +15,7 @@ import type {
   NotifyEmailEntry,
   UserAuthProvider,
   UserAffiliateDetail,
+  AffiliateInvitee,
   AffiliateTransferResponse,
   PlatformQuotasResponse,
 } from '@/types'
@@ -186,6 +187,40 @@ export async function transferAffiliateQuota(): Promise<AffiliateTransferRespons
   return data
 }
 
+export interface SetAffiliateSubAgentPayload {
+  user_id: number
+  /** 0=取消二级代理，2=设为二级代理 */
+  level: 0 | 2
+  rate_percent?: number | null
+  clear_rate?: boolean
+}
+
+/** 一级代理查看自己邀请来的用户及其二级代理/返佣状态。 */
+export async function getAffiliateAgents(): Promise<{ invitees: AffiliateInvitee[] }> {
+  const { data } = await apiClient.get<{ invitees: AffiliateInvitee[] }>('/user/aff/agents')
+  return data
+}
+
+/** 一级代理把自己邀请来的用户设置/取消为二级代理。 */
+export async function setAffiliateSubAgent(
+  payload: SetAffiliateSubAgentPayload,
+): Promise<{ user_id: number; agent_level: number }> {
+  const { data } = await apiClient.post<{ user_id: number; agent_level: number }>('/user/aff/agents/set', payload)
+  return data
+}
+
+/** 一级代理单独控制某个被邀请账号是否可用邀请返利。 */
+export async function setInviteeAffiliateHidden(
+  userId: number,
+  hide: boolean,
+): Promise<{ user_id: number; hide: boolean }> {
+  const { data } = await apiClient.put<{ user_id: number; hide: boolean }>(
+    `/user/aff/invitees/${userId}/hide`,
+    { hide },
+  )
+  return data
+}
+
 /**
  * 获取当前用户的平台限额 + 用量。
  */
@@ -209,6 +244,9 @@ export const userAPI = {
   startOAuthBinding,
   getAffiliateDetail,
   transferAffiliateQuota,
+  getAffiliateAgents,
+  setAffiliateSubAgent,
+  setInviteeAffiliateHidden,
   getMyPlatformQuotas,
 }
 

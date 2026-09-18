@@ -17,6 +17,19 @@ var (
 	ErrAffiliateCodeTaken       = infraerrors.Conflict("AFFILIATE_CODE_TAKEN", "affiliate code already in use")
 	ErrAffiliateAlreadyBound    = infraerrors.Conflict("AFFILIATE_ALREADY_BOUND", "affiliate inviter already bound")
 	ErrAffiliateQuotaEmpty      = infraerrors.BadRequest("AFFILIATE_QUOTA_EMPTY", "no affiliate quota available to transfer")
+	// 代理商体系
+	ErrAffiliateAgentLevelInvalid  = infraerrors.BadRequest("AFFILIATE_AGENT_LEVEL_INVALID", "invalid affiliate agent level")
+	ErrAffiliateAgentParentInvalid = infraerrors.BadRequest("AFFILIATE_AGENT_PARENT_INVALID", "invalid affiliate agent parent")
+	ErrAffiliateAgentForbidden     = infraerrors.Forbidden("AFFILIATE_AGENT_FORBIDDEN", "current user is not a level-1 agent")
+	ErrAffiliateAgentRateTooHigh   = infraerrors.BadRequest("AFFILIATE_AGENT_RATE_TOO_HIGH", "sub-agent rebate rate exceeds parent agent rate")
+	ErrAffiliateNotYourInvitee     = infraerrors.Forbidden("AFFILIATE_NOT_YOUR_INVITEE", "the target user was not invited by current user")
+)
+
+// 代理商等级
+const (
+	AffiliateAgentLevelNone   = 0
+	AffiliateAgentLevelFirst  = 1
+	AffiliateAgentLevelSecond = 2
 )
 
 const (
@@ -65,6 +78,10 @@ type AffiliateSummary struct {
 	AffRebateFreezeHours  *int      `json:"aff_rebate_freeze_hours,omitempty"`
 	AffRebateDurationDays *int      `json:"aff_rebate_duration_days,omitempty"`
 	InviterID             *int64    `json:"inviter_id,omitempty"`
+	AgentLevel            int       `json:"agent_level"`
+	AgentParentUserID     *int64    `json:"agent_parent_user_id,omitempty"`
+	ShowFullEmail         bool      `json:"show_full_email"`
+	HideAffiliateForSelf  bool      `json:"hide_affiliate_for_self"`
 	AffCount              int       `json:"aff_count"`
 	AffQuota              float64   `json:"aff_quota"`
 	AffFrozenQuota        float64   `json:"aff_frozen_quota"`
@@ -74,11 +91,15 @@ type AffiliateSummary struct {
 }
 
 type AffiliateInvitee struct {
-	UserID      int64      `json:"user_id"`
-	Email       string     `json:"email"`
-	Username    string     `json:"username"`
-	CreatedAt   *time.Time `json:"created_at,omitempty"`
-	TotalRebate float64    `json:"total_rebate"`
+	UserID              int64      `json:"user_id"`
+	Email               string     `json:"email"`
+	Username            string     `json:"username"`
+	CreatedAt           *time.Time `json:"created_at,omitempty"`
+	TotalRebate         float64    `json:"total_rebate"`
+	AgentLevel          int        `json:"agent_level"`
+	RebateRatePercent   *float64   `json:"rebate_rate_percent,omitempty"`
+	AffiliateHidden     bool       `json:"affiliate_hidden"`
+	AgentParentUserID   *int64     `json:"agent_parent_user_id,omitempty"`
 }
 
 type AffiliateDetail struct {
@@ -93,6 +114,11 @@ type AffiliateDetail struct {
 	// 优先用户自己的专属比例（aff_rebate_rate_percent），否则回退到全局比例。
 	// 用于在用户的 /affiliate 页面直观展示「分享后能拿到多少」。
 	EffectiveRebateRatePercent float64            `json:"effective_rebate_rate_percent"`
+	AgentLevel                 int                `json:"agent_level"`
+	IsAgent                    bool               `json:"is_agent"`
+	IsLevelOneAgent            bool               `json:"is_level_one_agent"`
+	ShowFullEmail              bool               `json:"show_full_email"`
+	SubAgents                  []AffiliateInvitee `json:"sub_agents"`
 	Invitees                   []AffiliateInvitee `json:"invitees"`
 }
 
@@ -114,6 +140,10 @@ type AffiliateRepository interface {
 	SetHideAffiliateForInvitees(ctx context.Context, userID int64, hide bool) error
 	IsAffiliateHiddenByInviter(ctx context.Context, userID int64) (bool, error)
 	BatchSetUserRebateRate(ctx context.Context, userIDs []int64, ratePercent *float64) error
+	SetAgentLevel(ctx context.Context, userID int64, level int, parentUserID *int64) error
+	SetShowFullEmail(ctx context.Context, userID int64, show bool) error
+	SetHideAffiliateForSelf(ctx context.Context, userID int64, hide bool) error
+	ListSubAgents(ctx context.Context, agentID int64) ([]AffiliateInvitee, error)
 	ListUsersWithCustomSettings(ctx context.Context, filter AffiliateAdminFilter) ([]AffiliateAdminEntry, int64, error)
 	ListAffiliateInviteRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateInviteRecord, int64, error)
 	ListAffiliateRebateRecords(ctx context.Context, filter AffiliateRecordFilter) ([]AffiliateRebateRecord, int64, error)
@@ -139,6 +169,10 @@ type AffiliateAdminEntry struct {
 	AffRebateFreezeHours     *int     `json:"aff_rebate_freeze_hours,omitempty"`
 	AffRebateDurationDays    *int     `json:"aff_rebate_duration_days,omitempty"`
 	HideAffiliateForInvitees bool     `json:"hide_affiliate_for_invitees"`
+	AgentLevel               int      `json:"agent_level"`
+	AgentParentUserID        *int64   `json:"agent_parent_user_id,omitempty"`
+	ShowFullEmail            bool     `json:"show_full_email"`
+	HideAffiliateForSelf     bool     `json:"hide_affiliate_for_self"`
 	AffCount                 int      `json:"aff_count"`
 }
 
@@ -207,6 +241,9 @@ type AffiliateUserOverview struct {
 	RebateRatePercent        float64 `json:"rebate_rate_percent"`
 	RebateRateCustom         bool    `json:"-"`
 	HideAffiliateForInvitees bool    `json:"hide_affiliate_for_invitees"`
+	AgentLevel               int     `json:"agent_level"`
+	ShowFullEmail            bool    `json:"show_full_email"`
+	HideAffiliateForSelf     bool    `json:"hide_affiliate_for_self"`
 	InvitedCount             int     `json:"invited_count"`
 	RebatedInviteeCount      int     `json:"rebated_invitee_count"`
 	AvailableQuota           float64 `json:"available_quota"`
@@ -273,10 +310,19 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 	if err != nil {
 		return nil, err
 	}
-	invitees, err := s.listInvitees(ctx, userID)
+	invitees, err := s.listInvitees(ctx, userID, summary)
 	if err != nil {
 		return nil, err
 	}
+	var subAgents []AffiliateInvitee
+	if summary.AgentLevel == AffiliateAgentLevelFirst {
+		subAgents, err = s.repo.ListSubAgents(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		s.maskInviteeEmails(subAgents, summary.ShowFullEmail)
+	}
+	isAgent := summary.AgentLevel > AffiliateAgentLevelNone
 	return &AffiliateDetail{
 		UserID:                     summary.UserID,
 		AffCode:                    summary.AffCode,
@@ -286,6 +332,11 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 		AffFrozenQuota:             summary.AffFrozenQuota,
 		AffHistoryQuota:            summary.AffHistoryQuota,
 		EffectiveRebateRatePercent: s.resolveRebateRatePercent(ctx, summary),
+		AgentLevel:                 summary.AgentLevel,
+		IsAgent:                    isAgent,
+		IsLevelOneAgent:            summary.AgentLevel == AffiliateAgentLevelFirst,
+		ShowFullEmail:              summary.ShowFullEmail,
+		SubAgents:                  subAgents,
 		Invitees:                   invitees,
 	}, nil
 }
@@ -386,6 +437,15 @@ func (s *AffiliateService) AccrueInviteRebateForOrder(ctx context.Context, invit
 	}
 
 	rebateRatePercent := s.resolveRebateRatePercent(ctx, inviterSummary)
+	// 二级代理不能超过其一级代理的返利比例：设置时已校验，这里兜底再夹一次，
+	// 防止上级代理比例被管理员调低后出现历史配置越界。
+	if inviterSummary.AgentLevel == AffiliateAgentLevelSecond && inviterSummary.AgentParentUserID != nil {
+		if parent, parentErr := s.repo.EnsureUserAffiliate(ctx, *inviterSummary.AgentParentUserID); parentErr == nil && parent != nil {
+			if parentRate := s.resolveRebateRatePercent(ctx, parent); rebateRatePercent > parentRate {
+				rebateRatePercent = parentRate
+			}
+		}
+	}
 	rebate := roundTo(baseRechargeAmount*(rebateRatePercent/100), 8)
 	if rebate <= 0 {
 		return 0, nil
@@ -491,7 +551,7 @@ func (s *AffiliateService) TransferAffiliateQuota(ctx context.Context, userID in
 	return transferred, balance, nil
 }
 
-func (s *AffiliateService) listInvitees(ctx context.Context, inviterID int64) ([]AffiliateInvitee, error) {
+func (s *AffiliateService) listInvitees(ctx context.Context, inviterID int64, inviter *AffiliateSummary) ([]AffiliateInvitee, error) {
 	if s == nil || s.repo == nil {
 		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
@@ -499,10 +559,20 @@ func (s *AffiliateService) listInvitees(ctx context.Context, inviterID int64) ([
 	if err != nil {
 		return nil, err
 	}
-	for i := range invitees {
-		invitees[i].Email = maskEmail(invitees[i].Email)
-	}
+	showFullEmail := inviter != nil && inviter.ShowFullEmail
+	s.maskInviteeEmails(invitees, showFullEmail)
 	return invitees, nil
+}
+
+// maskInviteeEmails 按管理员开关决定是否对邀请人展示完整邮箱。
+// showFullEmail=false（默认）时沿用旧的打码行为，保证零视觉变化。
+func (s *AffiliateService) maskInviteeEmails(items []AffiliateInvitee, showFullEmail bool) {
+	if showFullEmail {
+		return
+	}
+	for i := range items {
+		items[i].Email = maskEmail(items[i].Email)
+	}
 }
 
 func roundTo(v float64, scale int) float64 {
@@ -634,6 +704,182 @@ func (s *AffiliateService) AdminSetHideAffiliateForInvitees(ctx context.Context,
 		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
 	}
 	return s.repo.SetHideAffiliateForInvitees(ctx, userID, hide)
+}
+
+// AdminSetAgentLevel 管理员设置用户的代理商等级（0=普通 1=一级代理 2=二级代理）。
+func (s *AffiliateService) AdminSetAgentLevel(ctx context.Context, userID int64, level int, parentUserID *int64) error {
+	if s == nil || s.repo == nil {
+		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	if userID <= 0 {
+		return infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	switch level {
+	case AffiliateAgentLevelNone, AffiliateAgentLevelFirst:
+		if parentUserID != nil {
+			return ErrAffiliateAgentParentInvalid
+		}
+	case AffiliateAgentLevelSecond:
+		if parentUserID == nil || *parentUserID <= 0 || *parentUserID == userID {
+			return ErrAffiliateAgentParentInvalid
+		}
+		parent, err := s.repo.EnsureUserAffiliate(ctx, *parentUserID)
+		if err != nil {
+			return err
+		}
+		if parent.AgentLevel != AffiliateAgentLevelFirst {
+			return ErrAffiliateAgentParentInvalid
+		}
+	default:
+		return ErrAffiliateAgentLevelInvalid
+	}
+	if err := s.repo.SetAgentLevel(ctx, userID, level, parentUserID); err != nil {
+		return err
+	}
+	// 二级代理兜底：管理员可能先设置比例再设置等级（handler 顺序），
+	// 这里再夹一次，确保二级代理比例永远不超过其一级代理。
+	if level == AffiliateAgentLevelSecond && parentUserID != nil {
+		target, targetErr := s.repo.EnsureUserAffiliate(ctx, userID)
+		parent, parentErr := s.repo.EnsureUserAffiliate(ctx, *parentUserID)
+		if targetErr == nil && parentErr == nil && target.AffRebateRatePercent != nil {
+			parentRate := s.resolveRebateRatePercent(ctx, parent)
+			if *target.AffRebateRatePercent > parentRate {
+				clamped := parentRate
+				if err := s.repo.SetUserRebateRate(ctx, userID, &clamped); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// AdminSetShowFullEmail 管理员设置用户邀请返利页面是否可见完整邮箱。
+func (s *AffiliateService) AdminSetShowFullEmail(ctx context.Context, userID int64, show bool) error {
+	if s == nil || s.repo == nil {
+		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	if userID <= 0 {
+		return infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	return s.repo.SetShowFullEmail(ctx, userID, show)
+}
+
+// AdminSetHideAffiliateForSelf 管理员设置某账号自身的邀请返利入口是否隐藏。
+func (s *AffiliateService) AdminSetHideAffiliateForSelf(ctx context.Context, userID int64, hide bool) error {
+	if s == nil || s.repo == nil {
+		return infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	if userID <= 0 {
+		return infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	return s.repo.SetHideAffiliateForSelf(ctx, userID, hide)
+}
+
+// GetAgentInvitees 一级代理查看自己邀请来的用户（含二级代理状态与返佣明细）。
+func (s *AffiliateService) GetAgentInvitees(ctx context.Context, agentUserID int64) ([]AffiliateInvitee, error) {
+	summary, err := s.requireLevelOneAgent(ctx, agentUserID)
+	if err != nil {
+		return nil, err
+	}
+	invitees, err := s.listInvitees(ctx, agentUserID, summary)
+	if err != nil {
+		return nil, err
+	}
+	return invitees, nil
+}
+
+// requireLevelOneAgent 校验当前用户是一级代理并返回其 profile。
+func (s *AffiliateService) requireLevelOneAgent(ctx context.Context, userID int64) (*AffiliateSummary, error) {
+	if s == nil || s.repo == nil {
+		return nil, infraerrors.ServiceUnavailable("SERVICE_UNAVAILABLE", "affiliate service unavailable")
+	}
+	if userID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	summary, err := s.repo.EnsureUserAffiliate(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if summary.AgentLevel != AffiliateAgentLevelFirst {
+		return nil, ErrAffiliateAgentForbidden
+	}
+	return summary, nil
+}
+
+// requireInviteeOf 校验 targetUserID 是由 agentUserID 直接邀请来的账号。
+func (s *AffiliateService) requireInviteeOf(ctx context.Context, agentUserID, targetUserID int64) (*AffiliateSummary, error) {
+	if targetUserID <= 0 {
+		return nil, infraerrors.BadRequest("INVALID_USER", "invalid user")
+	}
+	if targetUserID == agentUserID {
+		return nil, ErrAffiliateNotYourInvitee
+	}
+	target, err := s.repo.EnsureUserAffiliate(ctx, targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	if target.InviterID == nil || *target.InviterID != agentUserID {
+		return nil, ErrAffiliateNotYourInvitee
+	}
+	return target, nil
+}
+
+// SetSubAgent 一级代理把自己邀请来的用户设置为/取消二级代理，并设置不超过自身的返利比例。
+// level 仅接受 0（取消）或 2（二级代理）；ratePercent 为二级代理的专属返利比例。
+func (s *AffiliateService) SetSubAgent(ctx context.Context, agentUserID, targetUserID int64, level int, ratePercent *float64) (*AffiliateSummary, error) {
+	agentSummary, err := s.requireLevelOneAgent(ctx, agentUserID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.requireInviteeOf(ctx, agentUserID, targetUserID); err != nil {
+		return nil, err
+	}
+	switch level {
+	case AffiliateAgentLevelNone:
+		if err := s.repo.SetAgentLevel(ctx, targetUserID, AffiliateAgentLevelNone, nil); err != nil {
+			return nil, err
+		}
+		if err := s.repo.SetUserRebateRate(ctx, targetUserID, nil); err != nil {
+			return nil, err
+		}
+	case AffiliateAgentLevelSecond:
+		if ratePercent == nil {
+			return nil, infraerrors.BadRequest("INVALID_RATE", "rebate rate is required for sub-agent")
+		}
+		if err := validateExclusiveRate(ratePercent); err != nil {
+			return nil, err
+		}
+		parentRate := s.resolveRebateRatePercent(ctx, agentSummary)
+		if *ratePercent > parentRate {
+			return nil, ErrAffiliateAgentRateTooHigh
+		}
+		if err := s.repo.SetUserRebateRate(ctx, targetUserID, ratePercent); err != nil {
+			return nil, err
+		}
+		agentUserIDCopy := agentUserID
+		if err := s.repo.SetAgentLevel(ctx, targetUserID, AffiliateAgentLevelSecond, &agentUserIDCopy); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrAffiliateAgentLevelInvalid
+	}
+	updated, err := s.repo.EnsureUserAffiliate(ctx, targetUserID)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
+}
+
+// SetInviteeAffiliateHidden 一级代理单独控制自己邀请来的账号是否可用邀请返利功能。
+func (s *AffiliateService) SetInviteeAffiliateHidden(ctx context.Context, agentUserID, targetUserID int64, hide bool) error {
+	if _, err := s.requireLevelOneAgent(ctx, agentUserID); err != nil {
+		return err
+	}
+	if _, err := s.requireInviteeOf(ctx, agentUserID, targetUserID); err != nil {
+		return err
+	}
+	return s.repo.SetHideAffiliateForSelf(ctx, targetUserID, hide)
 }
 
 // AdminBatchSetUserRebateRate 批量设置/清除用户专属返利比例。

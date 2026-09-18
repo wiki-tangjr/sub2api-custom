@@ -152,6 +152,14 @@ export interface AffiliateInvitee {
   username: string
   created_at?: string
   total_rebate: number
+  /** 0=普通用户 1=一级代理 2=二级代理 */
+  agent_level: number
+  /** 该用户作为邀请人时生效的专属返利比例（用于代理查看下级比例）。 */
+  rebate_rate_percent?: number | null
+  /** 该账号自身的邀请返利入口是否被隐藏（隐藏后不可再发展下级）。 */
+  affiliate_hidden: boolean
+  /** 二级代理所属的一级代理用户 ID。 */
+  agent_parent_user_id?: number | null
 }
 
 export interface UserAffiliateDetail {
@@ -164,6 +172,14 @@ export interface UserAffiliateDetail {
   aff_history_quota: number
   /** 当前用户作为邀请人时实际生效的返利比例（专属覆盖全局）。0-100。 */
   effective_rebate_rate_percent: number
+  /** 0=普通用户 1=一级代理 2=二级代理 */
+  agent_level: number
+  is_agent: boolean
+  is_level_one_agent: boolean
+  /** 管理员/上级代理是否允许本账号看到完整邮箱（false 时邮箱打码）。 */
+  show_full_email: boolean
+  /** 一级代理直接发展的二级代理列表（仅一级代理返回）。 */
+  sub_agents: AffiliateInvitee[]
   invitees: AffiliateInvitee[]
 }
 

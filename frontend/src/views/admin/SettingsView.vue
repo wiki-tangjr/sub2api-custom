@@ -7631,17 +7631,19 @@
                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.username') }}</th>
                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.code') }}</th>
                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.rate') }}</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.hideInvitees') }}</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.agent') }}</th>
                         <th class="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">{{ t('admin.settings.features.affiliate.customUsers.col.actions') }}</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
                       <tr v-if="affiliateState.loading">
-                        <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
+                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
                           {{ t('common.loading') }}
                         </td>
                       </tr>
                       <tr v-else-if="affiliateState.entries.length === 0">
-                        <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">
+                        <td colspan="8" class="px-3 py-6 text-center text-sm text-gray-500">
                           {{ t('admin.settings.features.affiliate.customUsers.empty') }}
                         </td>
                       </tr>
@@ -7665,6 +7667,32 @@
                         <td class="px-3 py-2 text-sm">
                           <span v-if="entry.aff_rebate_rate_percent != null">{{ entry.aff_rebate_rate_percent }}%</span>
                           <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.useGlobal') }}</span>
+                        </td>
+                        <td class="px-3 py-2 text-sm">
+                          <span
+                            v-if="entry.agent_level === 1"
+                            class="inline-block rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                          >{{ t('admin.settings.features.affiliate.customUsers.agentLevelFirst') }}</span>
+                          <span
+                            v-else-if="entry.agent_level === 2"
+                            class="inline-block rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                          >{{ t('admin.settings.features.affiliate.customUsers.agentLevelSecond') }}</span>
+                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.agentLevelNone') }}</span>
+                          <span
+                            v-if="entry.show_full_email"
+                            class="ml-1 inline-block rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
+                          >{{ t('admin.settings.features.affiliate.customUsers.fullEmailBadge') }}</span>
+                          <span
+                            v-if="entry.hide_affiliate_for_self"
+                            class="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                          >{{ t('admin.settings.features.affiliate.customUsers.selfHiddenBadge') }}</span>
+                        </td>
+                        <td class="px-3 py-2 text-sm">
+                          <span
+                            v-if="entry.hide_affiliate_for_invitees"
+                            class="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                          >{{ t('admin.settings.features.affiliate.customUsers.hidden') }}</span>
+                          <span v-else class="text-gray-400">{{ t('admin.settings.features.affiliate.customUsers.notHidden') }}</span>
                         </td>
                         <td class="px-3 py-2 text-sm">
                           <div class="flex items-center gap-2">
@@ -7811,6 +7839,86 @@
                 <p class="mt-1 text-xs text-gray-400">
                   {{ t('admin.settings.features.affiliate.modal.rateHint') }}
                 </p>
+              </div>
+
+              <div>
+                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.agentLevelLabel') }}</label>
+                <select v-model.number="affiliateModal.agentLevel" class="input">
+                  <option :value="0">{{ t('admin.settings.features.affiliate.customUsers.agentLevelNone') }}</option>
+                  <option :value="1">{{ t('admin.settings.features.affiliate.customUsers.agentLevelFirst') }}</option>
+                  <option :value="2">{{ t('admin.settings.features.affiliate.customUsers.agentLevelSecond') }}</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-400">
+                  {{ t('admin.settings.features.affiliate.modal.agentLevelHint') }}
+                </p>
+              </div>
+
+              <div v-if="affiliateModal.agentLevel === 2">
+                <label class="input-label">{{ t('admin.settings.features.affiliate.modal.agentParentLabel') }}</label>
+                <input
+                  v-model="affiliateModal.agentParentUserId"
+                  type="number"
+                  min="1"
+                  class="input"
+                  :placeholder="t('admin.settings.features.affiliate.modal.agentParentPlaceholder')"
+                />
+                <p class="mt-1 text-xs text-gray-400">
+                  {{ t('admin.settings.features.affiliate.modal.agentParentHint') }}
+                </p>
+              </div>
+
+              <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-dark-700 dark:bg-dark-800/60">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input
+                    v-model="affiliateModal.showFullEmail"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span class="flex-1">
+                    <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                      {{ t('admin.settings.features.affiliate.modal.showFullEmailLabel') }}
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.modal.showFullEmailHint') }}
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-dark-700 dark:bg-dark-800/60">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input
+                    v-model="affiliateModal.hideSelf"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span class="flex-1">
+                    <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                      {{ t('admin.settings.features.affiliate.modal.hideSelfLabel') }}
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.modal.hideSelfHint') }}
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-dark-700 dark:bg-dark-800/60">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input
+                    v-model="affiliateModal.hideInvitees"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span class="flex-1">
+                    <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                      {{ t('admin.settings.features.affiliate.modal.hideInviteesLabel') }}
+                    </span>
+                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.features.affiliate.modal.hideInviteesHint') }}
+                    </span>
+                  </span>
+                </label>
               </div>
             </div>
 
@@ -8413,6 +8521,96 @@
                         t('admin.settings.payment.helpTextPlaceholder')
                       "
                     ></textarea>
+                  </div>
+                </div>
+                <!-- Row 6 (Customization #15): page notices + subscription grid density -->
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="input-label">{{
+                      t("admin.settings.payment.rechargeNotice")
+                    }}</label>
+                    <textarea
+                      v-model="form.payment_recharge_notice"
+                      rows="3"
+                      class="input"
+                      :placeholder="
+                        t('admin.settings.payment.rechargeNoticePlaceholder')
+                      "
+                    ></textarea>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ t("admin.settings.payment.rechargeNoticeHint") }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="input-label">{{
+                      t("admin.settings.payment.subscriptionNotice")
+                    }}</label>
+                    <textarea
+                      v-model="form.payment_subscription_notice"
+                      rows="3"
+                      class="input"
+                      :placeholder="
+                        t('admin.settings.payment.subscriptionNoticePlaceholder')
+                      "
+                    ></textarea>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ t("admin.settings.payment.subscriptionNoticeHint") }}
+                    </p>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="input-label">{{
+                      t("admin.settings.payment.plansPerRow")
+                    }}</label>
+                    <input
+                      v-model.number="form.payment_subscription_plans_per_row"
+                      type="number"
+                      min="1"
+                      max="6"
+                      class="input w-32"
+                    />
+                    <p class="mt-0.5 text-xs text-gray-400">
+                      {{ t("admin.settings.payment.plansPerRowHint") }}
+                    </p>
+                  </div>
+                </div>
+                <!-- Row 7 (Customization #16): quick amounts + tiered top-up discount -->
+                <div class="rounded-lg border border-gray-200 p-3 dark:border-dark-600">
+                  <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t("admin.settings.payment.discountTitle") }}
+                  </p>
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label class="input-label">{{
+                        t("admin.settings.payment.quickAmounts")
+                      }}</label>
+                      <textarea
+                        v-model="form.payment_recharge_quick_amounts"
+                        rows="3"
+                        class="input font-mono text-xs"
+                        :placeholder="
+                          t('admin.settings.payment.quickAmountsPlaceholder')
+                        "
+                      ></textarea>
+                      <p class="mt-0.5 text-xs text-gray-400">
+                        {{ t("admin.settings.payment.quickAmountsHint") }}
+                      </p>
+                    </div>
+                    <div>
+                      <label class="input-label">{{
+                        t("admin.settings.payment.discountTiers")
+                      }}</label>
+                      <textarea
+                        v-model="form.payment_recharge_discount_tiers"
+                        rows="3"
+                        class="input font-mono text-xs"
+                        :placeholder="
+                          t('admin.settings.payment.discountTiersPlaceholder')
+                        "
+                      ></textarea>
+                      <p class="mt-0.5 text-xs text-gray-400">
+                        {{ t("admin.settings.payment.discountTiersHint") }}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </template>
@@ -9780,6 +9978,11 @@ const form = reactive<SettingsForm>({
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
+  payment_recharge_notice: "",
+  payment_subscription_notice: "",
+  payment_subscription_plans_per_row: 3,
+  payment_recharge_quick_amounts: "",
+  payment_recharge_discount_tiers: "",
   payment_product_name_prefix: "",
   payment_product_name_suffix: "",
   payment_load_balance_strategy: "round-robin",
@@ -11649,6 +11852,18 @@ async function saveSettings() {
       payment_product_name_suffix: form.payment_product_name_suffix,
       payment_help_image_url: form.payment_help_image_url,
       payment_help_text: form.payment_help_text,
+      payment_recharge_notice: form.payment_recharge_notice,
+      payment_subscription_notice: form.payment_subscription_notice,
+      payment_subscription_plans_per_row: Math.min(
+        6,
+        Math.max(1, Number(form.payment_subscription_plans_per_row) || 3),
+      ),
+      payment_recharge_quick_amounts: String(
+        form.payment_recharge_quick_amounts ?? "",
+      ).trim(),
+      payment_recharge_discount_tiers: String(
+        form.payment_recharge_discount_tiers ?? "",
+      ).trim(),
       payment_cancel_rate_limit_enabled: form.payment_cancel_rate_limit_enabled,
       payment_cancel_rate_limit_max:
         Number(form.payment_cancel_rate_limit_max) || 10,
@@ -12857,6 +13072,11 @@ interface AffiliateModalState {
   editingEntry: AffiliateAdminEntry | null;
   code: string;
   rate: string | number;
+  hideInvitees: boolean;
+  agentLevel: number;
+  agentParentUserId: string;
+  showFullEmail: boolean;
+  hideSelf: boolean;
   searchTimer: number | null;
 }
 
@@ -12870,6 +13090,11 @@ const affiliateModal = reactive<AffiliateModalState>({
   editingEntry: null,
   code: "",
   rate: "",
+  hideInvitees: false,
+  agentLevel: 0,
+  agentParentUserId: "",
+  showFullEmail: false,
+  hideSelf: false,
   searchTimer: null,
 });
 
@@ -13015,6 +13240,12 @@ function openAffiliateModal(entry: AffiliateAdminEntry | null) {
   affiliateModal.code = entry?.aff_code_custom ? entry.aff_code : "";
   affiliateModal.rate =
     entry?.aff_rebate_rate_percent != null ? String(entry.aff_rebate_rate_percent) : "";
+  affiliateModal.hideInvitees = entry?.hide_affiliate_for_invitees ?? false;
+  affiliateModal.agentLevel = entry?.agent_level ?? 0;
+  affiliateModal.agentParentUserId =
+    entry?.agent_parent_user_id != null ? String(entry.agent_parent_user_id) : "";
+  affiliateModal.showFullEmail = entry?.show_full_email ?? false;
+  affiliateModal.hideSelf = entry?.hide_affiliate_for_self ?? false;
 }
 
 function closeAffiliateModal() {
@@ -13064,7 +13295,12 @@ const affiliateModalCanSubmit = computed(() => {
   }
   const codeFilled = affiliateModal.code.trim() !== "";
   const rateFilled = String(affiliateModal.rate ?? "").trim() !== "";
-  if (codeFilled || rateFilled) return true;
+  const currentHide = affiliateModal.editingEntry?.hide_affiliate_for_invitees ?? false;
+  const hideChanged = affiliateModal.hideInvitees !== currentHide;
+  const agentChanged = affiliateModal.agentLevel !== (affiliateModal.editingEntry?.agent_level ?? 0);
+  const fullEmailChanged = affiliateModal.showFullEmail !== (affiliateModal.editingEntry?.show_full_email ?? false);
+  const hideSelfChanged = affiliateModal.hideSelf !== (affiliateModal.editingEntry?.hide_affiliate_for_self ?? false);
+  if (codeFilled || rateFilled || hideChanged || agentChanged || fullEmailChanged || hideSelfChanged) return true;
   // Edit mode + empty rate input is a meaningful "clear" only if the user
   // currently has an exclusive rate to clear.
   return (
@@ -13090,6 +13326,32 @@ async function submitAffiliateModal() {
   const payload: Parameters<typeof affiliatesAPI.updateUserSettings>[1] = {};
   const codeRaw = affiliateModal.code.trim();
   if (codeRaw) payload.aff_code = codeRaw.toUpperCase();
+
+  const currentHide = affiliateModal.editingEntry?.hide_affiliate_for_invitees ?? false;
+  if (affiliateModal.mode === "add") {
+    if (affiliateModal.hideInvitees) payload.hide_affiliate_for_invitees = true;
+  } else if (affiliateModal.hideInvitees !== currentHide) {
+    payload.hide_affiliate_for_invitees = affiliateModal.hideInvitees;
+  }
+
+  const currentAgentLevel = affiliateModal.editingEntry?.agent_level ?? 0;
+  if (affiliateModal.agentLevel !== currentAgentLevel) {
+    payload.agent_level = affiliateModal.agentLevel;
+    if (affiliateModal.agentLevel === 2) {
+      const parentId = Number(affiliateModal.agentParentUserId);
+      if (!Number.isInteger(parentId) || parentId <= 0) {
+        appStore.showError(t("admin.settings.features.affiliate.modal.agentParentInvalid"));
+        return;
+      }
+      payload.agent_parent_user_id = parentId;
+    }
+  }
+  if (affiliateModal.showFullEmail !== (affiliateModal.editingEntry?.show_full_email ?? false)) {
+    payload.show_full_email = affiliateModal.showFullEmail;
+  }
+  if (affiliateModal.hideSelf !== (affiliateModal.editingEntry?.hide_affiliate_for_self ?? false)) {
+    payload.hide_affiliate_for_self = affiliateModal.hideSelf;
+  }
 
   const rateInput = parseRebateRate(affiliateModal.rate);
   if (rateInput === undefined) return; // toast already shown
