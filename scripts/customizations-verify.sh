@@ -326,6 +326,37 @@ g "文档已记录收敛"       "后台客服设置收敛" CUSTOMIZATIONS.md
 end
 
 
+# ============ #22 充值优惠区间化 + 后台控件化 + 公告美化（2026-09-19）============
+begin "#22 充值优惠区间化 + 后台控件化 + 公告美化"
+# 前后端共享同一套区间规则（前端只做展示预览，后端才是唯一真相）
+f "前端档位工具"           frontend/src/utils/rechargeTiers.ts
+g "前端 区间解析"          parseTierRangeText                 frontend/src/utils/rechargeTiers.ts
+g "前端 下限兼容别名"      tierLowerBound                     frontend/src/utils/rechargeTiers.ts
+g "前端 档位归一化"        normalizeRechargeDiscountTiers     frontend/src/utils/rechargeTiers.ts
+g "前端 区间命中"          resolveRechargeDiscountPercent     frontend/src/utils/rechargeTiers.ts
+g "前端 单测"              "describe('rechargeTiers'"          frontend/src/utils/__tests__/rechargeTiers.spec.ts
+g "前端 金额输入改用共享规则" normalizeRechargeDiscountTiers  frontend/src/components/payment/AmountInput.vue
+# 后端：区间解析 + 无条件档位判非法（防止 0:5 变成人人有优惠）
+g "后端 区间解析"          parseRechargeTierRange             backend/internal/service/payment_amounts.go
+g "后端 下限兼容别名"      tierLowerBound                     backend/internal/service/payment_amounts.go
+g "后端 无条件档位判非法"  "maxVal <= 0"                      backend/internal/service/payment_amounts.go
+g "后端 单测"              "func TestParseRechargeTierRange"  backend/internal/service/payment_recharge_tiers_test.go
+# 后台：结构化控件替代裸文本框
+g "后台 快捷金额编辑器"    RechargeQuickAmountsEditor         frontend/src/views/admin/SettingsView.vue
+g "后台 优惠档位编辑器"    RechargeDiscountTiersEditor        frontend/src/views/admin/SettingsView.vue
+g "后台 编辑器组件存在"    "defineProps<{"                    frontend/src/views/admin/settings/RechargeDiscountTiersEditor.vue
+g "后台 每排套餐分段按钮"  PLAN_ROW_OPTIONS                   frontend/src/views/admin/SettingsView.vue
+g "后台 提交前先归一化"    formatRechargeDiscountTiersText    frontend/src/views/admin/SettingsView.vue
+# 公告视觉
+g "公告紧凑样式"           announcement-markdown              frontend/src/styles/announcement-markdown.css
+g "公告标题文案 zh"        "notice:"                          frontend/src/i18n/locales/zh/misc.ts
+g "公告标题文案 en"        "notice:"                          frontend/src/i18n/locales/en/misc.ts
+g "区间摘要文案 zh"        tierSummaryRange                   frontend/src/i18n/locales/zh/admin/settings.ts
+g "区间摘要文案 en"        tierSummaryRange                   frontend/src/i18n/locales/en/admin/settings.ts
+# 文档
+g "文档已记录区间化"       "区间"                             CUSTOMIZATIONS.md
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then

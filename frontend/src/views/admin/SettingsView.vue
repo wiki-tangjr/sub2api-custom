@@ -8559,96 +8559,84 @@
                     ></textarea>
                   </div>
                 </div>
-                <!-- Row 6 (Customization #15): page notices + subscription grid density -->
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label class="input-label">{{
-                      t("admin.settings.payment.rechargeNotice")
-                    }}</label>
-                    <textarea
-                      v-model="form.payment_recharge_notice"
-                      rows="3"
-                      class="input"
-                      :placeholder="
-                        t('admin.settings.payment.rechargeNoticePlaceholder')
-                      "
-                    ></textarea>
-                    <p class="mt-0.5 text-xs text-gray-400">
-                      {{ t("admin.settings.payment.rechargeNoticeHint") }}
-                    </p>
-                  </div>
-                  <div>
-                    <label class="input-label">{{
-                      t("admin.settings.payment.subscriptionNotice")
-                    }}</label>
-                    <textarea
-                      v-model="form.payment_subscription_notice"
-                      rows="3"
-                      class="input"
-                      :placeholder="
-                        t('admin.settings.payment.subscriptionNoticePlaceholder')
-                      "
-                    ></textarea>
-                    <p class="mt-0.5 text-xs text-gray-400">
-                      {{ t("admin.settings.payment.subscriptionNoticeHint") }}
-                    </p>
-                  </div>
-                  <div class="sm:col-span-2">
-                    <label class="input-label">{{
-                      t("admin.settings.payment.plansPerRow")
-                    }}</label>
-                    <input
-                      v-model.number="form.payment_subscription_plans_per_row"
-                      type="number"
-                      min="1"
-                      max="6"
-                      class="input w-32"
-                    />
-                    <p class="mt-0.5 text-xs text-gray-400">
-                      {{ t("admin.settings.payment.plansPerRowHint") }}
-                    </p>
-                  </div>
-                </div>
-                <!-- Row 7 (Customization #16): quick amounts + tiered top-up discount -->
-                <div class="rounded-lg border border-gray-200 p-3 dark:border-dark-600">
-                  <p class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {{ t("admin.settings.payment.discountTitle") }}
-                  </p>
-                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <!-- Row 6 (Customization #15/#20): page notices + subscription grid density.
+                     Notices are grouped in one card so the form no longer mixes raw
+                     textareas with unrelated inputs in the same grid. -->
+                <section class="rounded-xl border border-gray-200 p-4 dark:border-dark-600">
+                  <div class="flex items-start justify-between gap-3">
                     <div>
-                      <label class="input-label">{{
-                        t("admin.settings.payment.quickAmounts")
-                      }}</label>
-                      <textarea
-                        v-model="form.payment_recharge_quick_amounts"
-                        rows="3"
-                        class="input font-mono text-xs"
-                        :placeholder="
-                          t('admin.settings.payment.quickAmountsPlaceholder')
-                        "
-                      ></textarea>
-                      <p class="mt-0.5 text-xs text-gray-400">
-                        {{ t("admin.settings.payment.quickAmountsHint") }}
-                      </p>
+                      <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        {{ t("admin.settings.payment.noticeSectionTitle") }}
+                      </h4>
+                      <p class="input-hint mt-1">{{ t("admin.settings.payment.noticeSectionHint") }}</p>
                     </div>
-                    <div>
-                      <label class="input-label">{{
-                        t("admin.settings.payment.discountTiers")
-                      }}</label>
+                    <Icon name="bell" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
+                  </div>
+                  <div class="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    <div class="rounded-lg border border-gray-100 bg-gray-50/60 p-3 dark:border-dark-700 dark:bg-dark-800/40">
+                      <label class="input-label">{{ t("admin.settings.payment.rechargeNotice") }}</label>
                       <textarea
-                        v-model="form.payment_recharge_discount_tiers"
-                        rows="3"
-                        class="input font-mono text-xs"
-                        :placeholder="
-                          t('admin.settings.payment.discountTiersPlaceholder')
-                        "
+                        v-model="form.payment_recharge_notice"
+                        rows="4"
+                        class="input"
+                        :placeholder="t('admin.settings.payment.rechargeNoticePlaceholder')"
                       ></textarea>
-                      <p class="mt-0.5 text-xs text-gray-400">
-                        {{ t("admin.settings.payment.discountTiersHint") }}
-                      </p>
+                      <p class="input-hint">{{ t("admin.settings.payment.rechargeNoticeHint") }}</p>
+                    </div>
+                    <div class="rounded-lg border border-gray-100 bg-gray-50/60 p-3 dark:border-dark-700 dark:bg-dark-800/40">
+                      <label class="input-label">{{ t("admin.settings.payment.subscriptionNotice") }}</label>
+                      <textarea
+                        v-model="form.payment_subscription_notice"
+                        rows="4"
+                        class="input"
+                        :placeholder="t('admin.settings.payment.subscriptionNoticePlaceholder')"
+                      ></textarea>
+                      <p class="input-hint">{{ t("admin.settings.payment.subscriptionNoticeHint") }}</p>
                     </div>
                   </div>
-                </div>
+
+                  <!-- Segmented control instead of a bare number input: the valid
+                       range is obvious and one click sets the value. -->
+                  <div class="mt-4 border-t border-gray-100 pt-3 dark:border-dark-700">
+                    <label class="input-label">{{ t("admin.settings.payment.plansPerRow") }}</label>
+                    <div class="inline-flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 dark:bg-dark-700/60">
+                      <button
+                        v-for="option in PLAN_ROW_OPTIONS"
+                        :key="option"
+                        type="button"
+                        :class="[
+                          'min-w-[2.5rem] rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                          Number(form.payment_subscription_plans_per_row) === option
+                            ? 'bg-white text-primary-600 shadow-sm dark:bg-dark-800 dark:text-primary-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                        ]"
+                        @click="form.payment_subscription_plans_per_row = option"
+                      >
+                        {{ option }}
+                      </button>
+                    </div>
+                    <p class="input-hint">{{ t("admin.settings.payment.plansPerRowHint") }}</p>
+                  </div>
+                </section>
+
+                <!-- Row 7 (Customization #16/#20): quick amounts + ranged top-up discount.
+                     Both are structured editors so the admin never has to hand-write a
+                     "100,500" list or a "100:2" mini-language. -->
+                <section class="rounded-xl border border-gray-200 p-4 dark:border-dark-600">
+                  <div class="flex items-start gap-2">
+                    <Icon name="gift" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
+                    <div>
+                      <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        {{ t("admin.settings.payment.discountTitle") }}
+                      </h4>
+                      <p class="input-hint mt-1">{{ t("admin.settings.payment.discountSectionHint") }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    <RechargeQuickAmountsEditor v-model="form.payment_recharge_quick_amounts" />
+                    <RechargeDiscountTiersEditor v-model="form.payment_recharge_discount_tiers" />
+                  </div>
+                </section>
               </template>
             </div>
           </div>
@@ -9228,6 +9216,8 @@ import Toggle from "@/components/common/Toggle.vue";
 import ProxySelector from "@/components/common/ProxySelector.vue";
 import ImageUpload from "@/components/common/ImageUpload.vue";
 import ContactEntriesEditor from "@/views/admin/settings/ContactEntriesEditor.vue";
+import RechargeQuickAmountsEditor from "@/views/admin/settings/RechargeQuickAmountsEditor.vue";
+import RechargeDiscountTiersEditor from "@/views/admin/settings/RechargeDiscountTiersEditor.vue";
 import BackupSettings from "@/views/admin/BackupView.vue";
 import EmailTemplateEditor from "@/views/admin/settings/EmailTemplateEditor.vue";
 import OpenAIFastPolicyUserSelector from "@/views/admin/settings/OpenAIFastPolicyUserSelector.vue";
@@ -9241,8 +9231,17 @@ import {
 import TotpStepUpDialog from "@/components/auth/TotpStepUpDialog.vue";
 import { affiliatesAPI, type AffiliateAdminEntry, type SimpleUser as AffiliateSimpleUser } from "@/api/admin/affiliates";
 import { extractApiErrorMessage, extractI18nErrorMessage } from "@/utils/apiError";
+import {
+  formatRechargeDiscountTiersText,
+  formatRechargeQuickAmountsText,
+  parseRechargeDiscountTiersText,
+  parseRechargeQuickAmountsText,
+} from "@/utils/rechargeTiers";
 import { useAppStore } from "@/stores";
 import { useAdminSettingsStore } from "@/stores/adminSettings";
+
+// Customization (#20): 1-6 segmented options for the subscription grid density.
+const PLAN_ROW_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 import { normalizeVisibleMethod } from "@/components/payment/paymentFlow";
 import {
   isRegistrationEmailSuffixDomainValid,
@@ -11897,12 +11896,19 @@ async function saveSettings() {
         6,
         Math.max(1, Number(form.payment_subscription_plans_per_row) || 3),
       ),
-      payment_recharge_quick_amounts: String(
-        form.payment_recharge_quick_amounts ?? "",
-      ).trim(),
-      payment_recharge_discount_tiers: String(
-        form.payment_recharge_discount_tiers ?? "",
-      ).trim(),
+      // Customization (#20): re-normalise through the shared parsers so a value that
+      // was pasted/edited by hand can never reach the backend malformed. The editors
+      // already emit canonical text; this is a harmless no-op for them.
+      payment_recharge_quick_amounts: formatRechargeQuickAmountsText(
+        parseRechargeQuickAmountsText(
+          String(form.payment_recharge_quick_amounts ?? ""),
+        ),
+      ),
+      payment_recharge_discount_tiers: formatRechargeDiscountTiersText(
+        parseRechargeDiscountTiersText(
+          String(form.payment_recharge_discount_tiers ?? ""),
+        ),
+      ),
       payment_cancel_rate_limit_enabled: form.payment_cancel_rate_limit_enabled,
       payment_cancel_rate_limit_max:
         Number(form.payment_cancel_rate_limit_max) || 10,

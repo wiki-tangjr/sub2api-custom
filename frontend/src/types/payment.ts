@@ -26,12 +26,20 @@ export type OrderType = 'balance' | 'subscription'
 // ==================== Configuration ====================
 
 /**
- * Customization (#16): one tiered recharge discount rule. When the user's top-up
- * amount reaches `threshold`, the gateway charge is reduced by `percent`.
+ * Customization (#16/#20): one recharge discount rule.
+ *
+ * The user's top-up amount must fall inside `[min, max]` for the gateway charge
+ * to be reduced by `percent`. `max = 0` means "no upper bound", which keeps the
+ * historic "top up at least X" semantics working unchanged.
+ *
+ * `threshold` is the legacy alias of `min`, still emitted by older backends and
+ * still accepted by the frontend so the preview never regresses.
  */
 export interface RechargeDiscountTier {
-  threshold: number
+  min: number
+  max: number
   percent: number
+  threshold?: number
 }
 
 export interface PaymentConfig {

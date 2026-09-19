@@ -111,3 +111,71 @@
 .markdown-body em {
   @apply italic text-gray-600 dark:text-gray-400;
 }
+
+/* ============================================================
+   Customization (#20): 充值/订阅页公告的内嵌紧凑排版。
+   完整版 .markdown-body 是给弹窗/公告铃铛大段内容用的，
+   内嵌在支付卡片里时标题字号过大、上下留白过多，这里做等比收敛，
+   全局公告弹窗不受影响（仅 .announcement-markdown 生效）。
+   ============================================================ */
+.announcement-markdown.markdown-body {
+  @apply text-sm leading-relaxed;
+}
+
+.announcement-markdown.markdown-body h1 {
+  @apply mb-3 mt-1 border-b-0 pb-0 text-lg font-semibold;
+}
+
+.announcement-markdown.markdown-body h2 {
+  @apply mb-2.5 mt-4 border-b-0 pb-0 text-base font-semibold;
+}
+
+.announcement-markdown.markdown-body h3 {
+  @apply mb-2 mt-3.5 text-[15px] font-semibold;
+}
+
+.announcement-markdown.markdown-body h4 {
+  @apply mb-1.5 mt-3 text-sm font-semibold;
+}
+
+.announcement-markdown.markdown-body p {
+  @apply mb-2.5;
+}
+
+.announcement-markdown.markdown-body > *:first-child {
+  @apply mt-0;
+}
+
+.announcement-markdown.markdown-body > *:last-child {
+  @apply mb-0;
+}
+
+.announcement-markdown.markdown-body ul,
+.announcement-markdown.markdown-body ol {
+  @apply mb-2.5 space-y-1;
+}
+
+.announcement-markdown.markdown-body blockquote {
+  @apply my-2.5 py-2 pl-4 pr-3;
+}
+
+.announcement-markdown.markdown-body pre {
+  @apply my-2.5 p-3.5;
+}
+
+.announcement-markdown.markdown-body img {
+  @apply my-2.5;
+}
+
+.announcement-markdown.markdown-body hr {
+  @apply my-4;
+}
+
+.announcement-markdown.markdown-body table {
+  @apply mb-2.5;
+}
+
+.announcement-markdown.markdown-body th,
+.announcement-markdown.markdown-body td {
+  @apply px-3 py-2;
+}

@@ -73,6 +73,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatPaymentAmount } from '@/components/payment/currency'
 import type { RechargeDiscountTier } from '@/types/payment'
+import { normalizeRechargeDiscountTiers, resolveRechargeDiscountPercent } from '@/utils/rechargeTiers'
 
 const props = withDefaults(defineProps<{
   amounts?: number[]
@@ -116,26 +117,17 @@ const placeholderText = computed(() => {
 
 const AMOUNT_PATTERN = /^\d*(\.\d{0,2})?$/
 
-// Customization (#16): tier metadata for the quick-amount cards. Everything below is
+// Customization (#16/#20): tier metadata for the quick-amount cards. Everything below is
 // inert until an admin saves discount tiers in the back office.
-const tiers = computed<RechargeDiscountTier[]>(() =>
-  (props.discountTiers || [])
-    .filter((tier) => Number.isFinite(tier?.threshold) && Number.isFinite(tier?.percent))
-    .filter((tier) => tier.threshold > 0 && tier.percent > 0 && tier.percent < 100)
-    .slice()
-    .sort((a, b) => a.threshold - b.threshold)
-)
+// Ranges are matched with the exact same rule as the Go backend
+// (resolveRechargeDiscountPercent) so the preview cannot drift from the real charge.
+const tiers = computed<RechargeDiscountTier[]>(() => props.discountTiers || [])
 
-const showTierDetails = computed(() => tiers.value.length > 0)
-const hasAnyDiscount = computed(() => tiers.value.some((tier) => tier.percent > 0))
+const showTierDetails = computed(() => normalizeRechargeDiscountTiers(tiers.value).length > 0)
+const hasAnyDiscount = computed(() => normalizeRechargeDiscountTiers(tiers.value).length > 0)
 
 function tierPercentFor(amount: number): number {
-  let best = 0
-  for (const tier of tiers.value) {
-    if (tier.threshold > amount) break
-    best = tier.percent
-  }
-  return best
+  return resolveRechargeDiscountPercent(amount, tiers.value)
 }
 
 function creditedFor(amount: number): number {

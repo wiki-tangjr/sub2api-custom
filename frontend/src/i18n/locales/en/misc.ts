@@ -295,6 +295,7 @@ export default {
     creditedBalance: 'Credited Balance',
     creditedAmount: 'Credited Amount',
     quickAmounts: 'Quick Amounts',
+    notice: 'Notice',
     discount: 'Discount',
     tierDiscountHint: 'The more you top up, the bigger the discount',
     customAmount: 'Custom Amount',

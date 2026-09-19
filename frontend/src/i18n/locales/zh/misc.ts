@@ -319,6 +319,7 @@ export default {
     creditedBalance: '到账余额',
     creditedAmount: '到账额度',
     quickAmounts: '快捷金额',
+    notice: '公告',
     discount: '优惠',
     tierDiscountHint: '充值越多，优惠越多',
     customAmount: '自定义金额',

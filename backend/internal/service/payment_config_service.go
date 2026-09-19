@@ -45,7 +45,7 @@ const (
 	SettingSubscriptionNotice      = "PAYMENT_SUBSCRIPTION_NOTICE"
 	SettingSubscriptionPlansPerRow = "SUBSCRIPTION_PLANS_PER_ROW"
 	// Customization (#16): admin-configurable quick recharge buttons and tiered discount.
-	SettingRechargeQuickAmounts = "RECHARGE_QUICK_AMOUNTS"
+	SettingRechargeQuickAmounts  = "RECHARGE_QUICK_AMOUNTS"
 	SettingRechargeDiscountTiers = "RECHARGE_DISCOUNT_TIERS"
 )
 
@@ -75,14 +75,26 @@ func normalizeSubscriptionPlansPerRow(n int) int {
 	return n
 }
 
-// RechargeDiscountTier 表示充值阶梯优惠：充值金额达到 Threshold 时，
-// 本次应付金额减免 Percent%（0 < Percent < 100）。
+// RechargeDiscountTier 表示充值优惠档位：充值的金额落在 [Min, Max] 区间内时，
+// 本次应付金额减免 Percent%（0 < Percent < 100）。Max 为 0 表示无上限（"满 X 减 Y%"）。
 //
-// Customization (#16): tiered recharge discount. 阈值按用户输入的充值金额
-// （即订单的 limitAmount）判定，与既有的 BALANCE_RECHARGE_MULTIPLIER 互不影响。
+// Customization (#16): tiered recharge discount.
+// Customization (#20): tiers became *ranges* instead of a single lower bound.
+// 判定始终基于订单真实金额（后端 limitAmount），前台自定义输入无法绕过。
+// Threshold 为 Min 的兼容别名，保留给尚未升级的旧客户端读取。
 type RechargeDiscountTier struct {
-	Threshold float64 `json:"threshold"`
+	Min       float64 `json:"min"`
+	Max       float64 `json:"max"`
 	Percent   float64 `json:"percent"`
+	Threshold float64 `json:"threshold"`
+}
+
+// tierLowerBound 兼容仅设置了 Threshold 的旧数据/旧调用方。
+func tierLowerBound(tier RechargeDiscountTier) float64 {
+	if tier.Min > 0 {
+		return tier.Min
+	}
+	return tier.Threshold
 }
 
 // PaymentConfig holds the payment system configuration.
@@ -126,7 +138,7 @@ type PaymentConfig struct {
 	// Customization (#16): quick recharge buttons and tiered recharge discount.
 	// Empty quick amounts mean "keep the built-in front-end defaults" so the
 	// historical page is unchanged until an admin opts in.
-	RechargeQuickAmounts []float64              `json:"recharge_quick_amounts"`
+	RechargeQuickAmounts  []float64              `json:"recharge_quick_amounts"`
 	RechargeDiscountTiers []RechargeDiscountTier `json:"recharge_discount_tiers"`
 }
 
@@ -327,7 +339,7 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 		SubscriptionNotice:      vals[SettingSubscriptionNotice],
 		SubscriptionPlansPerRow: normalizeSubscriptionPlansPerRow(pcParseInt(vals[SettingSubscriptionPlansPerRow], defaultSubscriptionPlansPerRow)),
 
-		RechargeQuickAmounts: parseRechargeQuickAmounts(vals[SettingRechargeQuickAmounts]),
+		RechargeQuickAmounts:  parseRechargeQuickAmounts(vals[SettingRechargeQuickAmounts]),
 		RechargeDiscountTiers: parseRechargeDiscountTiers(vals[SettingRechargeDiscountTiers]),
 	}
 	cfg.AlipayMobilePrecreateDeepLink = pcEnvBoolOverride(

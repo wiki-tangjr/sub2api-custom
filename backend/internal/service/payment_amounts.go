@@ -112,9 +112,74 @@ func formatRechargeQuickAmounts(vals []float64) string {
 	return strings.Join(parts, ",")
 }
 
-// parseRechargeDiscountTiers 解析 `threshold:percent` 形式的阶梯优惠配置。
-// 例：`100:2,500:3,1000:5` 表示充值满 100 减 2%、满 500 减 3%、满 1000 减 5%。
-// 百分比必须满足 0 < percent < 100，否则丢弃；按 threshold 升序返回。
+// parseRechargeTierRange 解析档位的金额区间，支持以下写法：
+//
+//	`100`      -> [100, ∞)      满 100
+//	`100-500`  -> [100, 500]    100 到 500
+//	`100~500`  -> [100, 500]    （也接受全角 ～、—、–）
+//	`100-`     -> [100, ∞)
+//	`-500`     -> [0, 500]
+//
+// Customization (#20): 优惠档位由单一门槛升级为区间，便于后台配置
+// "多少钱到多少钱优惠多少"。返回 ok=false 表示该写法非法。
+func parseRechargeTierRange(raw string) (float64, float64, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, 0, false
+	}
+	for _, sep := range []string{"~", "\uff5e", "\u2014", "\u2013"} {
+		if i := strings.Index(raw, sep); i >= 0 {
+			return finishRechargeTierRange(raw[:i], raw[i+len(sep):])
+		}
+	}
+	if i := strings.Index(raw, "-"); i >= 0 {
+		return finishRechargeTierRange(raw[:i], raw[i+1:])
+	}
+	return finishRechargeTierRange(raw, "")
+}
+
+func finishRechargeTierRange(minText, maxText string) (float64, float64, bool) {
+	minText = strings.TrimSpace(minText)
+	maxText = strings.TrimSpace(maxText)
+	minVal := 0.0
+	if minText != "" {
+		v, err := strconv.ParseFloat(minText, 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
+			return 0, 0, false
+		}
+		minVal = v
+	} else if maxText == "" {
+		return 0, 0, false
+	}
+	maxVal := 0.0
+	if maxText != "" {
+		v, err := strconv.ParseFloat(maxText, 64)
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v <= 0 {
+			return 0, 0, false
+		}
+		maxVal = v
+	}
+	minVal = decimal.NewFromFloat(minVal).Round(2).InexactFloat64()
+	if maxVal > 0 {
+		maxVal = decimal.NewFromFloat(maxVal).Round(2).InexactFloat64()
+		if maxVal < minVal {
+			return 0, 0, false
+		}
+	}
+	// 上下限都没有的档位（如 "0:5" / "0-0:5"）对任何金额都成立，
+	// 会让优惠变成无条件生效；这里直接判为非法配置。
+	if minVal <= 0 && maxVal <= 0 {
+		return 0, 0, false
+	}
+	return minVal, maxVal, true
+}
+
+// parseRechargeDiscountTiers 解析充值优惠档位配置，支持"满减"与"区间"两种写法：
+//
+//	`100:2,500:3`        -> 满 100 减 2%，满 500 减 3%（沿用 #16 旧格式）
+//	`100-500:2,500-:5`   -> 100~500 减 2%，满 500 减 5%（#20 区间格式）
+//
+// 百分比必须满足 0 < percent < 100，否则丢弃；结果按区间下限升序返回。
 func parseRechargeDiscountTiers(raw string) []RechargeDiscountTier {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -122,8 +187,11 @@ func parseRechargeDiscountTiers(raw string) []RechargeDiscountTier {
 	}
 	replacer := strings.NewReplacer("\uff0c", ",", "\uff1b", ",", ";", ",", "\n", ",", "\t", ",", " ", ",")
 	fields := strings.Split(replacer.Replace(raw), ",")
-	byThreshold := make(map[float64]float64, len(fields))
-	order := make([]float64, 0, len(fields))
+	type tierKey struct {
+		min, max float64
+	}
+	byKey := make(map[tierKey]float64, len(fields))
+	keys := make([]tierKey, 0, len(fields))
 	for _, f := range fields {
 		f = strings.TrimSpace(f)
 		if f == "" {
@@ -137,37 +205,51 @@ func parseRechargeDiscountTiers(raw string) []RechargeDiscountTier {
 		if len(parts) != 2 {
 			continue
 		}
-		threshold, errT := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+		minVal, maxVal, ok := parseRechargeTierRange(parts[0])
+		if !ok {
+			continue
+		}
 		percent, errP := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
-		if errT != nil || errP != nil {
+		if errP != nil || math.IsNaN(percent) || math.IsInf(percent, 0) || percent <= 0 || percent >= 100 {
 			continue
 		}
-		if math.IsNaN(threshold) || math.IsInf(threshold, 0) || threshold <= 0 {
-			continue
-		}
-		if math.IsNaN(percent) || math.IsInf(percent, 0) || percent <= 0 || percent >= 100 {
-			continue
-		}
-		threshold = decimal.NewFromFloat(threshold).Round(2).InexactFloat64()
 		percent = decimal.NewFromFloat(percent).Round(4).InexactFloat64()
-		if threshold <= 0 || percent <= 0 || percent >= 100 {
+		if percent <= 0 || percent >= 100 {
 			continue
 		}
-		if _, ok := byThreshold[threshold]; !ok {
-			order = append(order, threshold)
+		k := tierKey{minVal, maxVal}
+		if _, seen := byKey[k]; !seen {
+			keys = append(keys, k)
 		}
-		byThreshold[threshold] = percent
+		byKey[k] = percent
 	}
-	if len(order) == 0 {
+	if len(keys) == 0 {
 		return nil
 	}
-	sort.Float64s(order)
-	if len(order) > maxRechargeDiscountTiers {
-		order = order[:maxRechargeDiscountTiers]
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].min != keys[j].min {
+			return keys[i].min < keys[j].min
+		}
+		// 上限 0（无上限）排在后面，保证"窄区间优先"的直觉顺序。
+		if keys[i].max == 0 {
+			return false
+		}
+		if keys[j].max == 0 {
+			return true
+		}
+		return keys[i].max < keys[j].max
+	})
+	if len(keys) > maxRechargeDiscountTiers {
+		keys = keys[:maxRechargeDiscountTiers]
 	}
-	out := make([]RechargeDiscountTier, 0, len(order))
-	for _, t := range order {
-		out = append(out, RechargeDiscountTier{Threshold: t, Percent: byThreshold[t]})
+	out := make([]RechargeDiscountTier, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, RechargeDiscountTier{
+			Min:       k.min,
+			Max:       k.max,
+			Percent:   byKey[k],
+			Threshold: k.min,
+		})
 	}
 	return out
 }
@@ -184,27 +266,65 @@ func formatRechargeDiscountTiers(tiers []RechargeDiscountTier) string {
 	}
 	parts := make([]string, 0, len(tiers))
 	for _, t := range tiers {
-		parts = append(parts, strconv.FormatFloat(t.Threshold, 'f', -1, 64)+":"+strconv.FormatFloat(t.Percent, 'f', -1, 64))
+		lower := tierLowerBound(t)
+		rangeText := strconv.FormatFloat(lower, 'f', -1, 64)
+		// Customization (#20): 只在上限显式存在时才写区间，旧的"满 X"配置原样保留。
+		if t.Max > 0 {
+			rangeText += "-" + strconv.FormatFloat(t.Max, 'f', -1, 64)
+		}
+		parts = append(parts, rangeText+":"+strconv.FormatFloat(t.Percent, 'f', -1, 64))
 	}
 	return strings.Join(parts, ",")
 }
 
-// resolveRechargeDiscountPercent 返回命中阶梯的优惠百分比；无命中返回 0。
-// 阶梯按阈值升序，取"阈值不超过充值金额"的最后一条（即最高档）。
+// resolveRechargeDiscountPercent 返回命中档位的优惠百分比；无命中返回 0。
+//
+// Customization (#20): 改为区间匹配 [Min, Max]（Max=0 表示无上限）。
+// 若多个区间同时覆盖该金额，取"下限最高、其次上限最窄"的那条，
+// 让管理员后续补充的精细化档位可以覆盖旧的宽泛档位。
+// 判定与调用顺序无关，且与前端预览逻辑保持一致。
 func resolveRechargeDiscountPercent(amount float64, tiers []RechargeDiscountTier) float64 {
 	if len(tiers) == 0 || math.IsNaN(amount) || math.IsInf(amount, 0) || amount <= 0 {
 		return 0
 	}
-	best := 0.0
+	bestPercent := 0.0
+	bestLower := -1.0
+	bestUpper := -1.0
+	matched := false
 	for _, tier := range tiers {
-		if tier.Threshold > amount {
-			break
+		if tier.Percent <= 0 || tier.Percent >= 100 {
+			continue
 		}
-		if tier.Percent > 0 && tier.Percent < 100 {
-			best = tier.Percent
+		lower := tierLowerBound(tier)
+		if amount < lower {
+			continue
+		}
+		if tier.Max > 0 && amount > tier.Max {
+			continue
+		}
+		narrower := false
+		switch {
+		case !matched:
+			narrower = true
+		case lower > bestLower:
+			narrower = true
+		case lower == bestLower:
+			// 同下限时优先更窄的上限（无上限视为最宽）。
+			if tier.Max > 0 && (bestUpper <= 0 || tier.Max < bestUpper) {
+				narrower = true
+			}
+		}
+		if narrower {
+			matched = true
+			bestPercent = tier.Percent
+			bestLower = lower
+			bestUpper = tier.Max
 		}
 	}
-	return best
+	if !matched {
+		return 0
+	}
+	return bestPercent
 }
 
 // applyRechargeDiscount 按阶梯优惠折算实付金额。percent 为 0 时原样返回，

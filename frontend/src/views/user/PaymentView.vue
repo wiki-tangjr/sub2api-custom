@@ -49,10 +49,26 @@
               <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
             </div>
             <template v-else>
-            <div v-if="checkout.recharge_notice" class="card border border-primary-100 bg-primary-50/60 p-4 dark:border-dark-700 dark:bg-dark-800">
-              <div class="flex items-start gap-2">
-                <Icon name="bell" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
-                <div class="markdown-body min-w-0 flex-1 overflow-x-auto break-words text-sm text-gray-700 dark:text-gray-200" v-html="renderedRechargeNotice"></div>
+            <!-- Customization (#15/#20): recharge notice. Rendered only when the admin
+                 has configured one, so the page stays pixel-identical when empty. -->
+            <div
+              v-if="checkout.recharge_notice"
+              class="card overflow-hidden border border-primary-100 p-0 dark:border-dark-700"
+            >
+              <div class="h-1 w-full bg-gradient-to-r from-primary-400 via-primary-500 to-primary-300"></div>
+              <div class="p-4 sm:p-5">
+                <div class="mb-3 flex items-center gap-2.5">
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                    <Icon name="bell" size="sm" />
+                  </span>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ t('payment.notice') }}
+                  </p>
+                </div>
+                <div
+                  class="markdown-body announcement-markdown min-w-0 overflow-x-auto break-words border-t border-primary-100/70 pt-3 dark:border-dark-700"
+                  v-html="renderedRechargeNotice"
+                ></div>
               </div>
             </div>
             <div class="card p-6">
@@ -206,10 +222,26 @@
             </template>
             <!-- Plan list -->
             <template v-else>
-              <div v-if="checkout.subscription_notice" class="card border border-primary-100 bg-primary-50/60 p-4 dark:border-dark-700 dark:bg-dark-800">
-                <div class="flex items-start gap-2">
-                  <Icon name="bell" size="sm" class="mt-0.5 shrink-0 text-primary-500" />
-                  <div class="markdown-body min-w-0 flex-1 overflow-x-auto break-words text-sm text-gray-700 dark:text-gray-200" v-html="renderedSubscriptionNotice"></div>
+              <!-- Customization (#15/#20): subscription notice. Only rendered when
+                   configured, keeping the default plan list unchanged. -->
+              <div
+                v-if="checkout.subscription_notice"
+                class="card overflow-hidden border border-primary-100 p-0 dark:border-dark-700"
+              >
+                <div class="h-1 w-full bg-gradient-to-r from-primary-400 via-primary-500 to-primary-300"></div>
+                <div class="p-4 sm:p-5">
+                  <div class="mb-3 flex items-center gap-2.5">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                      <Icon name="bell" size="sm" />
+                    </span>
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                      {{ t('payment.notice') }}
+                    </p>
+                  </div>
+                  <div
+                    class="markdown-body announcement-markdown min-w-0 overflow-x-auto break-words border-t border-primary-100/70 pt-3 dark:border-dark-700"
+                    v-html="renderedSubscriptionNotice"
+                  ></div>
                 </div>
               </div>
               <div v-if="checkout.plans.length === 0" class="card py-16 text-center">
@@ -301,6 +333,7 @@ import { extractApiErrorMessage, extractI18nErrorMessage } from '@/utils/apiErro
 import { isMobileDevice } from '@/utils/device'
 import { hasPeakRate, formatPeakRateWindow, serverTimezoneLabel, type PeakRateFields } from '@/utils/peak-rate'
 import type { SubscriptionPlan, CheckoutInfoResponse, CreateOrderResult, OrderType, RechargeDiscountTier } from '@/types/payment'
+import { normalizeRechargeDiscountTiers, resolveRechargeDiscountPercent } from '@/utils/rechargeTiers'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import AmountInput from '@/components/payment/AmountInput.vue'
 import PaymentMethodSelector from '@/components/payment/PaymentMethodSelector.vue'
@@ -598,26 +631,19 @@ const quickAmounts = computed<number[]>(() => {
   return cleaned.length > 0 ? cleaned : DEFAULT_QUICK_AMOUNTS
 })
 
-// Customization (#16): tiered recharge discount. Mirrors the backend rule so the preview
-// matches what the gateway will actually charge; the backend remains the source of truth.
+// Customization (#16/#20): tiered recharge discount. Mirrors the backend rule so the
+// preview matches what the gateway will actually charge; the backend remains the
+// source of truth and re-derives the discount from the real order amount, so a
+// hand-typed custom amount can never bypass or inflate the configured range.
 const rechargeDiscountTiers = computed<RechargeDiscountTier[]>(() =>
-  (Array.isArray(checkout.value.recharge_discount_tiers) ? checkout.value.recharge_discount_tiers : [])
-    .filter((tier) => Number.isFinite(tier?.threshold) && Number.isFinite(tier?.percent))
-    .filter((tier) => tier.threshold > 0 && tier.percent > 0 && tier.percent < 100)
-    .slice()
-    .sort((a, b) => a.threshold - b.threshold)
+  normalizeRechargeDiscountTiers(
+    Array.isArray(checkout.value.recharge_discount_tiers) ? checkout.value.recharge_discount_tiers : [],
+  ),
 )
 
-const rechargeDiscountPercent = computed(() => {
-  const amount = validAmount.value
-  if (amount <= 0) return 0
-  let best = 0
-  for (const tier of rechargeDiscountTiers.value) {
-    if (tier.threshold > amount) break
-    best = tier.percent
-  }
-  return best
-})
+const rechargeDiscountPercent = computed(() =>
+  resolveRechargeDiscountPercent(validAmount.value, rechargeDiscountTiers.value),
+)
 
 const rechargeDiscountAmount = computed(() => {
   const percent = rechargeDiscountPercent.value
