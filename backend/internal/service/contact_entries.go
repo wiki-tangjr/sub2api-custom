@@ -19,6 +19,7 @@ type legacyContactEntry struct {
 	QRCode      string `json:"qr_code,omitempty"`
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
+	Group       string `json:"group,omitempty"`
 	Display     string `json:"display"`
 	OpenTarget  string `json:"open_target"`
 	SortOrder   int    `json:"sort_order"`

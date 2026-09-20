@@ -357,6 +357,37 @@ g "区间摘要文案 en"        tierSummaryRange                   frontend/src
 g "文档已记录区间化"       "区间"                             CUSTOMIZATIONS.md
 end
 
+# ============ #23 客服条目分组 + 后台实时预览 + 悬停卡片修正（2026-09-20）============
+begin "#23 客服条目分组 + 后台实时预览 + 悬停卡片修正"
+# group 字段必须前后端镜像（少一边就会静默丢数据）
+g "DTO group 字段"         'json:"group,omitempty"'  backend/internal/handler/dto/contact_entries.go
+g "service 镜像结构"       'json:"group,omitempty"'  backend/internal/service/contact_entries.go
+g "写入校验 group"         'item.Group = strings.TrimSpace(item.Group)'  backend/internal/handler/admin/setting_contact_entries.go
+g "group 长度上限"         maxContactGroupLen                            backend/internal/handler/admin/setting_contact_entries.go
+g "前端类型 group"         group?:                                    frontend/src/types/index.ts
+# 前台渲染：分组 + 触屏兜底 + 悬停卡片定位
+g "前台分组渲染"           groupedEntries                              frontend/src/components/common/ContactEntries.vue
+g "分组不渲染空标题"       "if (!hasGroup) return [{ key: 'all', title: '', items }]" frontend/src/components/common/ContactEntries.vue
+g "悬停卡片方向修正"       hoverCardClass                              frontend/src/components/common/ContactEntries.vue
+g "顶栏下拉右对齐"         "if (props.variant === 'dropdown') return 'right-0 w-64'" frontend/src/components/common/ContactEntries.vue
+g "触屏可悬停探测"         canHover                                    frontend/src/components/common/ContactEntries.vue
+g "触屏点击回退弹窗"       "if (displayOf(item) === 'hover' && canHover.value) return" frontend/src/components/common/ContactEntries.vue
+# 后台：实时预览 + 图标预览 + 控件提示
+g "后台实时预览"           previewEntries                              frontend/src/views/admin/settings/ContactEntriesEditor.vue
+g "后台预览区块文案"       previewTitle                                frontend/src/views/admin/settings/ContactEntriesEditor.vue
+g "后台分组输入"           groupDatalistId                             frontend/src/views/admin/settings/ContactEntriesEditor.vue
+g "后台控件提示"           displayHint                                 frontend/src/views/admin/settings/ContactEntriesEditor.vue
+# 文案必须两种语言都有
+g "中文 #23 文案"          displayHoverHint                            frontend/src/i18n/locales/zh/admin/settings.ts
+g "英文 #23 文案"          displayHoverHint                            frontend/src/i18n/locales/en/admin/settings.ts
+# 单测
+f "前台单测"               frontend/src/components/common/__tests__/ContactEntries.spec.ts
+g "单测覆盖分组"           "groups adjacent entries that share the same group name" frontend/src/components/common/__tests__/ContactEntries.spec.ts
+g "单测覆盖触屏兜底"       "opens the modal when a hover entry is tapped on a device without hover support" frontend/src/components/common/__tests__/ContactEntries.spec.ts
+# 文档
+g "文档已记录 #23"         "客服条目分组"                              CUSTOMIZATIONS.md
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then
@@ -396,6 +427,16 @@ if [ "$LIVE" -eq 1 ]; then
     ok "#12 公开设置返回 contact_entries"
   else
     bad "#12 公开设置缺少 contact_entries（前台读不到客服条目）"
+  fi
+
+  # #23: group 是纯可选字段，老配置的公开设置里不应出现 group（保证前台零变化）
+  PUB=$(curl -s ${CB}/api/v1/settings/public 2>/dev/null)
+  if printf '%s' "$PUB" | grep -Fqs contact_entries; then
+    if printf '%s' "$PUB" | grep -Fqs '"group"'; then
+      warn "#23 公开设置已含 group 字段（说明后台已启用分组，前台会显示分组标题）"
+    else
+      ok "#23 老配置无 group，前台与 #12 表现一致"
+    fi
   fi
 
   CC=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS ${CB}/v1/chat/completions -H 'Origin: https://x' -H 'Access-Control-Request-Method: POST' 2>/dev/null)

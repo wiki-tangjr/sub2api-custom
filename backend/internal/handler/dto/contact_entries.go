@@ -25,9 +25,12 @@ type ContactEntry struct {
 	QRCode      string `json:"qr_code,omitempty"`
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
-	Display     string `json:"display"`     // "modal" | "hover" | "inline"
-	OpenTarget  string `json:"open_target"` // "new_tab" | "current_tab"
-	SortOrder   int    `json:"sort_order"`
+	// 魔改 #23: 可选分组名（<=30 字符）。同组相邻条目在前台带分组小标题；
+	// 留空时前台不渲染任何分组标题，表现与 #12 一致。
+	Group      string `json:"group,omitempty"`
+	Display    string `json:"display"`     // "modal" | "hover" | "inline"
+	OpenTarget string `json:"open_target"` // "new_tab" | "current_tab"
+	SortOrder  int    `json:"sort_order"`
 }
 
 // ParseContactEntries parses the #12 contact-entry JSON array.

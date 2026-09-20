@@ -17,6 +17,7 @@ const (
 	maxContactURLLen   = 2048
 	maxContactValueLen = 200
 	maxContactDescLen  = 200
+	maxContactGroupLen = 30
 	maxContactIconLen  = 500 * 1024
 	maxContactQRLen    = 2 * 1024 * 1024
 	maxContactIDLen    = 32
@@ -129,6 +130,13 @@ func validateContactEntries(req *[]dto.ContactEntry, previous string, c *gin.Con
 
 		if len([]rune(item.Description)) > maxContactDescLen {
 			response.BadRequest(c, "Contact entry description is too long (max 200 characters)")
+			return "", false
+		}
+
+		// 魔改 #23: 可选分组名。留空表示不分组。
+		item.Group = strings.TrimSpace(item.Group)
+		if len([]rune(item.Group)) > maxContactGroupLen {
+			response.BadRequest(c, "Contact entry group is too long (max 30 characters)")
 			return "", false
 		}
 

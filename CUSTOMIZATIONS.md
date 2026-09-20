@@ -338,4 +338,28 @@ bash scripts/customizations-verify.sh --live     # 发布后复验
 
 ---
 
+### 23. 客服条目分组 + 后台实时预览 + 悬停卡片修正 —— 2026-09-20
+
+> 本轮是对第 12 节「客服联系方式条目」的**完善丰富**（需求原话：可自定义图标/名称/链接/展示方式，还要支持 Telegram 群组与微信群组、二维码或链接、链接可选新标签页或当前页打开）。
+> #12 已实现条目增删改 + `icon_type`(emoji|image) / `type`(link|qrcode|text) / `display`(modal|hover|inline) / `open_target`(new_tab|current_tab) / `sort_order`，本轮补齐下面这些。
+
+- **新增：条目分组（`group`，可选，≤30 字符）**
+  - 前后端**镜像字段**：`backend/internal/handler/dto/contact_entries.go` 的 `ContactEntry` 与 `backend/internal/service/contact_entries.go` 的 `legacyContactEntry` **必须同时加**，少一边会静默丢数据。
+  - 写入校验在 `backend/internal/handler/admin/setting_contact_entries.go`（`maxContactGroupLen = 30`，`TrimSpace` + rune 计数）。
+  - 前台规则：**同名且相邻**的条目聚成一组并显示分组小标题；`group` 全为空时退化为单个匿名组，**不渲染任何标题** → 老配置前台与 #12 逐像素一致。
+- **新增：后台实时预览**
+  - `ContactEntriesEditor.vue` 底部「前台效果预览」区块，直接复用共享组件 `ContactEntries` 渲染已启用条目，管理员改完立即对照，不用反复切前台。
+  - 条目行标题增加 `ContactEntryIcon` 图标预览 + `group` 徽章；`group` 输入框带 `<datalist>` 联想已有分组名，方便复用。
+- **修复：悬停卡片溢出屏幕**
+  - 顶栏下拉菜单靠在屏幕右侧，原 `left-0` 会让悬停卡片向右溢出 → 新增 `hoverCardClass`：`dropdown` → `right-0`，`list`/`card` → `left-0`；卡片同时加宽（`w-72`，dropdown 变体 `w-64`）、加 `z-40`、`max-w-[calc(100vw-2rem)]`、图标 + 标题。
+- **修复：触屏设备 hover 条目不可达**
+  - 原来 `hover` 条目在触屏上点击不动作 → 内容等于不可用。新增 `canHover`（`matchMedia('(hover: hover) and (pointer: fine)')`）：**触屏点击回退弹窗**，桌面端点击仍不动作（保持 #12 行为）。
+- **控件可用性提示**：display（弹窗/悬停/内联）、open_target、group、二维码路径、文本值各加一行 hint 文案，说明该控件适合什么场景。
+- **零影响保障**：**没有引入任何新 DB 设置键**，`group` 只是 `contact_entries` JSON 里的新可选字段；旧数据无 `group` → 前台零变化。曾考虑给 `qrcode` 类型复用 `url` 字段加跳转按钮，**已主动回退**（历史条目切换类型后会残留 URL，会让前台凭空多出按钮，破坏零视觉变化约束）。
+- **验证**：新增 `frontend/src/components/common/__tests__/ContactEntries.spec.ts` 7 个用例全绿；`pnpm run check:i18n` 3/3；`vue-tsc` typecheck 通过；后端 `gofmt` 干净 + `go build -tags embed` 通过；前端全量测试与改动前基线**完全一致**（同为 4 个既存失败，与本次无关）。
+- **关键文件**：`frontend/src/components/common/ContactEntries.vue`、`frontend/src/views/admin/settings/ContactEntriesEditor.vue`、`frontend/src/types/index.ts`、`backend/internal/handler/dto/contact_entries.go`、`backend/internal/service/contact_entries.go`、`backend/internal/handler/admin/setting_contact_entries.go`、两个 `admin/settings.ts`。
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#23**。
+
+---
+
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

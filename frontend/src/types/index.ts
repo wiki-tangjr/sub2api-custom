@@ -226,6 +226,8 @@ export interface ContactEntry {
   qr_code?: string
   value?: string
   description?: string
+  /** 魔改 #23: 可选分组名，同组相邻条目在前台带分组小标题 */
+  group?: string
   display: 'modal' | 'hover' | 'inline'
   open_target: 'new_tab' | 'current_tab'
   sort_order: number
