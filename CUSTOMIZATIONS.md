@@ -362,4 +362,63 @@ bash scripts/customizations-verify.sh --live     # 发布后复验
 
 ---
 
+---
+
+### 24. 四项体验修复：客服悬停卡片 / 移动端备案吸顶 / 全站弹窗遮罩关闭 / 移除无效侧栏入口 —— 2026-09-21
+
+> 本轮来自用户报障 4 条：
+> 1. 客服「鼠标悬停」悬浮窗鼠标一移上去就消失，里面的内容点不到、复制不了；
+> 2. ICP 备案 / 公安备案信息在移动端下滑时「卡在屏幕上」悬浮，不随文档滚动；
+> 3. 全站所有弹窗希望点周围空白区域即可关闭，而不是必须点关闭按钮；
+> 4. 管理员侧栏「安全审计」点击后进 404。
+> **用户中途改需求**：第 4 条不要修复路由，而是**直接删除这个多余菜单**。已按此执行。
+
+#### 24.1 客服悬停卡片点不到（#12 / #23 的回归修复）
+
+- **根因**：卡片用 `mt-1.5`（margin）与触发按钮拉开距离。margin 不属于悬停容器，指针从按钮移向卡片时必须穿过这段「死区」，`mouseleave` 立刻触发 → 卡片消失，永远点不到里面的复制按钮。
+- **修复**：把 `mt-1.5` 改成外层容器 `pt-1.5`（padding 属于容器内部）→ 死区并入悬停区域，指针不再被判定为离开。
+- **增强**：新增 `HOVER_CLOSE_DELAY = 180`（ms）延时关闭 + `clearHoverCloseTimer()`；`onBeforeUnmount` 一并清理定时器，避免组件卸载后 setState。给手抖 / 触控板用户额外容错。
+- **零影响**：桌面端 hover 行为与 #23 一致，仅「关闭」由即时改为 180ms 后；卡片定位、宽度、右对齐逻辑全部未动。
+- **验证**：`ContactEntries.spec.ts` 7 → **8 个用例**（原「mouseleave 立即隐藏」改为 fake timers 延时断言，新增「短暂离开后返回卡片保持打开」）。
+
+#### 24.2 移动端备案信息吸顶 / 悬浮
+
+- **根因（用 WebKit 真机引擎复现，Chromium 复现不出）**：`/login` 等 AuthLayout 页面存在**双重滚动容器** —— 外层 `overflow-x-hidden`（WebKit 会计算成 `overflow-y: auto`）+ 内层 `flex-1 overflow-y-auto`；叠加备案药丸的 `backdrop-blur-sm`（产生合成层 / GPU layer）→ iOS Safari 滚动时合成层「吸附」在视口上。
+- **修复**：
+  - `AuthLayout.vue` 外层 `overflow-x-hidden` → **`overflow-x-clip`**（不隐式开启纵向滚动），内层去掉 `overflow-y-auto` + `min-h-0`；
+  - `AuthLayout.vue` 两个备案药丸去掉 `backdrop-blur-sm`，`bg-white/50` → `bg-white/80`、`dark:bg-dark-800/40` → `dark:bg-dark-800/70`（视觉基本不变，但不再生成毛玻璃合成层）；
+  - `AppLayout.vue` footer 同样去掉 `backdrop-blur-sm`，`bg-white/40` → `bg-white/60`、`dark:bg-dark-900/30` → `dark:bg-dark-900/40`。
+- **未改** `HomeView.vue`：其 footer 是 `relative z-10`、无 blur，WebKit 实测正常，属 compact-home / 默认首页另一分支。
+- **零影响**：仅登录/注册等 AuthLayout 页面与 AppLayout footer 的背景透明度微调，备案号、链接、图标、跳转行为完全不变。
+
+#### 24.3 全站弹窗点遮罩关闭
+
+- **修复**：`BaseDialog.vue` 默认值 `closeOnClickOutside: false` → **`true`**。该组件被 79 个弹窗复用，一次改动全覆盖；用户可在调用处显式传 `false` 关闭该行为。
+- **补 3 处不走 BaseDialog 的自定义弹窗**（服务器全量扫描 `fixed inset-0` 覆盖层 37 处后确认仅这 3 处缺失）：
+  - `AnnouncementPopup.vue`：遮罩 div 加 `@click="handleDismiss"`（panel 原有 `@click.stop` 保留，点内容不会误关）；
+  - `TotpLoginModal.vue`：背景层加 `@click="$emit('cancel')"`；
+  - `LoginAgreementPrompt.vue`：遮罩加 `@click.self="emit('reject')"`（拒绝 = 关闭语义，与底部按钮一致）。
+- **必须保留的例外（重要）**：`components/admin/AdminComplianceDialog.vue` 已显式传 `:close-on-click-outside="false"` + `:close-on-escape="false"` + `:show-close-button="false"` —— 这是**合规阻断弹窗（不签署不能继续使用）**，默认值改 `true` **不影响它**。体检脚本已加断言锁死这个例外，防止以后被误改。
+- **零影响**：不改任何弹窗的内容、布局、动效；唯一变化是「点空白能关」。
+
+#### 24.4 移除点击即 404 的「安全审计」侧栏入口
+
+- **根因**：侧栏父项 `expandOnly: true` 使用的 `path: '/admin/security-audit'` **没有对应路由**，点击即 404。
+- **用户决策**：不修复路由，**直接删除该菜单**（判定为多余）。
+- **改动**：删除整个 nav 块（含 children `risk-control` / `prompt-audit`）；连带删除仅它使用的 `const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)`（否则 `noUnusedLocals: true` 会编译失败）。
+- **顺带修复的 v-if 链断裂（回归）**：`AppSidebar.vue` 在 personal / user 两段循环里，外链分支写成 `v-if="item.externalUrl"` 导致后面的 `v-else` 被拆断；已按 admin 段（第 95 行）统一改回 `v-else-if`。**注意：admin 段必须保留 `v-else-if`，另外两段必须保持 `v-if` 各一处，共 3 处外链分支。**
+- **路由保留**：`/admin/risk-control`、`/admin/prompt-audit` 路由**仍在 router 中**（仍可从设置页进入），只是不再出现在侧栏。体检脚本同时断言「侧栏不含」+「路由仍在」，防止以后有人顺手把功能删掉。
+- **验证**：`integrationSurface.spec.ts` 第 2 个用例重写为断言 router 有路由 + sidebar 无该入口；`AppSidebar.spec.ts` 10/10 通过。
+
+#### 验证与发布
+
+- `pnpm exec vue-tsc --noEmit` → **EXIT=0**
+- 定向测试 7 文件 / **37 用例全绿**（含 `ContactEntries` 8、`AppSidebar` 10、`AnnouncementPopup` 12、`integrationSurface` 3、`BaseDialog` 1+2、`TotpLoginModal` 1）
+- 全量 `pnpm exec vitest run` → **2 failed / 2287 passed**，与改动前基线**完全一致**（`useRoutePrefetch.spec.ts` 的 requestIdleCallback、`SettingsView.spec.ts` 的 custom_menu_items，两项既存失败与本轮无关）
+- **零中断发布**：`scripts/build-and-stage.sh`（8081 灰度体检）→ `scripts/zero-downtime-deploy.sh`（蓝绿 + 连接排空）→ `scripts/customizations-verify.sh --live`
+- **关键文件**：`frontend/src/components/common/ContactEntries.vue`、`frontend/src/components/common/BaseDialog.vue`、`frontend/src/components/common/AnnouncementPopup.vue`、`frontend/src/components/auth/TotpLoginModal.vue`、`frontend/src/components/auth/LoginAgreementPrompt.vue`、`frontend/src/components/layout/AppLayout.vue`、`frontend/src/components/layout/AuthLayout.vue`、`frontend/src/components/layout/AppSidebar.vue`、两个测试文件
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#24**（含「合规弹窗例外」「侧栏删入口但路由保留」「外链分支 v-if 数量」三类防回归断言）
+
+> **升级注意（写给未来的自己）**：本节 4 项中，24.2 依赖 `AuthLayout.vue` / `AppLayout.vue` 的 footer 结构；24.3 依赖 `BaseDialog.vue` 的 `closeOnClickOutside` 默认值；24.4 依赖 `AppSidebar.vue` 中 `'/admin/security-audit'` **不存在**。上游若重构这三处，升级后必须重新按本节逻辑适配，不要只看体检脚本是否绿。
+
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

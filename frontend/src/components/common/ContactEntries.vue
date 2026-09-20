@@ -77,19 +77,24 @@
               />
             </button>
 
-            <!-- 魔改 #23: 悬停卡片加宽并带图标 + 说明，避免长内容被挤成一团 -->
+            <!-- 魔改 #24: 悬停卡片用 pt-1.5 内边距把按钮与卡片之间的空隙并入
+                 可悬停区域（原来 mt-1.5 的 6px 空隙会让鼠标在移动途中触发
+                 mouseleave，卡片消失导致复制按钮点不到）；同时 hoverOut 采用
+                 延时关闭，作为移动过程中抖动/越界的兜底。 -->
             <div
               v-if="hoverShown(item)"
-              class="absolute top-full z-40 mt-1.5 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-200 bg-white p-3.5 text-left shadow-xl dark:border-dark-600 dark:bg-dark-800"
+              class="absolute top-full z-40 max-w-[calc(100vw-2rem)] pt-1.5"
               :class="hoverCardClass"
             >
-              <div class="mb-2 flex items-center gap-2">
-                <ContactEntryIcon :entry="item" size="md" />
-                <p class="min-w-0 flex-1 truncate text-xs font-semibold text-gray-700 dark:text-gray-200">
-                  {{ item.label }}
-                </p>
+              <div class="rounded-xl border border-gray-200 bg-white p-3.5 text-left shadow-xl dark:border-dark-600 dark:bg-dark-800">
+                <div class="mb-2 flex items-center gap-2">
+                  <ContactEntryIcon :entry="item" size="md" />
+                  <p class="min-w-0 flex-1 truncate text-xs font-semibold text-gray-700 dark:text-gray-200">
+                    {{ item.label }}
+                  </p>
+                </div>
+                <ContactEntryBody :entry="item" @copied="notifyCopied" @failed="notifyCopyFailed" />
               </div>
-              <ContactEntryBody :entry="item" @copied="notifyCopied" @failed="notifyCopyFailed" />
             </div>
           </div>
         </template>
@@ -221,12 +226,31 @@ function targetOf(item: ContactEntry): string {
   return item.open_target === 'current_tab' ? '_self' : '_blank'
 }
 
+// 魔改 #24: 悬停卡片延时关闭。
+// 鼠标从按钮移向卡片时，即使中间出现短暂的 mouseleave（快速移动、越界抖动），
+// 只要在 HOVER_CLOSE_DELAY 内重新进入 wrapper 就会取消关闭，卡片不会消失，
+// 里面的复制按钮因此可以稳定点到。
+const HOVER_CLOSE_DELAY = 180
+let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearHoverCloseTimer() {
+  if (hoverCloseTimer !== null) {
+    clearTimeout(hoverCloseTimer)
+    hoverCloseTimer = null
+  }
+}
+
 function hoverIn(item: ContactEntry) {
+  clearHoverCloseTimer()
   if (displayOf(item) === 'hover') hoveredId.value = item.id
 }
 
 function hoverOut(item: ContactEntry) {
-  if (hoveredId.value === item.id) hoveredId.value = ''
+  clearHoverCloseTimer()
+  hoverCloseTimer = setTimeout(() => {
+    hoverCloseTimer = null
+    if (hoveredId.value === item.id) hoveredId.value = ''
+  }, HOVER_CLOSE_DELAY)
 }
 
 function hoverShown(item: ContactEntry): boolean {
@@ -298,6 +322,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  clearHoverCloseTimer()
   hoverMedia?.removeEventListener?.('change', updateHoverCapability)
 })
 

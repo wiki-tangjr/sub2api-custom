@@ -42,6 +42,19 @@ describe('AppSidebar scroll position persistence', () => {
   })
 })
 
+describe('AppSidebar external menu items (#24)', () => {
+  it('renders external menu items as anchors in every nav section', () => {
+    // #24 regression: personal/user sections lost the v-if/v-else chain when the
+    // externalUrl branch was added, so custom-menu items with an external URL
+    // silently fell through to the router-link branch and broke navigation.
+    // The admin section needs v-else-if (a children v-if precedes it), while the
+    // personal and user sections need a plain v-if (nothing precedes them).
+    expect(componentSource).toContain('v-else-if="item.externalUrl"')
+    expect(componentSource.match(/v-if="item.externalUrl"/g) ?? []).toHaveLength(2)
+    expect(componentSource.match(/:href="item.externalUrl"/g) ?? []).toHaveLength(3)
+  })
+})
+
 describe('AppSidebar collapsible groups', () => {
   it('lets the user collapse a group even while a child route is active', () => {
     // The expand state must come from the user's override first, falling back

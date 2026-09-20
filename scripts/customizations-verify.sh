@@ -388,6 +388,42 @@ g "单测覆盖触屏兜底"       "opens the modal when a hover entry is tapped
 g "文档已记录 #23"         "客服条目分组"                              CUSTOMIZATIONS.md
 end
 
+# ============ #24 四项体验修复（悬停卡片 / 移动端备案 / 弹窗遮罩 / 侧栏清理）  2026-09-21 ============
+begin "#24 四项体验修复（悬停卡片 / 移动端备案 / 弹窗遮罩 / 侧栏清理）"
+
+# --- 1) 客服 hover 悬浮卡片：指针跨越按钮与卡片之间的空隙不再被判定为离开 ---
+g   "悬停延时关闭常量"       HOVER_CLOSE_DELAY     frontend/src/components/common/ContactEntries.vue
+g   "悬停定时器清理函数"     clearHoverCloseTimer  frontend/src/components/common/ContactEntries.vue
+g   "空隙并入容器内边距"     "pt-1.5"              frontend/src/components/common/ContactEntries.vue
+geq "悬停返回卡片用例"       "briefly leaves and returns" frontend/src/components/common/__tests__/ContactEntries.spec.ts 1
+
+# --- 2) 移动端备案信息不再吸顶悬浮（去掉毛玻璃合成层 + 去掉双重滚动容器）---
+g   "备案容器 overflow-x-clip"  overflow-x-clip frontend/src/components/layout/AuthLayout.vue
+lmx "备案药丸无 backdrop-blur"  backdrop-blur   frontend/src/components/layout/AuthLayout.vue 0
+lmx "footer 无 backdrop-blur"   backdrop-blur   frontend/src/components/layout/AppLayout.vue  0
+g   "footer 提高不透明度"       "bg-white/60"   frontend/src/components/layout/AppLayout.vue
+
+# --- 3) 全站弹窗点遮罩关闭（合规阻断弹窗是显式例外，必须保留）---
+g   "BaseDialog 默认遮罩关闭"   "closeOnClickOutside: true," frontend/src/components/common/BaseDialog.vue
+g   "公告弹窗遮罩可关闭"        "@click=\"handleDismiss\""   frontend/src/components/common/AnnouncementPopup.vue
+g   "2FA 弹窗遮罩可关闭"        "bg-black/50 transition-opacity\" @click=" frontend/src/components/auth/TotpLoginModal.vue
+g   "登录协议遮罩可关闭"        "@click.self=\"emit("        frontend/src/components/auth/LoginAgreementPrompt.vue
+g   "合规弹窗仍为显式例外"      ":close-on-click-outside=\"false\"" frontend/src/components/admin/AdminComplianceDialog.vue
+
+# --- 4) 移除点击即 404 的“安全审计”侧栏入口（路由保留，仍可从设置进入）---
+lmx "侧栏删除安全审计父项"    "/admin/security-audit" frontend/src/components/layout/AppSidebar.vue 0
+lmx "侧栏删除风控子项"        "/admin/risk-control"   frontend/src/components/layout/AppSidebar.vue 0
+lmx "侧栏删除提示词审计子项"  "/admin/prompt-audit"   frontend/src/components/layout/AppSidebar.vue 0
+g   "风控路由仍在"            "path: '/admin/risk-control'"   frontend/src/router/index.ts
+g   "提示词审计路由仍在"      "path: '/admin/prompt-audit'"   frontend/src/router/index.ts
+g   "侧栏外链分支改回 v-else-if" "v-else-if=\"item.externalUrl\"" frontend/src/components/layout/AppSidebar.vue
+geq "外链分支仍有两处 v-if"   "v-if=\"item.externalUrl\""       frontend/src/components/layout/AppSidebar.vue 2
+geq "侧栏外链渲染用例"      "renders external menu items as anchors" frontend/src/components/layout/__tests__/AppSidebar.spec.ts 1
+geq "路由与侧栏解耦用例"      "instead of the sidebar"        frontend/src/features/prompt-audit/__tests__/integrationSurface.spec.ts 1
+
+# 文档
+g "文档已记录 #24" "四项体验修复" CUSTOMIZATIONS.md
+end
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then

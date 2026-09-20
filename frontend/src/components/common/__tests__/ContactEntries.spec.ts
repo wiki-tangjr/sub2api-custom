@@ -91,17 +91,51 @@ describe('ContactEntries (#23)', () => {
     expect(wrapper.text()).toContain('Good')
   })
 
-  it('shows the hover card on mouseenter and hides it on mouseleave', async () => {
-    const wrapper = mountEntries([entry({ display: 'hover' })])
-    const cell = wrapper.find('div.relative')
+  it('shows the hover card on mouseenter and closes it shortly after mouseleave', async () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountEntries([entry({ display: 'hover' })])
+      const cell = wrapper.find('div.relative')
 
-    await cell.trigger('mouseenter')
-    await nextTick()
-    expect(wrapper.find('.z-40').exists()).toBe(true)
+      await cell.trigger('mouseenter')
+      await nextTick()
+      expect(wrapper.find('.z-40').exists()).toBe(true)
 
-    await cell.trigger('mouseleave')
-    await nextTick()
-    expect(wrapper.find('.z-40').exists()).toBe(false)
+      await cell.trigger('mouseleave')
+      await nextTick()
+      // 魔改 #24: 关闭是延时的，给鼠标从按钮移动到卡片留出时间。
+      expect(wrapper.find('.z-40').exists()).toBe(true)
+
+      vi.advanceTimersByTime(300)
+      await nextTick()
+      expect(wrapper.find('.z-40').exists()).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps the hover card open when the pointer briefly leaves and returns', async () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountEntries([entry({ display: 'hover' })])
+      const cell = wrapper.find('div.relative')
+
+      await cell.trigger('mouseenter')
+      await nextTick()
+      expect(wrapper.find('.z-40').exists()).toBe(true)
+
+      // 模拟鼠标从按钮移向卡片：中途触发一次 mouseleave 后立刻重新进入。
+      await cell.trigger('mouseleave')
+      vi.advanceTimersByTime(60)
+      await cell.trigger('mouseenter')
+      vi.advanceTimersByTime(300)
+      await nextTick()
+
+      expect(wrapper.find('.z-40').exists()).toBe(true)
+      expect(wrapper.find('button').exists()).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('opens the modal when a hover entry is tapped on a device without hover support', async () => {

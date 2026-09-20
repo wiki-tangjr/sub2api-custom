@@ -77,7 +77,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   width: 'normal',
   closeOnEscape: true,
-  closeOnClickOutside: false,
+  closeOnClickOutside: true,
   showCloseButton: true,
   zIndex: 50
 })

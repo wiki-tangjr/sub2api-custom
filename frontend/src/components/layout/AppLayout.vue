@@ -18,7 +18,7 @@
 
       <!-- ICP & Public Security Filing Footer (custom) -->
       <footer
-        class="mt-auto shrink-0 border-t border-gray-200/80 bg-white/40 px-4 py-4 pb-6 backdrop-blur-sm sm:py-5 dark:border-dark-800/80 dark:bg-dark-900/30"
+        class="mt-auto shrink-0 border-t border-gray-200/80 bg-white/60 px-4 py-4 pb-6 sm:py-5 dark:border-dark-800/80 dark:bg-dark-900/40"
       >
         <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-xs text-gray-400 dark:text-dark-500">
           <a
