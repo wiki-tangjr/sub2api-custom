@@ -421,4 +421,97 @@ bash scripts/customizations-verify.sh --live     # 发布后复验
 
 > **升级注意（写给未来的自己）**：本节 4 项中，24.2 依赖 `AuthLayout.vue` / `AppLayout.vue` 的 footer 结构；24.3 依赖 `BaseDialog.vue` 的 `closeOnClickOutside` 默认值；24.4 依赖 `AppSidebar.vue` 中 `'/admin/security-audit'` **不存在**。上游若重构这三处，升级后必须重新按本节逻辑适配，不要只看体检脚本是否绿。
 
+### 25. 移动端备案栏「卡在页面中段」—— TablePageLayout 移动端解开桌面固定高度 —— 2026-09-21
+
+> 本轮来自用户**第二次**报障：「移动端备案信息展示栏这个 bug 还是存在，一往下滑动，
+> 就像图中一样卡在中间不动了，而不是一直在最底部，直接遮挡了需要展示的信息。」
+> 截图页面是 **`/available-channels`（可用渠道）**。
+
+#### 25.1 为什么 #24 没修好（重要教训）
+
+- #24 修的**不是**这条路径。#24 定位的是 `/login` 等 **AuthLayout** 页面：双重滚动容器
+  （`overflow-x-hidden` 被 WebKit 隐式算成 `overflow-y: auto`）+ `backdrop-blur` 合成层。
+- 用户报障的是 **`/available-channels`**，走的是 **AppLayout + TablePageLayout**，
+  **根因完全不同**，与滚动容器、毛玻璃合成层都无关。
+- #24 的验证只跑了 `/login`，**没有覆盖 `AppLayout` 内容页**，所以漏掉了这条路径。
+- **教训**：移动端/布局类改动的验证必须按「**页面类型**」覆盖，而不是只挑一条路径：
+  1. `AuthLayout` 路径（登录/注册）；
+  2. `AppLayout` + **`TablePageLayout`** 路径（表格页，有固定高度）；
+  3. `AppLayout` + 普通内容路径（无固定高度，作为对照）。
+  本轮已按这三类补齐脚本。
+
+#### 25.2 根因
+
+`frontend/src/components/layout/TablePageLayout.vue` 的 `.table-page-layout` 是**桌面端**设计：
+用 `height: calc(100vh - 64px - 4rem)` 把高度锁成一屏，好让**表格在自己的容器里内部滚动**。
+
+但移动端（`< 768px`）的 `mobile-mode` 分支只解开了**表格容器**的高度
+（`.table-scroll-container { @apply h-auto … }`），**没有解开外层 `.table-page-layout` 自己的固定高度**。
+
+结果：外层盒子仍只有一屏高，而移动端表格改成了「文档流自然撑开」，
+内容（实测 1952px）**溢出到盒子外面**；`AppLayout` 的备案 `footer` 是按 DOM 流排的，
+于是被排到**一屏处**（即页面中段），滚动时就像「卡在中间」，并遮住下方内容。
+
+**WebKit 实测证据**（视口 390×700，`/available-channels`，5 渠道 × 8 模型 × 3 分组的长内容）：
+
+| 指标 | 修复前 | 修复后 |
+|---|---|---|
+| `.table-page-layout` 高度 | **572px**（内容 1952px） | **1952px**（被内容撑开） |
+| `main` bottom | 669px | 2049px |
+| `footer` 绝对位置 | top **669** / bottom 734（页面中段） | top **2049** / bottom 2114 |
+| footer 是否在文档最底部 | **否** | **是** |
+
+三视口（375×550 / 360×640 / 390×700）修复前 **9/9 全部失败**，修复后 **全部落在文档最底部**。
+
+#### 25.3 修复
+
+```css
+.table-page-layout.mobile-mode {
+  height: auto;   /* 移动端交给内容撑开，footer 自然跟在内容之后 */
+}
+```
+
+- **只加在 `.mobile-mode` 下**，桌面端仍是 `calc(100vh - 64px - 4rem)` + 表体内部滚动，**零变化**。
+- 实测桌面端 1440×900 / 1024×768：修复前后**所有度量逐项完全一致**（`identical=true`），
+  `isMobileMode=false`、`.table-wrapper` 仍 `overflowX:auto` 且 `scrollHeight > clientHeight`（内部滚动保持）。
+- 断点一致性：`useViewport.ts` 与 `DataTable` 都用 `md=768px`，不会出现「框架认为移动端、表格认为桌面端」的错位。
+- **顺带排查**：`frontend/src/views/user/CustomPageView.vue` 的 `.custom-page-layout` 也有同样的
+  `calc(100vh - 64px - 4rem)`，但它的内容卡片是 `flex-1 min-h-0 overflow-hidden` +
+  内部 `overflow-auto`，**高度被卡片吸收**，WebKit 实测 footer 本来就落在文档最底部
+  （375×550 与 390×700 均 `footerAtBottom=true`）→ **不属于本 bug，未改动**。
+
+#### 25.4 影响面（15 个复用页面，均受益）
+
+`TablePageLayout` 被 15 个页面复用：`AvailableChannelsView`、`KeysView`、`BatchImageGuideView`、
+`AdminAffiliateRecordsTable`、`ChannelsView`、`ProxiesView`、`UsersView`、`GroupsView`、
+`ChannelMonitorView`、`SubscriptionsView`、`AccountsView`、`PromoCodesView`、`AnnouncementsView`、
+`RedeemView`、`AuditLogView`。
+
+其中**内容超过一屏**的页面才会暴露此 bug（短内容页面 footer 本来就在底部，修复前后都正确）。
+
+> 说明：`mobile-mode` 分支本身是**上游既有代码**（上游提交 `858f3e4a7` 引入），
+> **上游同样缺这条 `height:auto`**（`origin/main` 里也没有）——即这是**上游既存 bug**。
+> 我们这次属于新增魔改修复，故单列本节。
+
+#### 25.5 验证
+
+- `pnpm exec vue-tsc --noEmit` → **EXIT=0**
+- `TablePageLayout.spec.ts` 新增 1 个用例（移动端必须有 `height:auto`，且桌面端固定高度必须仍在）；
+  该文件 **2/2 通过**
+- 全量 `pnpm exec vitest run` → 与改动前基线**完全一致**（2 failed / 2287 passed，两项既存失败与本轮无关）
+- **WebKit 真机引擎**（`isMobile:true, hasTouch:true`，iPhone UA）三视口 × 3 页面（`/available-channels`、
+  `/keys`、`/admin/users`）滚动采样（top / mid / bottom）：修复后 footer **始终在文档最底部**，不再遮盖内容
+- **桌面端回归**：1440×900 / 1024×768 修复前后逐项度量完全一致
+
+#### 25.6 关键文件与体检段
+
+- **关键文件**：`frontend/src/components/layout/TablePageLayout.vue`、
+  `frontend/src/components/layout/__tests__/TablePageLayout.spec.ts`
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#25**
+
+> **升级注意（写给未来的自己）**：本节依赖 `.table-page-layout.mobile-mode` 这个类名
+> （由 `TablePageLayout.vue` 模板里的 `:class="{ 'mobile-mode': isMobile }"` 驱动）
+> 以及 `.table-page-layout` 的桌面固定高度。上游若重构该组件，升级后必须重新按本节适配。
+
+---
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

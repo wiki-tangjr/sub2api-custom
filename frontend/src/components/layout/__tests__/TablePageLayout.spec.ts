@@ -23,4 +23,19 @@ describe('TablePageLayout responsive table scrolling', () => {
       true
     )
   })
+
+  // 魔改 #25：移动端必须解开桌面端的固定高度。
+  // 桌面端用 calc(100vh - 64px - 4rem) 做表体内部滚动；移动端内容靠文档流撑开，
+  // 若沿用固定高度，内容就会溢出到盒子之外，AppLayout 的备案 footer 会被排到
+  // 一屏处(页面中段)，滚动时看起来像“卡在中间”，并遮住下方内容。
+  it('releases the desktop fixed height in mobile mode', () => {
+    // 桌面端固定高度必须保留：表体内部滚动方案不能回退。
+    expect(componentSource).toContain('height: calc(100vh - 64px - 4rem)')
+
+    // 移动端必须有一条把高度解开的规则。
+    const mobileLayout = componentSource.match(/\.table-page-layout\.mobile-mode\s*\{([^}]*)\}/)
+
+    expect(mobileLayout).not.toBeNull()
+    expect(mobileLayout?.[1]).toMatch(/height:\s*auto/)
+  })
 })

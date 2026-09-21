@@ -34,7 +34,7 @@ const { isMobile } = useViewport()
 </script>
 
 <style scoped>
-/* 桌面端：Flexbox 布局 */
+/* 桌面端：Flexbox 布局（高度只作用于桌面；移动端在下方 mobile-mode 里解开） */
 .table-page-layout {
   @apply flex flex-col gap-6;
   height: calc(100vh - 64px - 4rem); /* 减去 header + lg:p-8 的上下padding */
@@ -82,6 +82,16 @@ const { isMobile } = useViewport()
 }
 
 /* 移动端：恢复正常滚动 */
+/* 魔改 #25：移动端必须解开桌面端的固定高度。
+   桌面端 .table-page-layout 用 calc(100vh - 64px - 4rem) 做"表体内部滚动"，
+   但移动端内容靠文档流自然撑开，固定高度会让盒子只有一屏高、内容溢出到盒子之外，
+   于是 AppLayout 的备案 footer 按 DOM 流被排到一屏处 = 页面中段，
+   滚动时看起来就像"卡在中间"并遮住下方内容。
+   移动端改 height:auto 后由内容撑开，footer 自然跟在内容之后。 */
+.table-page-layout.mobile-mode {
+  height: auto;
+}
+
 .table-page-layout.mobile-mode .table-scroll-container {
   @apply h-auto overflow-visible border-none shadow-none bg-transparent;
 }

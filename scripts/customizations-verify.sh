@@ -424,6 +424,22 @@ geq "路由与侧栏解耦用例"      "instead of the sidebar"        frontend/
 # 文档
 g "文档已记录 #24" "四项体验修复" CUSTOMIZATIONS.md
 end
+# ============ #25 移动端备案栏卡在页面中段（TablePageLayout 移动端解开桌面固定高度）  2026-09-21 ============
+begin "#25 移动端备案栏卡在页面中段（TablePageLayout）"
+
+# 桌面端固定高度必须保留：表体内部滚动方案不能回退。
+g   "桌面端固定高度保留"     "height: calc(100vh - 64px - 4rem)" frontend/src/components/layout/TablePageLayout.vue
+# 移动端必须解开桌面固定高度，否则内容溢出到盒子外、footer 被排到页面中段。
+g   "移动端解开固定高度"     ".table-page-layout.mobile-mode {" frontend/src/components/layout/TablePageLayout.vue
+# 移动端表格容器仍保持 h-auto（#7 的既有行为不能被顶掉）。
+g   "移动端表格容器 h-auto"  "h-auto overflow-visible border-none shadow-none bg-transparent" frontend/src/components/layout/TablePageLayout.vue
+# 单测必须覆盖这条断言，防止以后被静默改回去。
+geq "单测覆盖移动端解高度"   "height:\\s*auto" frontend/src/components/layout/__tests__/TablePageLayout.spec.ts 1
+geq "单测覆盖桌面端定高"     "calc(100vh - 64px - 4rem)" frontend/src/components/layout/__tests__/TablePageLayout.spec.ts 1
+# 文档
+g   "文档已记录 #25"         "移动端备案栏「卡在页面中段」" CUSTOMIZATIONS.md
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then
