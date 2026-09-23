@@ -440,6 +440,60 @@ geq "单测覆盖桌面端定高"     "calc(100vh - 64px - 4rem)" frontend/src/c
 g   "文档已记录 #25"         "移动端备案栏「卡在页面中段」" CUSTOMIZATIONS.md
 end
 
+# ============ #26 全站下拉菜单统一 + 用户可见报错中文化  2026-09-23 ============
+begin "#26 下拉统一 + 报错中文化"
+# --- 下拉菜单：全站原生 select 必须清零（统一走 Select.vue） ---
+# 只统计真实标签，排除注释里提到 "<select>" 的说明文字。
+NSEL=$(grep -rnE --include='*.vue' '<select[[:space:]>]' frontend/src 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(//|\*|<!--)' | wc -l)
+[ "$NSEL" -eq 0 ] && ok "原生 <select> 计数为 0（$NSEL，已排除注释）" || bad "仍有 $NSEL 处原生 <select> 未统一"
+f   "Select 组件存在"        frontend/src/components/common/Select.vue
+g   "Select 默认 size=md"    "size: 'md'" frontend/src/components/common/Select.vue
+# --- 报错中文化 ---
+f   "错误码/文案映射表存在"  frontend/src/utils/errorMessagesZh.ts
+f   "本地化工具存在"         frontend/src/i18n/errorLocalization.ts
+g   "工具用 @/utils 引用表"  "@/utils/errorMessagesZh" frontend/src/i18n/errorLocalization.ts
+lmx "工具勿写相对路径引用"   "from './errorMessagesZh'" frontend/src/i18n/errorLocalization.ts 0
+g   "INVALID_CREDENTIALS 映射中文" "'invalid email or password': '邮箱或密码错误'" frontend/src/utils/errorMessagesZh.ts
+g   "TOKEN_EXPIRED 映射中文" "'登录凭证已过期，请重新登录'" frontend/src/utils/errorMessagesZh.ts
+g   "新增 Passkey 映射"      "'passkey sign-in was cancelled'" frontend/src/utils/errorMessagesZh.ts
+g   "新增 tokenRefresh 映射" "'session changed during token refresh'" frontend/src/utils/errorMessagesZh.ts
+g   "新增 no response body 映射" "'no response body'" frontend/src/utils/errorMessagesZh.ts
+geq "新增前端键 >= 20 条"    "魔改 #26 追加" frontend/src/utils/errorMessagesZh.ts 1
+g   "showToast 错误漏斗接入" "localizeErrorMessage" frontend/src/stores/app.ts
+g   "apiError 接入本地化"    "localizeErrorMessage" frontend/src/utils/apiError.ts
+g   "客户端网络错误改中文"   "网络连接异常，请检查网络后重试" frontend/src/api/client.ts
+# 逻辑判定必需的英文不能被动过
+g   "保留 Ops 判定英文"      "Ops monitoring is disabled" frontend/src/api/client.ts
+g   "保留 missing project_id 判定" "missing project_id" frontend/src/composables/useGeminiOAuth.ts
+# 双语 i18n 键必须成对
+g   "zh 有 wechatNativeAppOnly" "wechatNativeAppOnly: '该微信登录方式仅支持在手机 App 内使用。'" frontend/src/i18n/locales/zh/common.ts
+g   "en 有 wechatNativeAppOnly" "wechatNativeAppOnly:" frontend/src/i18n/locales/en/common.ts
+# 回归测试必须存在
+f   "本地化回归测试存在"     frontend/src/i18n/__tests__/errorLocalization.spec.ts
+g   "测试覆盖按码优先"       "ERROR_CODE_ZH.INVALID_CREDENTIALS" frontend/src/i18n/__tests__/errorLocalization.spec.ts
+g   "测试覆盖英文界面透传"   "localizeErrorMessage('invalid email or password')" frontend/src/i18n/__tests__/errorLocalization.spec.ts
+# 文档
+g   "文档已记录 #26"         "全站下拉菜单统一 + 用户可见报错中文化" CUSTOMIZATIONS.md
+end
+
+# ============ #27 登录/注册协议默认勾选（checkbox 模式）  2026-09-23 ============
+begin "#27 协议默认勾选"
+g   "登录页默认勾选"         "agreementDefaultChecked" frontend/src/views/auth/LoginView.vue
+g   "注册页默认勾选"         "agreementDefaultChecked" frontend/src/views/auth/RegisterView.vue
+g   "仅 checkbox 模式默认勾" "loginAgreementMode.value === 'checkbox'" frontend/src/views/auth/LoginView.vue
+g   "注册页仅 checkbox 默认勾" "loginAgreementMode.value === 'checkbox'" frontend/src/views/auth/RegisterView.vue
+# 门控与提交校验必须保持原样（默认勾选不得削弱校验）
+g   "登录门控仍在"           "agreementGateActive" frontend/src/views/auth/LoginView.vue
+g   "注册门控仍在"           "agreementGateActive" frontend/src/views/auth/RegisterView.vue
+g   "复选框由 accepted 驱动" ":checked=\"accepted\"" frontend/src/components/auth/LoginAgreementPrompt.vue
+g   "取消勾选仍会 reject"    "rejectLoginAgreement" frontend/src/views/auth/LoginView.vue
+g   "注册页取消仍会 reject"  "rejectLoginAgreement" frontend/src/views/auth/RegisterView.vue
+# 不写 localStorage 的决策（默认勾选不得污染同意存储）
+g   "默认勾选不落存储标记"   "魔改 #27" frontend/src/views/auth/LoginView.vue
+# 文档
+g   "文档已记录 #27"         "登录/注册协议默认勾选" CUSTOMIZATIONS.md
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then

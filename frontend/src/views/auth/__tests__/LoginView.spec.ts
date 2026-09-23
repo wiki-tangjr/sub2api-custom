@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import LoginView from '@/views/auth/LoginView.vue'
 
 const { getPublicSettingsMock, pushMock } = vi.hoisted(() => ({
@@ -69,6 +70,18 @@ vi.mock('@/api/auth', () => ({
   startOAuthLogin: vi.fn()
 }))
 
+const LoginAgreementPromptStub = defineComponent({
+  name: 'LoginAgreementPromptStub',
+  props: {
+    accepted: { type: Boolean, default: false },
+    visible: { type: Boolean, default: false },
+    mode: { type: String, default: 'modal' },
+    documents: { type: Array, default: () => [] }
+  },
+  emits: ['accept', 'reject', 'open'],
+  template: '<div data-testid="login-agreement-prompt" />'
+})
+
 function mountLogin() {
   return mount(LoginView, {
     global: {
@@ -78,7 +91,7 @@ function mountLogin() {
         EmailOAuthButtons: true,
         Icon: true,
         LinuxDoOAuthSection: true,
-        LoginAgreementPrompt: true,
+        LoginAgreementPrompt: LoginAgreementPromptStub,
         OidcOAuthSection: true,
         RouterLink: { template: '<a><slot /></a>' },
         TotpLoginModal: true,
@@ -94,6 +107,7 @@ describe('LoginView registration entry', () => {
   beforeEach(() => {
     getPublicSettingsMock.mockReset()
     pushMock.mockReset()
+    localStorage.removeItem('sub2api_login_agreement_consent')
     getPublicSettingsMock.mockResolvedValue(publicSettings)
   })
 
@@ -114,5 +128,33 @@ describe('LoginView registration entry', () => {
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('auth.signUp')
+  })
+
+  it('defaults checkbox agreements to accepted and restores the gate after rejection', async () => {
+    getPublicSettingsMock.mockResolvedValueOnce({
+      ...publicSettings,
+      login_agreement_enabled: true,
+      login_agreement_mode: 'checkbox',
+      login_agreement_revision: 'mod-27-login',
+      login_agreement_documents: [
+        { id: 'terms', title: '服务条款', content_md: '条款内容' }
+      ]
+    })
+
+    const wrapper = mountLogin()
+    await flushPromises()
+
+    const prompt = wrapper.findComponent(LoginAgreementPromptStub)
+    expect(prompt.props('accepted')).toBe(true)
+    expect(prompt.props('mode')).toBe('checkbox')
+    expect(wrapper.get('#email').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('#password').attributes('disabled')).toBeUndefined()
+
+    prompt.vm.$emit('reject')
+    await flushPromises()
+
+    expect(prompt.props('accepted')).toBe(false)
+    expect(wrapper.get('#email').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('#password').attributes('disabled')).toBeDefined()
   })
 })

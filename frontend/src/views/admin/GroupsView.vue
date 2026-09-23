@@ -579,35 +579,11 @@
             </span>
           </div>
           <!-- 分组选择下拉 -->
-          <select
-            class="input"
-            @change="
-              (e) => {
-                const val = Number((e.target as HTMLSelectElement).value);
-                if (
-                  val &&
-                  !createForm.copy_accounts_from_group_ids.includes(val)
-                ) {
-                  createForm.copy_accounts_from_group_ids.push(val);
-                }
-                (e.target as HTMLSelectElement).value = '';
-              }
-            "
-          >
-            <option value="">
-              {{ t("admin.groups.copyAccounts.selectPlaceholder") }}
-            </option>
-            <option
-              v-for="opt in copyAccountsGroupOptions"
-              :key="opt.value"
-              :value="opt.value"
-              :disabled="
-                createForm.copy_accounts_from_group_ids.includes(opt.value)
-              "
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+          <Select
+            :model-value="null"
+            :options="copyAccountsGroupSelectOptions"
+            @change="addCopyAccountsGroup"
+          />
           <p class="input-hint">{{ t("admin.groups.copyAccounts.hint") }}</p>
         </div>
         <template v-if="!authStore.isSimpleMode">
@@ -2217,35 +2193,11 @@
             </span>
           </div>
           <!-- 分组选择下拉 -->
-          <select
-            class="input"
-            @change="
-              (e) => {
-                const val = Number((e.target as HTMLSelectElement).value);
-                if (
-                  val &&
-                  !editForm.copy_accounts_from_group_ids.includes(val)
-                ) {
-                  editForm.copy_accounts_from_group_ids.push(val);
-                }
-                (e.target as HTMLSelectElement).value = '';
-              }
-            "
-          >
-            <option value="">
-              {{ t("admin.groups.copyAccounts.selectPlaceholder") }}
-            </option>
-            <option
-              v-for="opt in copyAccountsGroupOptionsForEdit"
-              :key="opt.value"
-              :value="opt.value"
-              :disabled="
-                editForm.copy_accounts_from_group_ids.includes(opt.value)
-              "
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+          <Select
+            :model-value="null"
+            :options="copyAccountsGroupSelectOptionsForEdit"
+            @change="addCopyAccountsGroupForEdit"
+          />
           <p class="input-hint">
             {{ t("admin.groups.copyAccounts.hintEdit") }}
           </p>
@@ -4295,7 +4247,7 @@ import Toggle from "@/components/common/Toggle.vue";
 import BaseDialog from "@/components/common/BaseDialog.vue";
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
-import Select from "@/components/common/Select.vue";
+import Select, { type SelectOption } from "@/components/common/Select.vue";
 import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import Icon from "@/components/icons/Icon.vue";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
@@ -4768,6 +4720,38 @@ const copyAccountsGroupOptionsForEdit = computed(() => {
     label: copyAccountsGroupLabel(g),
   }));
 });
+
+// 「选中即追加、随后复位」的选择器：原生下拉的复位行为无法由 Select.vue 表达，
+// 因此改为受控的空值 + change 事件里手工追加。
+const copyAccountsGroupSelectOptions = computed<SelectOption[]>(() => [
+  { value: null, label: t("admin.groups.copyAccounts.selectPlaceholder") },
+  ...copyAccountsGroupOptions.value.map((opt) => ({
+    ...opt,
+    disabled: createForm.copy_accounts_from_group_ids.includes(opt.value),
+  })),
+]);
+
+const copyAccountsGroupSelectOptionsForEdit = computed<SelectOption[]>(() => [
+  { value: null, label: t("admin.groups.copyAccounts.selectPlaceholder") },
+  ...copyAccountsGroupOptionsForEdit.value.map((opt) => ({
+    ...opt,
+    disabled: editForm.copy_accounts_from_group_ids.includes(opt.value),
+  })),
+]);
+
+const addCopyAccountsGroup = (value: unknown) => {
+  const val = Number(value);
+  if (val && !createForm.copy_accounts_from_group_ids.includes(val)) {
+    createForm.copy_accounts_from_group_ids.push(val);
+  }
+};
+
+const addCopyAccountsGroupForEdit = (value: unknown) => {
+  const val = Number(value);
+  if (val && !editForm.copy_accounts_from_group_ids.includes(val)) {
+    editForm.copy_accounts_from_group_ids.push(val);
+  }
+};
 
 const groups = ref<AdminGroup[]>([]);
 const loading = ref(false);

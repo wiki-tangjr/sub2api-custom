@@ -48,6 +48,32 @@ const BaseDialogStub = defineComponent({
   template: '<div v-if="show"><slot /><slot name="footer" /></div>'
 })
 
+// Select.vue replaced the native <select> in mod #26. Keep this test focused on
+// EditAccountModal while preserving the component's v-model behavior.
+const SelectStub = defineComponent({
+  inheritAttrs: false,
+  props: {
+    modelValue: { type: [String, Number, Boolean], default: '' },
+    options: { type: Array, default: () => [] }
+  },
+  emits: ['update:modelValue'],
+  template: `
+    <select
+      v-bind="$attrs"
+      :value="modelValue"
+      @change="$emit('update:modelValue', $event.target.value)"
+    >
+      <option
+        v-for="option in options"
+        :key="option.value"
+        :value="option.value"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+  `
+})
+
 const account = (platform = 'grok', type = 'oauth', extra: Record<string, unknown> = {}) => ({
   id: 12, name: 'Grok', notes: '', platform, type,
   credentials: { expires_at: '2027-01-01T00:00:00Z', token_type: 'Bearer' },
@@ -60,7 +86,7 @@ function mountModal(value = account()) {
   return mount(EditAccountModal, {
     props: { show: true, account: value, proxies: [], groups: [] },
     global: { stubs: {
-      BaseDialog: BaseDialogStub, Select: true, Icon: true, ProxySelector: true,
+      BaseDialog: BaseDialogStub, Select: SelectStub, Icon: true, ProxySelector: true,
       GroupSelector: true, ModelWhitelistSelector: true
     } }
   })

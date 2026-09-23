@@ -504,6 +504,7 @@ import { useI18n } from 'vue-i18n'
 import { testDatabase, testRedis, install, type InstallRequest } from '@/api/setup'
 import { buildGatewayUrl } from '@/api/client'
 import Select from '@/components/common/Select.vue'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
 
@@ -593,9 +594,7 @@ async function testDatabaseConnection() {
     await testDatabase(formData.database)
     dbConnected.value = true
   } catch (error: unknown) {
-    const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string }
-    errorMessage.value =
-      err.response?.data?.detail || err.response?.data?.message || err.message || 'Connection failed'
+    errorMessage.value = localizeUnknownError(error, { fallback: '连接失败，请检查配置后重试' })
   } finally {
     testingDb.value = false
   }
@@ -610,9 +609,7 @@ async function testRedisConnection() {
     await testRedis(formData.redis)
     redisConnected.value = true
   } catch (error: unknown) {
-    const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string }
-    errorMessage.value =
-      err.response?.data?.detail || err.response?.data?.message || err.message || 'Connection failed'
+    errorMessage.value = localizeUnknownError(error, { fallback: '连接失败，请检查配置后重试' })
   } finally {
     testingRedis.value = false
   }
@@ -635,9 +632,7 @@ async function performInstall() {
     // Start polling for service restart
     waitForServiceRestart()
   } catch (error: unknown) {
-    const err = error as { response?: { data?: { detail?: string; message?: string } }; message?: string }
-    errorMessage.value =
-      err.response?.data?.detail || err.response?.data?.message || err.message || 'Installation failed'
+    errorMessage.value = localizeUnknownError(error, { fallback: '安装失败，请稍后重试' })
   } finally {
     installing.value = false
   }

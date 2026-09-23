@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
 
 const {
@@ -73,6 +74,18 @@ vi.mock('@/api/auth', async () => {
   }
 })
 
+const LoginAgreementPromptStub = defineComponent({
+  name: 'LoginAgreementPromptStub',
+  props: {
+    accepted: { type: Boolean, default: false },
+    visible: { type: Boolean, default: false },
+    mode: { type: String, default: 'modal' },
+    documents: { type: Array, default: () => [] }
+  },
+  emits: ['accept', 'reject', 'open'],
+  template: '<div data-testid="login-agreement-prompt" />'
+})
+
 function mountRegister() {
   return mount(RegisterView, {
     global: {
@@ -83,7 +96,7 @@ function mountRegister() {
           template: '<div data-testid="turnstile-widget" />',
           methods: { verifyAction: verifyActionMock, reset: vi.fn() }
         },
-        LoginAgreementPrompt: true,
+        LoginAgreementPrompt: LoginAgreementPromptStub,
         EmailOAuthButtons: true,
         LinuxDoOAuthSection: true,
         WechatOAuthSection: true,
@@ -104,6 +117,7 @@ describe('RegisterView', () => {
     verifyActionMock.mockReset()
     appStoreMock.cachedPublicSettings = null
     sessionStorage.removeItem('register_data')
+    localStorage.removeItem('sub2api_login_agreement_consent')
     verifyActionMock.mockResolvedValue({ token: 'ticket', randstr: 'randstr' })
     getPublicSettingsMock.mockResolvedValue(publicSettings)
     registerMock.mockResolvedValue({})
@@ -324,5 +338,33 @@ describe('RegisterView', () => {
       expect.objectContaining({ email: 'user@allowed.com' })
     )
     expect(showErrorMock).not.toHaveBeenCalled()
+  })
+
+  it('defaults checkbox agreements to accepted and restores the gate after rejection', async () => {
+    getPublicSettingsMock.mockResolvedValueOnce({
+      ...publicSettings,
+      login_agreement_enabled: true,
+      login_agreement_mode: 'checkbox',
+      login_agreement_revision: 'mod-27-register',
+      login_agreement_documents: [
+        { id: 'terms', title: '服务条款', content_md: '条款内容' }
+      ]
+    })
+
+    const wrapper = mountRegister()
+    await flushPromises()
+
+    const prompt = wrapper.findComponent(LoginAgreementPromptStub)
+    expect(prompt.props('accepted')).toBe(true)
+    expect(prompt.props('mode')).toBe('checkbox')
+    expect(wrapper.get('#email').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('#password').attributes('disabled')).toBeUndefined()
+
+    prompt.vm.$emit('reject')
+    await flushPromises()
+
+    expect(prompt.props('accepted')).toBe(false)
+    expect(wrapper.get('#email').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('#password').attributes('disabled')).toBeDefined()
   })
 })

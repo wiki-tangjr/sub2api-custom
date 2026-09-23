@@ -26,6 +26,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -125,9 +126,11 @@ onMounted(async () => {
     }
   } catch (err: unknown) {
     loading.value = false
-    errorMessage.value = err instanceof Error && err.message
-      ? err.message
-      : t('payment.airwallexLoadFailed')
+    // 魔改 #26：错误文案统一中文化
+    errorMessage.value = localizeUnknownError(err, {
+      kind: 'payment',
+      fallback: t('payment.airwallexLoadFailed')
+    })
   }
 })
 </script>

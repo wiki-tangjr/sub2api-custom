@@ -461,22 +461,11 @@
                     >
                       {{ t("admin.settings.streamTimeout.action") }}
                     </label>
-                    <select
+                    <Select
                       v-model="streamTimeoutForm.action"
-                      class="input w-64"
-                    >
-                      <option value="temp_unsched">
-                        {{
-                          t("admin.settings.streamTimeout.actionTempUnsched")
-                        }}
-                      </option>
-                      <option value="error">
-                        {{ t("admin.settings.streamTimeout.actionError") }}
-                      </option>
-                      <option value="none">
-                        {{ t("admin.settings.streamTimeout.actionNone") }}
-                      </option>
-                    </select>
+                      :options="streamTimeoutActionOptions"
+                      class="w-64"
+                    />
                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       {{ t("admin.settings.streamTimeout.actionHint") }}
                     </p>
@@ -3678,18 +3667,11 @@
                     >
                       {{ t("admin.settings.oidc.tokenAuthMethod") }}
                     </label>
-                    <select
+                    <Select
                       v-model="form.oidc_connect_token_auth_method"
-                      class="input font-mono text-sm"
-                    >
-                      <option value="client_secret_post">
-                        client_secret_post
-                      </option>
-                      <option value="client_secret_basic">
-                        client_secret_basic
-                      </option>
-                      <option value="none">none</option>
-                    </select>
+                      :options="oidcTokenAuthMethodOptions"
+                      class="font-mono text-sm"
+                    />
                   </div>
 
                   <div>
@@ -4562,11 +4544,12 @@
                     :key="`codex-fp-${i}`"
                     class="mb-2 flex items-center gap-2"
                   >
-                    <select v-model="row.type" class="input w-32 text-sm">
-                      <option value="header_exact">{{ t("admin.settings.gatewayForwarding.codexFpTypeHeaderExact") }}</option>
-                      <option value="header_prefix">{{ t("admin.settings.gatewayForwarding.codexFpTypeHeaderPrefix") }}</option>
-                      <option value="body_path">{{ t("admin.settings.gatewayForwarding.codexFpTypeBodyPath") }}</option>
-                    </select>
+                    <Select
+                      :model-value="row.type"
+                      :options="codexFingerprintTypeOptions"
+                      class="w-32 text-sm"
+                      @update:model-value="row.type = $event as FingerprintSignalType"
+                    />
                     <input
                       v-model="row.match"
                       type="text"
@@ -5252,18 +5235,13 @@
                   >
                     {{ t("admin.settings.gatewayForwarding.grokDefaultBaseURLMode") }}
                   </label>
-                  <select
+                  <Select
                     id="grok-default-base-url-mode"
                     v-model="form.grok_default_base_url_mode"
-                    class="input mt-2 w-full"
+                    :options="grokBaseURLModeOptions"
+                    class="mt-2 w-full"
                     data-testid="grok-default-base-url-mode"
-                  >
-                    <option value="cli">{{ t("admin.settings.gatewayForwarding.grokBaseURLModeCLI") }}</option>
-                    <option value="api">{{ t("admin.settings.gatewayForwarding.grokBaseURLModeAPI") }}</option>
-                    <option value="us-east-1">{{ t("admin.settings.gatewayForwarding.grokBaseURLModeUSEast1") }}</option>
-                    <option value="us-west-2">{{ t("admin.settings.gatewayForwarding.grokBaseURLModeUSWest2") }}</option>
-                    <option value="eu-west-1">{{ t("admin.settings.gatewayForwarding.grokBaseURLModeEUWest1") }}</option>
-                  </select>
+                  />
                   <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {{ t("admin.settings.gatewayForwarding.grokDefaultBaseURLModeHint") }}
                   </p>
@@ -5277,19 +5255,13 @@
                 >
                   {{ t("admin.settings.gatewayForwarding.openaiTTFTMode") }}
                 </label>
-                <select
+                <Select
                   id="openai-ttft-mode"
                   v-model="form.openai_ttft_mode"
-                  class="input mt-2 w-full"
+                  :options="openaiTTFTModeOptions"
+                  class="mt-2 w-full"
                   data-testid="openai-ttft-mode"
-                >
-                  <option value="semantic">
-                    {{ t("admin.settings.gatewayForwarding.openaiTTFTModeSemantic") }}
-                  </option>
-                  <option value="visible">
-                    {{ t("admin.settings.gatewayForwarding.openaiTTFTModeVisible") }}
-                  </option>
-                </select>
+                />
                 <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   {{ t("admin.settings.gatewayForwarding.openaiTTFTModeHint") }}
                 </p>
@@ -6534,10 +6506,10 @@
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       {{ t("admin.settings.site.contactSectionStyle") }}
                     </label>
-                    <select v-model="form.contact_section_style" class="input">
-                      <option value="card">{{ t("admin.settings.site.contactStyleCard") }}</option>
-                      <option value="list">{{ t("admin.settings.site.contactStyleList") }}</option>
-                    </select>
+                    <Select
+                      v-model="form.contact_section_style"
+                      :options="contactSectionStyleOptions"
+                    />
                     <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                       {{ t("admin.settings.site.contactSectionStyleHint") }}
                     </p>
@@ -6872,14 +6844,11 @@
                     >
                       {{ t("admin.settings.customMenu.visibility") }}
                     </label>
-                    <select v-model="item.visibility" class="input text-sm">
-                      <option value="user">
-                        {{ t("admin.settings.customMenu.visibilityUser") }}
-                      </option>
-                      <option value="admin">
-                        {{ t("admin.settings.customMenu.visibilityAdmin") }}
-                      </option>
-                    </select>
+                    <Select
+                      v-model="item.visibility"
+                      :options="customMenuVisibilityOptions"
+                      class="text-sm"
+                    />
                   </div>
 
                   <!-- Open Mode -->
@@ -6889,18 +6858,15 @@
                     >
                       {{ t("admin.settings.customMenu.openMode") }}
                     </label>
-                    <select
-                      v-model="item.open_mode"
-                      class="input text-sm"
+                    <Select
+                      :model-value="item.open_mode ?? 'iframe'"
+                      :options="customMenuOpenModeOptions"
+                      class="text-sm"
                       :title="t('admin.settings.customMenu.openModeHint')"
-                    >
-                      <option value="iframe">
-                        {{ t("admin.settings.customMenu.openModeIframe") }}
-                      </option>
-                      <option value="new_tab">
-                        {{ t("admin.settings.customMenu.openModeNewTab") }}
-                      </option>
-                    </select>
+                      @update:model-value="
+                        item.open_mode = $event as 'iframe' | 'new_tab'
+                      "
+                    />
                   </div>
 
                   <!-- URL (full width) -->
@@ -7879,11 +7845,11 @@
 
               <div>
                 <label class="input-label">{{ t('admin.settings.features.affiliate.modal.agentLevelLabel') }}</label>
-                <select v-model.number="affiliateModal.agentLevel" class="input">
-                  <option :value="0">{{ t('admin.settings.features.affiliate.customUsers.agentLevelNone') }}</option>
-                  <option :value="1">{{ t('admin.settings.features.affiliate.customUsers.agentLevelFirst') }}</option>
-                  <option :value="2">{{ t('admin.settings.features.affiliate.customUsers.agentLevelSecond') }}</option>
-                </select>
+                <Select
+                  :model-value="affiliateModal.agentLevel"
+                  :options="affiliateAgentLevelOptions"
+                  @update:model-value="affiliateModal.agentLevel = Number($event)"
+                />
                 <p class="mt-1 text-xs text-gray-400">
                   {{ t('admin.settings.features.affiliate.modal.agentLevelHint') }}
                 </p>
@@ -9254,6 +9220,7 @@ import {
   serializeFingerprintRowsToJSON,
   defaultFingerprintSignalRows,
   type FingerprintSignalRow,
+  type FingerprintSignalType,
 } from "./codexFingerprintSignals";
 
 const { t, locale } = useI18n();
@@ -12503,6 +12470,112 @@ async function saveRectifierSettings() {
     rectifierSaving.value = false;
   }
 }
+
+const streamTimeoutActionOptions: SelectOption[] = [
+  {
+    value: "temp_unsched",
+    label: t("admin.settings.streamTimeout.actionTempUnsched"),
+  },
+  { value: "error", label: t("admin.settings.streamTimeout.actionError") },
+  { value: "none", label: t("admin.settings.streamTimeout.actionNone") },
+];
+
+const oidcTokenAuthMethodOptions: SelectOption[] = [
+  { value: "client_secret_post", label: "client_secret_post" },
+  { value: "client_secret_basic", label: "client_secret_basic" },
+  { value: "none", label: "none" },
+];
+
+const grokBaseURLModeOptions: SelectOption[] = [
+  {
+    value: "cli",
+    label: t("admin.settings.gatewayForwarding.grokBaseURLModeCLI"),
+  },
+  {
+    value: "api",
+    label: t("admin.settings.gatewayForwarding.grokBaseURLModeAPI"),
+  },
+  {
+    value: "us-east-1",
+    label: t("admin.settings.gatewayForwarding.grokBaseURLModeUSEast1"),
+  },
+  {
+    value: "us-west-2",
+    label: t("admin.settings.gatewayForwarding.grokBaseURLModeUSWest2"),
+  },
+  {
+    value: "eu-west-1",
+    label: t("admin.settings.gatewayForwarding.grokBaseURLModeEUWest1"),
+  },
+];
+
+const openaiTTFTModeOptions: SelectOption[] = [
+  {
+    value: "semantic",
+    label: t("admin.settings.gatewayForwarding.openaiTTFTModeSemantic"),
+  },
+  {
+    value: "visible",
+    label: t("admin.settings.gatewayForwarding.openaiTTFTModeVisible"),
+  },
+];
+
+const contactSectionStyleOptions: SelectOption[] = [
+  { value: "card", label: t("admin.settings.site.contactStyleCard") },
+  { value: "list", label: t("admin.settings.site.contactStyleList") },
+];
+
+const customMenuVisibilityOptions: SelectOption[] = [
+  {
+    value: "user",
+    label: t("admin.settings.customMenu.visibilityUser"),
+  },
+  {
+    value: "admin",
+    label: t("admin.settings.customMenu.visibilityAdmin"),
+  },
+];
+
+const customMenuOpenModeOptions: SelectOption[] = [
+  { value: "iframe", label: t("admin.settings.customMenu.openModeIframe") },
+  { value: "new_tab", label: t("admin.settings.customMenu.openModeNewTab") },
+];
+
+const affiliateAgentLevelOptions: SelectOption[] = [
+  {
+    value: 0,
+    label: t(
+      "admin.settings.features.affiliate.customUsers.agentLevelNone",
+    ),
+  },
+  {
+    value: 1,
+    label: t(
+      "admin.settings.features.affiliate.customUsers.agentLevelFirst",
+    ),
+  },
+  {
+    value: 2,
+    label: t(
+      "admin.settings.features.affiliate.customUsers.agentLevelSecond",
+    ),
+  },
+];
+
+const codexFingerprintTypeOptions: SelectOption[] = [
+  {
+    value: "header_exact",
+    label: t("admin.settings.gatewayForwarding.codexFpTypeHeaderExact"),
+  },
+  {
+    value: "header_prefix",
+    label: t("admin.settings.gatewayForwarding.codexFpTypeHeaderPrefix"),
+  },
+  {
+    value: "body_path",
+    label: t("admin.settings.gatewayForwarding.codexFpTypeBodyPath"),
+  },
+];
 
 const betaPolicyActionOptions = computed(() => [
   { value: "pass", label: t("admin.settings.betaPolicy.actionPass") },

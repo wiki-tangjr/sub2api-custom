@@ -7,6 +7,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Toast, ToastType, PublicSettings } from '@/types'
 import { i18n } from '@/i18n'
+import { localizeErrorMessage } from '@/i18n/errorLocalization'
 import {
   checkUpdates as checkUpdatesAPI,
   type VersionInfo,
@@ -108,10 +109,13 @@ export const useAppStore = defineStore('app', () => {
    */
   function showToast(type: ToastType, message: string, duration?: number): string {
     const id = `toast-${++toastIdCounter}`
+    // 魔改 #26：错误提示统一在最终展示层做中文化，不改变任何业务逻辑。
+    // 中文界面下英文报错会查表或兜底为中文；英文界面与已含中文的文案保持原样。
+    const displayMessage = type === 'error' ? localizeErrorMessage(message) : message
     const toast: Toast = {
       id,
       type,
-      message,
+      message: displayMessage,
       duration,
       startTime: duration !== undefined ? Date.now() : undefined
     }

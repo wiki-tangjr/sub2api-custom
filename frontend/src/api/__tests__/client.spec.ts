@@ -507,7 +507,7 @@ describe('API Client', () => {
         expect.objectContaining({
           status: 0,
           code: code || 'ERR_NETWORK',
-          message: 'Network error. Please check your connection.',
+          message: '网络连接异常，请检查网络后重试',
         })
       )
     })

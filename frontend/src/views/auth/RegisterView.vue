@@ -662,9 +662,17 @@ function applyLoginAgreementSettings(settings: {
     settings.login_agreement_revision ||
     `${loginAgreementUpdatedAt.value}:${documents.map((doc) => `${doc.id}:${doc.title}`).join('|')}`
 
-  agreementAccepted.value = !loginAgreementEnabled.value || hasAcceptedLoginAgreement(loginAgreementRevision.value)
+  // 魔改 #27：勾选式协议默认勾选，用户打开页面即可直接输入账号密码，无需先手动勾选。
+  // 仍保留用户主动取消勾选的能力（取消后沿用原有门控逻辑，不改变任何提交校验）。
+  const agreementDefaultChecked = loginAgreementMode.value === 'checkbox'
+  agreementAccepted.value =
+    !loginAgreementEnabled.value ||
+    agreementDefaultChecked ||
+    hasAcceptedLoginAgreement(loginAgreementRevision.value)
   showAgreementModal.value =
-    loginAgreementEnabled.value && !agreementAccepted.value && loginAgreementMode.value !== 'checkbox'
+    loginAgreementEnabled.value &&
+    !agreementAccepted.value &&
+    loginAgreementMode.value !== 'checkbox'
 }
 
 function hasAcceptedLoginAgreement(revision: string): boolean {

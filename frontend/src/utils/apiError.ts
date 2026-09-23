@@ -3,7 +3,11 @@
  *
  * The API client interceptor rejects with a plain object: { status, code, message, error }
  * This utility extracts the user-facing message from any error shape.
+ *
+ * 魔改 #26：所有出口统一经 localizeErrorMessage 中文化（仅中文界面生效）。
  */
+
+import { localizeErrorMessage } from '@/i18n/errorLocalization'
 
 interface ApiErrorLike {
   status?: number
@@ -122,10 +126,10 @@ export function extractI18nErrorMessage(
  */
 export function extractApiErrorMessage(
   err: unknown,
-  fallback = 'Unknown error',
+  fallback = '发生未知错误',
   i18nMap?: Record<string, string>,
 ): string {
-  if (!err) return fallback
+  if (!err) return localizeErrorMessage(fallback, { fallback })
 
   // Try i18n mapping by error code first
   if (i18nMap) {
@@ -133,21 +137,28 @@ export function extractApiErrorMessage(
     if (code && i18nMap[code]) return i18nMap[code]
   }
 
+  const code = extractApiErrorCode(err)
+
   // Plain object from API client interceptor (most common case)
   if (typeof err === 'object' && err !== null) {
     const e = err as ApiErrorLike
     // Interceptor shape: { message, error }
-    if (e.message) return e.message
-    if (e.error) return e.error
+    if (e.message) return localizeErrorMessage(e.message, { code, fallback })
+    if (e.error) return localizeErrorMessage(e.error, { code, fallback })
     // Legacy axios shape: { response.data.detail }
-    if (e.response?.data?.detail) return e.response.data.detail
-    if (e.response?.data?.message) return e.response.data.message
+    if (e.response?.data?.detail) {
+      return localizeErrorMessage(e.response.data.detail, { code, fallback })
+    }
+    if (e.response?.data?.message) {
+      return localizeErrorMessage(e.response.data.message, { code, fallback })
+    }
   }
 
   // Standard Error
-  if (err instanceof Error) return err.message
+  if (err instanceof Error) return localizeErrorMessage(err.message, { code, fallback })
 
   // Last resort
   const str = String(err)
-  return str === '[object Object]' ? fallback : str
+  if (str === '[object Object]') return localizeErrorMessage(fallback, { fallback })
+  return localizeErrorMessage(str, { code, fallback })
 }

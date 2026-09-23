@@ -134,6 +134,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, watch } from 'vue'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
 import Icon from '@/components/icons/Icon.vue'
@@ -312,15 +313,11 @@ async function handleSubmit(): Promise<void> {
     isSubmitted.value = true
     appStore.showSuccess(t('auth.resetEmailSent'))
   } catch (error: unknown) {
-    const err = error as { message?: string; response?: { data?: { detail?: string } } }
-
-    if (err.response?.data?.detail) {
-      errorMessage.value = err.response.data.detail
-    } else if (err.message) {
-      errorMessage.value = err.message
-    } else {
-      errorMessage.value = t('auth.sendResetLinkFailed')
-    }
+    // 魔改 #26：错误文案统一中文化（既用于页面内联展示，也用于 toast）
+    errorMessage.value = localizeUnknownError(error, {
+      kind: 'auth',
+      fallback: t('auth.sendResetLinkFailed')
+    })
 
     appStore.showError(errorMessage.value)
   } finally {

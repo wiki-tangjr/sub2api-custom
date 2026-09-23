@@ -12,6 +12,7 @@
       :aria-describedby="ariaDescribedby"
       :class="[
         'select-trigger',
+        size === 'sm' && 'select-trigger-sm',
         isOpen && 'select-trigger-open',
         error && 'select-trigger-error',
         disabled && 'select-trigger-disabled'
@@ -39,7 +40,7 @@
       <span class="select-icon">
         <Icon
           name="chevronDown"
-          size="md"
+          :size="size === 'sm' ? 'sm' : 'md'"
           :class="['transition-transform duration-200', isOpen && 'rotate-180']"
         />
       </span>
@@ -52,7 +53,7 @@
           v-if="isOpen"
           ref="dropdownRef"
           class="select-dropdown-portal"
-          :class="[instanceId]"
+          :class="[instanceId, size === 'sm' && 'select-dropdown-sm']"
           :style="dropdownStyle"
           role="listbox"
           @click.stop
@@ -81,7 +82,7 @@
               role="option"
               :aria-selected="isSelected(option)"
               :aria-disabled="isOptionDisabled(option)"
-              @click.stop="!isOptionDisabled(option) && selectOption(option)"
+              @click.stop="!isOptionDisabled(option) && !isGroupHeaderOption(option) && selectOption(option)"
               @mouseenter="handleOptionMouseEnter(option, index)"
               :class="[
                 'select-option',
@@ -134,6 +135,8 @@ export interface SelectOption {
   value: string | number | boolean | null
   label: string
   disabled?: boolean
+  /** kind === 'group' 时该项渲染为不可选的分组标题（用于替代原生 <optgroup>）。 */
+  kind?: 'group'
   [key: string]: unknown
 }
 
@@ -158,6 +161,8 @@ interface Props {
   remote?: boolean
   /** 远程搜索模式下的加载态：options 为空时下拉显示 loading 文案 */
   loading?: boolean
+  /** 触发器尺寸：md（默认，与 .input 一致）/ sm（紧凑内联场景） */
+  size?: 'sm' | 'md'
 }
 
 interface Emits {
@@ -176,7 +181,8 @@ const props = withDefaults(defineProps<Props>(), {
   valueKey: 'value',
   labelKey: 'label',
   remote: false,
-  loading: false
+  loading: false,
+  size: 'md'
 })
 
 const emit = defineEmits<Emits>()
@@ -254,16 +260,19 @@ const getOptionLabel = (option: any): string => {
   return String(option ?? '')
 }
 
-const isOptionDisabled = (option: any): boolean => {
+const isGroupHeaderOption = (option: any): boolean => {
   if (typeof option === 'object' && option !== null) {
-    return !!option.disabled
+    return option.kind === 'group'
   }
   return false
 }
 
-const isGroupHeaderOption = (option: any): boolean => {
+// Group headers are never selectable, so keyboard navigation and Enter must
+// skip them exactly like a disabled option.
+const isOptionDisabled = (option: any): boolean => {
+  if (isGroupHeaderOption(option)) return true
   if (typeof option === 'object' && option !== null) {
-    return option.kind === 'group'
+    return !!option.disabled
   }
   return false
 }
@@ -516,6 +525,10 @@ onUnmounted(() => {
   @apply cursor-pointer;
 }
 
+.select-trigger-sm {
+  @apply rounded-lg px-2.5 py-1 text-xs;
+}
+
 .select-trigger-open {
   @apply border-primary-500 ring-2 ring-primary-500/30;
 }
@@ -577,6 +590,14 @@ onUnmounted(() => {
   @apply cursor-pointer transition-colors duration-150;
   @apply hover:bg-gray-50 dark:hover:bg-dark-700;
   pointer-events: auto !important;
+}
+
+.select-dropdown-portal.select-dropdown-sm .select-option {
+  @apply px-3 py-1.5 text-xs;
+}
+
+.select-dropdown-portal.select-dropdown-sm .select-search {
+  @apply px-2.5 py-1.5;
 }
 
 .select-dropdown-portal .select-option-selected {

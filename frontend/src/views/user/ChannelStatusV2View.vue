@@ -376,7 +376,7 @@
                       <span v-if="detail.upstream_status_code" class="text-gray-400">{{ t('channelMonitorV2.errorDetail.upstream', { code: detail.upstream_status_code }) }}</span>
                       <span class="ml-auto text-gray-400">×{{ detail.count }}</span>
                     </div>
-                    <p class="break-words leading-relaxed">{{ detail.message || detail.error_type || t('channelMonitorV2.errorDetail.noMessage') }}</p>
+                    <p class="break-words leading-relaxed">{{ monitorErrorDetailText(detail) }}</p>
                   </div>
                 </template>
                 <p v-else class="text-xs text-gray-400">{{ t('channelMonitorV2.errorDetail.empty') }}</p>
@@ -473,6 +473,7 @@ import RelayPulseMatrix from '@/features/channel-monitor-v2/RelayPulseMatrix.vue
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
+import { localizeErrorMessage } from '@/i18n/errorLocalization'
 import { isChannelMonitorThroughputHidden, isChannelMonitorUserRankingHidden } from '@/utils/featureFlags'
 import * as api from '@/api/channelMonitorV2'
 import type {
@@ -510,6 +511,12 @@ const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const { t, te, locale } = useI18n()
+
+/** 魔改 #26：监控错误详情统一中文化（仅影响展示，不改变接口数据）。 */
+function monitorErrorDetailText(detail: { message?: string; error_type?: string }): string {
+  const raw = detail.message || detail.error_type || ''
+  return localizeErrorMessage(raw, { fallback: t('channelMonitorV2.errorDetail.noMessage') })
+}
 const isAdmin = computed(() => authStore.isAdmin)
 /** Admins always see RPM/TPM; users honor the hide-throughput system setting. */
 const showThroughput = computed(() => isAdmin.value || !isChannelMonitorThroughputHidden())

@@ -258,6 +258,24 @@ export default {
     loginFailed: '登录失败，请检查您的凭据后重试。',
     errors: {
       USER_NOT_ACTIVE: '账号已被禁用',
+      // 魔改 #26：高频认证错误码，与 utils/errorMessagesZh 的 ERROR_CODE_ZH 保持一致
+      INVALID_CREDENTIALS: '邮箱或密码错误',
+      INVALID_USER: '用户不存在',
+      USER_NOT_FOUND: '用户不存在',
+      EMAIL_EXISTS: '该邮箱已被注册',
+      INVALID_TOKEN: '登录凭证无效',
+      TOKEN_EXPIRED: '登录凭证已过期，请重新登录',
+      TOKEN_REVOKED: '登录凭证已被撤销，请重新登录',
+      INVALID_RESET_TOKEN: '密码重置链接无效或已过期',
+      TOTP_INVALID_CODE: '二次验证码错误',
+      PASSWORD_INCORRECT: '当前密码不正确',
+      INVALID_VERIFY_CODE: '验证码无效或已过期',
+      VERIFY_CODE_TOO_FREQUENT: '请稍后再获取新的验证码',
+      VERIFY_CODE_MAX_ATTEMPTS: '失败次数过多，请重新获取验证码',
+      PASSKEY_ALREADY_EXISTS: '该 Passkey 已注册',
+      PASSKEY_NOT_FOUND: 'Passkey 不存在',
+      REGISTRATION_DISABLED: '注册功能暂时关闭',
+      SERVICE_UNAVAILABLE: '服务暂时不可用，请稍后重试',
     },
     registrationFailed: '注册失败，请重试。',
     emailDomainRegistrationLimit:
@@ -399,7 +417,8 @@ export default {
       wechatAvailabilityUnknown: '暂时无法确认微信登录可用性，请刷新后重试。',
       wechatSystemBrowserOnly: '当前微信登录流程仅支持在系统浏览器中继续。',
       wechatBrowserOnly: '当前微信登录流程仅支持在微信内置浏览器中继续。',
-      wechatNotConfigured: '微信登录尚未配置。'
+      wechatNotConfigured: '微信登录尚未配置。',
+      wechatNativeAppOnly: '该微信登录方式仅支持在手机 App 内使用。'
     },
     linuxdoCallbackPageTitle: 'LinuxDo 登录回调',
     dingtalkCallbackPageTitle: '钉钉登录回调',

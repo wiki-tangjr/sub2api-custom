@@ -1,6 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import RedeemView from '../RedeemView.vue'
+
+const SelectStub = defineComponent({
+  props: { modelValue: { type: [String, Number, Boolean], default: null }, options: { type: Array, default: () => [] } },
+  emits: ['update:modelValue', 'change'],
+  setup(props, { emit }) {
+    const onChange = (event: Event) => {
+      const raw = (event.target as HTMLSelectElement).value
+      const opts = props.options as Array<{ value: unknown; label: string }>
+      const option = opts.find((item) => String(item.value ?? '') === raw)
+      const value = option ? option.value : raw
+      emit('update:modelValue', value)
+      emit('change', value, option ?? null)
+    }
+    return { onChange }
+  },
+  template: `<select v-bind="$attrs" :value="modelValue ?? ''" @change="onChange">
+    <option v-for="option in options" :key="String(option.value ?? '')" :value="option.value ?? ''">{{ option.label }}</option>
+  </select>`,
+})
 
 const { redeem, getHistory, refreshUser, fetchActiveSubscriptions, showError, showWarning, showSuccess } = vi.hoisted(() => ({
   redeem: vi.fn(),
@@ -32,7 +52,7 @@ vi.mock('vue-i18n', async () => {
 
 async function submitCode() {
   const wrapper = mount(RedeemView, {
-    global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true } },
+    global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true, Select: SelectStub } },
   })
   await flushPromises()
   await wrapper.get('input#code').setValue(' REDEEM-CODE ')
@@ -87,7 +107,7 @@ describe('RedeemView refresh after redemption', () => {
   it('pages on the server, changes size, and resets page and total after redeeming', async () => {
     getHistory.mockResolvedValue({ items: [], total: 101 })
     const wrapper = mount(RedeemView, {
-      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true } },
+      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true, Select: SelectStub } },
     })
     await flushPromises()
     const button = (text: string) => wrapper.findAll('button').find(b => b.text() === text)!
@@ -123,7 +143,7 @@ describe('RedeemView refresh after redemption', () => {
     const item = { id: 1, code: 'OLD-ROWS', type: 'balance', value: 20, used_at: '2026-03-08T00:00:00Z' }
     getHistory.mockResolvedValue({ items: [item], total: 61 })
     const wrapper = mount(RedeemView, {
-      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true } },
+      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true, Select: SelectStub } },
     })
     await flushPromises()
     const button = (text: string) => wrapper.findAll('button').find(b => b.text() === text)!
@@ -161,7 +181,7 @@ describe('RedeemView refresh after redemption', () => {
       rejectOld = reject
     }))
     const wrapper = mount(RedeemView, {
-      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true } },
+      global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, Icon: true, Select: SelectStub } },
     })
     getHistory.mockResolvedValue({ items: [{
       id: 2, code: 'NEW-ROWS', type: 'balance', value: 30, used_at: '2026-03-08T00:00:00Z',

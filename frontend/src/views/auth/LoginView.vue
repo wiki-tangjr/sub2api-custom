@@ -223,6 +223,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, watch } from 'vue'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
@@ -433,9 +434,17 @@ function applyLoginAgreementSettings(settings: {
     settings.login_agreement_revision ||
     `${loginAgreementUpdatedAt.value}:${documents.map((doc) => `${doc.id}:${doc.title}`).join('|')}`
 
-  agreementAccepted.value = !loginAgreementEnabled.value || hasAcceptedLoginAgreement(loginAgreementRevision.value)
+  // 魔改 #27：勾选式协议默认勾选，用户打开页面即可直接输入账号密码，无需先手动勾选。
+  // 仍保留用户主动取消勾选的能力（取消后沿用原有门控逻辑，不改变任何提交校验）。
+  const agreementDefaultChecked = loginAgreementMode.value === 'checkbox'
+  agreementAccepted.value =
+    !loginAgreementEnabled.value ||
+    agreementDefaultChecked ||
+    hasAcceptedLoginAgreement(loginAgreementRevision.value)
   showAgreementModal.value =
-    loginAgreementEnabled.value && !agreementAccepted.value && loginAgreementMode.value !== 'checkbox'
+    loginAgreementEnabled.value &&
+    !agreementAccepted.value &&
+    loginAgreementMode.value !== 'checkbox'
 }
 
 function hasAcceptedLoginAgreement(revision: string): boolean {
@@ -716,8 +725,11 @@ async function handle2FAVerify(code: string): Promise<void> {
     const redirectTo = (router.currentRoute.value.query.redirect as string) || '/dashboard'
     await router.push(redirectTo)
   } catch (error: unknown) {
-    const err = error as { message?: string; response?: { data?: { message?: string } } }
-    const message = err.response?.data?.message || err.message || t('profile.totp.loginFailed')
+    // 魔改 #26：错误文案统一中文化
+    const message = localizeUnknownError(error, {
+      kind: 'auth',
+      fallback: t('profile.totp.loginFailed')
+    })
 
     if (totpModalRef.value) {
       totpModalRef.value.setError(message)

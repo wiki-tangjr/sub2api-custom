@@ -341,14 +341,13 @@
             <span>{{ t('common.total') }}: {{ historyTotal }} {{ t('pagination.results') }}</span>
             <label>
               {{ t('pagination.perPage') }}
-              <select
+              <Select
                 v-model="historyPageSize"
-                class="input w-20"
+                :options="historyPageSizeOptions"
+                class="w-24"
                 :disabled="loadingHistory || submitting"
-                @change="fetchHistory(1)"
-              >
-                <option v-for="size in [20, 50, 100]" :key="size" :value="size">{{ size }}</option>
-              </select>
+                @change="() => fetchHistory(1)"
+              />
             </label>
             <button
               class="btn btn-secondary"
@@ -369,6 +368,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
@@ -377,6 +377,7 @@ import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ContactEntries from '@/components/common/ContactEntries.vue'
+import Select, { type SelectOption } from '@/components/common/Select.vue'
 import { formatDateTime } from '@/utils/format'
 import { resolveContactEntries } from '@/utils/contactEntries'
 import type { ContactEntry } from '@/types'
@@ -407,6 +408,7 @@ const loadingHistory = ref(false)
 const contactEntries = ref<ContactEntry[]>([])
 const historyPage = ref(1)
 const historyPageSize = ref(20)
+const historyPageSizeOptions: SelectOption[] = [20, 50, 100].map((size) => ({ value: size, label: String(size) }))
 const historyTotal = ref(0)
 let historyRequest = 0
 let loadedHistoryPageSize = 20
@@ -518,7 +520,10 @@ const handleRedeem = async () => {
     // Show success toast
     appStore.showSuccess(t('redeem.codeRedeemSuccess'))
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.detail || t('redeem.failedToRedeem')
+    // 魔改 #26：错误文案统一中文化（既用于页面内联展示，也用于 toast）
+    errorMessage.value = localizeUnknownError(error, {
+      fallback: t('redeem.failedToRedeem')
+    })
 
     appStore.showError(t('redeem.redeemFailed'))
   } finally {

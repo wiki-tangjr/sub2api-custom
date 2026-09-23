@@ -24,21 +24,13 @@
           :placeholder="t('admin.accounts.opencodeGo.protocolRules.patternPlaceholder')"
           :data-testid="`opencode-go-protocol-pattern-${index}`"
         />
-        <select
-          v-model="row.protocol"
-          class="input w-44 shrink-0"
+        <Select
+          :model-value="row.protocol"
+          :options="protocolOptions"
+          class="w-44 shrink-0"
           :data-testid="`opencode-go-protocol-select-${index}`"
-        >
-          <option value="chat_completions">
-            {{ t('admin.accounts.cnProviders.apiProtocol.chatCompletions') }}
-          </option>
-          <option value="responses">
-            {{ t('admin.accounts.cnProviders.apiProtocol.responses') }}
-          </option>
-          <option value="anthropic">
-            {{ t('admin.accounts.cnProviders.apiProtocol.anthropic') }}
-          </option>
-        </select>
+          @change="(value) => updateProtocol(index, value)"
+        />
         <button
           type="button"
           class="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
@@ -68,8 +60,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
+import Select, { type SelectOption } from '@/components/common/Select.vue'
 import { createStableObjectKeyResolver } from '@/utils/stableObjectKey'
 import {
   cloneOpenCodeGoProtocolRules,
@@ -91,6 +85,16 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const getRowKey = createStableObjectKeyResolver<OpenCodeGoProtocolRule>('opencode-go-protocol-rule')
+
+const protocolOptions = computed<SelectOption[]>(() => [
+  { value: 'chat_completions', label: t('admin.accounts.cnProviders.apiProtocol.chatCompletions') },
+  { value: 'responses', label: t('admin.accounts.cnProviders.apiProtocol.responses') },
+  { value: 'anthropic', label: t('admin.accounts.cnProviders.apiProtocol.anthropic') },
+])
+
+const updateProtocol = (index: number, value: string | number | boolean | null) => {
+  emit('update:rows', props.rows.map((row, i) => (i === index ? { ...row, protocol: value as OpenCodeGoProtocolRule['protocol'] } : row)))
+}
 
 const addRow = () => {
   emit('update:rows', [...props.rows, { pattern: '', protocol: 'chat_completions' }])

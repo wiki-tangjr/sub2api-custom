@@ -201,6 +201,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { extractApiErrorCode } from '@/utils/apiError'
+import { localizeUnknownError } from '@/i18n/errorLocalization'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
@@ -312,17 +314,15 @@ async function handleSubmit(): Promise<void> {
     isSuccess.value = true
     appStore.showSuccess(t('auth.passwordResetSuccess'))
   } catch (error: unknown) {
-    const err = error as { message?: string; response?: { data?: { detail?: string; code?: string } } }
-
     // Check for invalid/expired token error
-    if (err.response?.data?.code === 'INVALID_RESET_TOKEN') {
+    // 魔改 #26：错误文案统一中文化（既用于页面内联展示，也用于 toast）
+    if (extractApiErrorCode(error) === 'INVALID_RESET_TOKEN') {
       errorMessage.value = t('auth.invalidOrExpiredToken')
-    } else if (err.response?.data?.detail) {
-      errorMessage.value = err.response.data.detail
-    } else if (err.message) {
-      errorMessage.value = err.message
     } else {
-      errorMessage.value = t('auth.resetPasswordFailed')
+      errorMessage.value = localizeUnknownError(error, {
+        kind: 'auth',
+        fallback: t('auth.resetPasswordFailed')
+      })
     }
 
     appStore.showError(errorMessage.value)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { QUOTA_THRESHOLD_TYPE_FIXED, QUOTA_THRESHOLD_TYPE_PERCENTAGE, type QuotaThresholdType } from '@/constants/account'
+import Select, { type SelectOption } from '@/components/common/Select.vue'
 
 defineProps<{
   enabled: boolean | null
@@ -12,6 +13,15 @@ const emit = defineEmits<{
   'update:threshold': [value: number | null]
   'update:thresholdType': [value: QuotaThresholdType | null]
 }>()
+
+const thresholdTypeOptions: SelectOption[] = [
+  { value: QUOTA_THRESHOLD_TYPE_FIXED, label: '$' },
+  { value: QUOTA_THRESHOLD_TYPE_PERCENTAGE, label: '%' },
+]
+
+const onThresholdTypeChange = (value: unknown) => {
+  emit('update:thresholdType', (value as QuotaThresholdType | null) ?? null)
+}
 </script>
 
 <template>
@@ -41,14 +51,13 @@ const emit = defineEmits<{
         :step="thresholdType === QUOTA_THRESHOLD_TYPE_PERCENTAGE ? 1 : 0.01"
         class="input py-1 text-sm flex-1 min-w-0"
       />
-      <select
-        :value="thresholdType || QUOTA_THRESHOLD_TYPE_FIXED"
-        @change="emit('update:thresholdType', ($event.target as HTMLSelectElement).value as QuotaThresholdType)"
-        class="input py-1 text-xs w-[4.5rem] flex-shrink-0 text-center"
-      >
-        <option :value="QUOTA_THRESHOLD_TYPE_FIXED">$</option>
-        <option :value="QUOTA_THRESHOLD_TYPE_PERCENTAGE">%</option>
-      </select>
+      <Select
+        :model-value="thresholdType || QUOTA_THRESHOLD_TYPE_FIXED"
+        :options="thresholdTypeOptions"
+        size="sm"
+        class="w-[4.5rem] flex-shrink-0"
+        @change="onThresholdTypeChange"
+      />
     </template>
   </div>
 </template>

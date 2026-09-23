@@ -258,6 +258,24 @@ export default {
     loginFailed: 'Login failed. Please check your credentials and try again.',
     errors: {
       USER_NOT_ACTIVE: 'Account has been disabled.',
+      // Customization #26: high-frequency auth error codes, kept in sync with zh locale keys
+      INVALID_CREDENTIALS: 'Invalid email or password',
+      INVALID_USER: 'User not found',
+      USER_NOT_FOUND: 'User not found',
+      EMAIL_EXISTS: 'This email is already registered',
+      INVALID_TOKEN: 'Invalid login credentials',
+      TOKEN_EXPIRED: 'Login credentials have expired, please log in again',
+      TOKEN_REVOKED: 'Login credentials have been revoked, please log in again',
+      INVALID_RESET_TOKEN: 'The password reset link is invalid or has expired',
+      TOTP_INVALID_CODE: 'Invalid two-factor authentication code',
+      PASSWORD_INCORRECT: 'Current password is incorrect',
+      INVALID_VERIFY_CODE: 'Verification code is invalid or has expired',
+      VERIFY_CODE_TOO_FREQUENT: 'Too many requests, please request a new code later',
+      VERIFY_CODE_MAX_ATTEMPTS: 'Too many failed attempts, please request a new code',
+      PASSKEY_ALREADY_EXISTS: 'This passkey is already registered',
+      PASSKEY_NOT_FOUND: 'Passkey not found',
+      REGISTRATION_DISABLED: 'Registration is currently disabled',
+      SERVICE_UNAVAILABLE: 'Service temporarily unavailable, please retry later',
     },
     registrationFailed: 'Registration failed. Please try again.',
     emailDomainRegistrationLimit:
@@ -401,7 +419,8 @@ export default {
       wechatAvailabilityUnknown: 'WeChat sign-in availability could not be confirmed. Refresh and retry.',
       wechatSystemBrowserOnly: 'This WeChat sign-in flow is only available in your system browser.',
       wechatBrowserOnly: 'This WeChat sign-in flow is only available inside the WeChat browser.',
-      wechatNotConfigured: 'WeChat sign-in is not configured yet.'
+      wechatNotConfigured: 'WeChat sign-in is not configured yet.',
+      wechatNativeAppOnly: 'This WeChat sign-in flow is only available in the mobile app.'
     },
     linuxdoCallbackPageTitle: 'LinuxDo Sign-In Callback',
     dingtalkCallbackPageTitle: 'DingTalk Sign-In Callback',

@@ -68,11 +68,12 @@
             <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
               {{ t('admin.settings.site.contactEntries.type') }}
             </label>
-            <select v-model="item.type" class="input text-sm" @change="onTypeChange(item)">
-              <option value="link">{{ t('admin.settings.site.contactEntries.typeLink') }}</option>
-              <option value="qrcode">{{ t('admin.settings.site.contactEntries.typeQrcode') }}</option>
-              <option value="text">{{ t('admin.settings.site.contactEntries.typeText') }}</option>
-            </select>
+            <Select
+              v-model="item.type"
+              :options="typeOptions"
+              class="text-sm"
+              @change="onTypeChange(item)"
+            />
           </div>
         </div>
 
@@ -101,10 +102,12 @@
               {{ t('admin.settings.site.contactEntries.iconType') }}
             </label>
             <div class="flex items-center gap-2">
-              <select v-model="item.icon_type" class="input text-sm" @change="commit(entries.slice())">
-                <option value="emoji">{{ t('admin.settings.site.contactEntries.iconTypeEmoji') }}</option>
-                <option value="image">{{ t('admin.settings.site.contactEntries.iconTypeImage') }}</option>
-              </select>
+              <Select
+                v-model="item.icon_type"
+                :options="iconTypeOptions"
+                class="min-w-0 flex-1 text-sm"
+                @change="commit(entries.slice())"
+              />
               <ContactEntryIcon :entry="item" size="md" />
             </div>
           </div>
@@ -112,11 +115,12 @@
             <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
               {{ t('admin.settings.site.contactEntries.display') }}
             </label>
-            <select v-model="item.display" class="input text-sm" @change="commit(entries.slice())">
-              <option value="modal">{{ t('admin.settings.site.contactEntries.displayModal') }}</option>
-              <option value="hover">{{ t('admin.settings.site.contactEntries.displayHover') }}</option>
-              <option value="inline">{{ t('admin.settings.site.contactEntries.displayInline') }}</option>
-            </select>
+            <Select
+              v-model="item.display"
+              :options="displayOptions"
+              class="text-sm"
+              @change="commit(entries.slice())"
+            />
             <p class="mt-1 text-xs text-gray-400 dark:text-dark-400">
               {{ displayHint(item) }}
             </p>
@@ -157,10 +161,12 @@
             <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
               {{ t('admin.settings.site.contactEntries.openTarget') }}
             </label>
-            <select v-model="item.open_target" class="input text-sm" @change="commit(entries.slice())">
-              <option value="new_tab">{{ t('admin.settings.site.contactEntries.openNewTab') }}</option>
-              <option value="current_tab">{{ t('admin.settings.site.contactEntries.openCurrentTab') }}</option>
-            </select>
+            <Select
+              v-model="item.open_target"
+              :options="openTargetOptions"
+              class="text-sm"
+              @change="commit(entries.slice())"
+            />
             <p class="mt-1 text-xs text-gray-400 dark:text-dark-400">
               {{ t('admin.settings.site.contactEntries.openTargetHint') }}
             </p>
@@ -254,6 +260,7 @@ import BaseDialog from '@/components/common/BaseDialog.vue'
 import ContactEntries from '@/components/common/ContactEntries.vue'
 import ContactEntryIcon from '@/components/common/ContactEntryIcon.vue'
 import ContactEntryBody from '@/components/common/ContactEntryBody.vue'
+import Select, { type SelectOption } from '@/components/common/Select.vue'
 
 const props = defineProps<{
   modelValue: ContactEntry[]
@@ -275,6 +282,28 @@ const previewEntries = computed(() => entries.value.filter((item) => item.enable
 const previewSectionTitle = computed(() => t('common.contactSectionDefaultTitle'))
 
 const previewEntry = ref<ContactEntry | null>(null)
+
+const typeOptions = computed<SelectOption[]>(() => [
+  { value: 'link', label: t('admin.settings.site.contactEntries.typeLink') },
+  { value: 'qrcode', label: t('admin.settings.site.contactEntries.typeQrcode') },
+  { value: 'text', label: t('admin.settings.site.contactEntries.typeText') },
+])
+
+const iconTypeOptions = computed<SelectOption[]>(() => [
+  { value: 'emoji', label: t('admin.settings.site.contactEntries.iconTypeEmoji') },
+  { value: 'image', label: t('admin.settings.site.contactEntries.iconTypeImage') },
+])
+
+const displayOptions = computed<SelectOption[]>(() => [
+  { value: 'modal', label: t('admin.settings.site.contactEntries.displayModal') },
+  { value: 'hover', label: t('admin.settings.site.contactEntries.displayHover') },
+  { value: 'inline', label: t('admin.settings.site.contactEntries.displayInline') },
+])
+
+const openTargetOptions = computed<SelectOption[]>(() => [
+  { value: 'new_tab', label: t('admin.settings.site.contactEntries.openNewTab') },
+  { value: 'current_tab', label: t('admin.settings.site.contactEntries.openCurrentTab') },
+])
 
 const groupDatalistId = 'contact-entry-groups'
 

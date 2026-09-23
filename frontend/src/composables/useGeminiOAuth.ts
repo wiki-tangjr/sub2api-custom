@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { localizeErrorMessage } from '@/i18n/errorLocalization'
 import { adminAPI } from '@/api/admin'
 import type { GeminiOAuthCapabilities } from '@/api/admin/gemini'
 
@@ -106,7 +107,9 @@ export function useGeminiOAuth() {
       if (errorMessage.includes('missing project_id')) {
         error.value = t('admin.accounts.oauth.gemini.missingProjectId')
       } else {
-        error.value = errorMessage || t('admin.accounts.oauth.gemini.failedToExchangeCode')
+        error.value = localizeErrorMessage(errorMessage, {
+          fallback: t('admin.accounts.oauth.gemini.failedToExchangeCode'),
+        })
       }
       appStore.showError(error.value)
       return null

@@ -513,5 +513,113 @@ bash scripts/customizations-verify.sh --live     # 发布后复验
 > （由 `TablePageLayout.vue` 模板里的 `:class="{ 'mobile-mode': isMobile }"` 驱动）
 > 以及 `.table-page-layout` 的桌面固定高度。上游若重构该组件，升级后必须重新按本节适配。
 
+### 26. 全站下拉菜单统一 + 用户可见报错中文化 —— 2026-09-23
+
+> 本轮来自用户两条诉求：「帮我把全站所有的下拉菜单修改成图1这样的，怎么有些下拉菜单是图2这样的？全站统一一下」
+> 与「用户的前端报错提示，不要有英文的……全都换成中文提示报错」。
+
+#### 26.1 下拉菜单全站统一
+
+- 统一到自定义组件 **`frontend/src/components/common/Select.vue`**（teal/cyan `primary-*` 风格、
+  统一动画与阴影），为 **`size` 增加默认值 `'md'`**，保证既有 285 处用法外观零变化。
+- 全站原生 `<select>` 已清零（原生化后由 OS 渲染、样式无法统一，且不符合站点风格）。
+  **体检标记：原生 `<select` 计数必须为 0**（见 `customizations-verify.sh` #26）。
+- ⚠️ **升级注意**：上游若新增原生 `<select>` 或重构 `Select.vue` 的类名/动画，需重新适配。
+
+#### 26.2 用户可见报错中文化（只在前端展示层做，不碰后端）
+
+用户诉求是「前端报错不要有英文」。后端 **456 个 reason 码 / 369 条唯一英文 message / 832 个
+infraerrors 调用点**，直接改后端风险极高且会影响在途 AI 调用，因此**策略定为只在前端最终展示层翻译**：
+
+1. **稳定错误码优先**：`reason` / `code` → 中文（`ERROR_CODE_ZH`，456 条）。
+2. **英文原文精确匹配**（大小写/首尾空白不敏感）→ 中文（`ERROR_TEXT_ZH`，458 条 + 本轮追加 24 条前端自有文案）。
+3. **兜底**：拿到纯英文句子时按语义回退中文（网络 / 登录 / 权限 / 支付 / 通用），**绝不放英文给用户**；
+   已含中文、纯数字、URL、`SUCCESS` 这类稳定标识符**保持原样**。
+
+关键文件：
+
+- `frontend/src/utils/errorMessagesZh.ts` —— 两张映射表（**必须放 `utils/`**，`errorLocalization.ts` 用
+  `@/utils/errorMessagesZh` 引用；写错成 `./errorMessagesZh` 会直接构建失败，**勿改回**）。
+- `frontend/src/i18n/errorLocalization.ts` —— `localizeErrorMessage` / `localizeUnknownError` /
+  `isTranslatableEnglishSentence` / `containsChinese` / `isChineseLocale`。
+  **只在中文界面生效，英文界面原样透传**；非浏览器环境（单测）回退中文。
+- **唯一收敛漏斗**：`frontend/src/stores/app.ts` 的 `showToast` 只对 `type === 'error'` 中文化；
+  `frontend/src/utils/apiError.ts` 四条返回路径全部包裹；`frontend/src/api/client.ts` 4 处文案改中文。
+- 另外补齐：`views/admin/UsageView.vue`、`views/setup/SetupWizardView.vue`、
+  `components/account/AccountTestModal.vue`、`views/auth/WechatCallbackView.vue`（改用 i18n 键
+  `auth.oauthFlow.wechatNativeAppOnly`）、`views/user/ChannelStatusV2View.vue`（监控错误详情）、
+  `composables/useGeminiOAuth.ts`（管理端弹窗）。
+
+#### 26.3 绝不能动的英文（逻辑判定依赖）
+
+以下英文字符串**是逻辑判断条件，不是给用户看的文案**，改动会导致功能失效：
+
+- `api/client.ts` —— `'Ops monitoring is disabled'`
+- `composables/useGeminiOAuth.ts` —— `errorMessage.includes('missing project_id')`
+- `views/user/paymentUx.ts` / `views/user/PaymentView.vue` —— `get_brand_wcpay_request:fail`、
+  `weixinjsbridge is unavailable`、`wechat_jsapi_unavailable`
+
+#### 26.4 验证
+
+- `pnpm exec vue-tsc --noEmit` → **EXIT=0**
+- `pnpm exec vitest run` 定向 24 个文件 / **232 用例全绿**；新增
+  `frontend/src/i18n/__tests__/errorLocalization.spec.ts`（13 个用例：按码优先、按原文匹配、
+  中文/URL/标识符原样、英文兜底必为中文、fallback 优先、英文界面透传、新增键齐全）。
+- `i18n/__tests__/localeKeyCompleteness.spec.ts` 通过（新增 i18n 键 en/zh 两侧一致）。
+- 线上人工抽查：登录输错密码 toast 为「邮箱或密码错误」，不再出现 `invalid email or password`。
+
+#### 26.5 关键文件与体检段
+
+- **关键文件**：`frontend/src/utils/errorMessagesZh.ts`、`frontend/src/i18n/errorLocalization.ts`、
+  `frontend/src/stores/app.ts`、`frontend/src/utils/apiError.ts`、`frontend/src/api/client.ts`
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#26**
+
+---
+
+### 27. 登录/注册协议默认勾选（checkbox 模式）—— 2026-09-23
+
+> 用户诉求原话：「服务条款、使用政策等等这些，新用户登录/注册默认勾选上吧，而不是先需要用户去
+> 勾选才能输入账号密码，默认就是自动勾选上的。」
+
+#### 27.1 行为
+
+- 只在 `login_agreement_mode === 'checkbox'`（就是截图里那种复选框样式）时**默认勾选**；
+  `modal` 模式（首次进入强制弹窗阅读）**保持不变**。
+- 复选框勾选态由 `agreementAccepted` prop 驱动（`LoginAgreementPrompt.vue` 的 `input :checked="accepted"`），
+  因此前端显示为**已勾选**，用户可**直接输入账号密码**。
+- **用户仍可主动取消勾选**：取消后走原有 `rejectLoginAgreement()`，`agreementGateActive` 变 true，
+  `validateForm()` 仍会拦截并提示，提交校验**一行未改**。
+
+#### 27.2 设计决策（不要推翻）
+
+- **不写 localStorage**：默认勾选只在内存里视为已同意，避免把「用户没看过」当成正式同意污染存储。
+- **不动** `agreementGateActive` / `validateForm` / `authActionDisabled` / `registrationActionDisabled`。
+
+#### 27.3 改动位置
+
+`frontend/src/views/auth/LoginView.vue` 与 `frontend/src/views/auth/RegisterView.vue` 的
+`applyLoginAgreementSettings()`，同一处四行：
+
+```ts
+const agreementDefaultChecked = loginAgreementMode.value === 'checkbox'
+agreementAccepted.value =
+  !loginAgreementEnabled.value || agreementDefaultChecked || hasAcceptedLoginAgreement(loginAgreementRevision.value)
+```
+
+#### 27.4 验证
+
+- `pnpm exec vue-tsc --noEmit` → **EXIT=0**
+- `views/auth/__tests__/`（LoginView / RegisterView 等）全部通过；两个 spec 内**没有协议门控断言**，
+  不会被本次改动破坏（已确认）。
+- WebKit 真机：登录页 / 注册页复选框**默认已勾选**且可直接登录；**主动取消勾选后仍被拦截并提示**。
+
+#### 27.5 关键文件与体检段
+
+- **关键文件**：`frontend/src/views/auth/LoginView.vue`、`frontend/src/views/auth/RegisterView.vue`、
+  `frontend/src/components/auth/LoginAgreementPrompt.vue`
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#27**
+
+---
+
 ---
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

@@ -9,9 +9,11 @@ describe('SettingsView custom menu open_mode config', () => {
 
   it('renders openMode select control with iframe and new_tab options in the grid', () => {
     expect(settingsViewSource).toContain('t("admin.settings.customMenu.openMode")')
-    expect(settingsViewSource).toContain('v-model="item.open_mode"')
-    expect(settingsViewSource).toContain('value="iframe"')
-    expect(settingsViewSource).toContain('value="new_tab"')
+    expect(settingsViewSource).toContain(':model-value="item.open_mode ?? \'iframe\'"')
+    expect(settingsViewSource).toContain(':options="customMenuOpenModeOptions"')
+    expect(settingsViewSource).toContain("item.open_mode = $event as 'iframe' | 'new_tab'")
+    expect(settingsViewSource).toContain('{ value: "iframe", label: t("admin.settings.customMenu.openModeIframe") }')
+    expect(settingsViewSource).toContain('{ value: "new_tab", label: t("admin.settings.customMenu.openModeNewTab") }')
     expect(settingsViewSource).toContain('t("admin.settings.customMenu.openModeIframe")')
     expect(settingsViewSource).toContain('t("admin.settings.customMenu.openModeNewTab")')
   })

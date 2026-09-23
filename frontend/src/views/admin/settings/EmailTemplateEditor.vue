@@ -56,39 +56,25 @@
             <label class="input-label" for="email-template-event">
               {{ t("admin.settings.emailTemplates.event") }}
             </label>
-            <select
+            <Select
               id="email-template-event"
               v-model="selectedEvent"
+              :options="eventSelectOptions"
               class="input"
               :disabled="loadingTemplate || eventOptions.length === 0"
-            >
-              <option
-                v-for="option in eventOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ formatEventOptionLabel(option) }}
-              </option>
-            </select>
+            />
           </div>
           <div>
             <label class="input-label" for="email-template-locale">
               {{ t("admin.settings.emailTemplates.locale") }}
             </label>
-            <select
+            <Select
               id="email-template-locale"
               v-model="selectedLocale"
+              :options="localeSelectOptions"
               class="input"
               :disabled="loadingTemplate || localeOptions.length === 0"
-            >
-              <option
-                v-for="localeOption in localeOptions"
-                :key="localeOption"
-                :value="localeOption"
-              >
-                {{ formatLocale(localeOption) }}
-              </option>
-            </select>
+            />
           </div>
         </div>
 
@@ -238,6 +224,7 @@ import type {
   EmailTemplateOption,
 } from "@/api/admin/settings";
 import { useAppStore } from "@/stores";
+import Select, { type SelectOption } from "@/components/common/Select.vue";
 import { extractApiErrorMessage } from "@/utils/apiError";
 
 const { t, locale } = useI18n();
@@ -490,6 +477,13 @@ function eventMetaFor(option?: EmailTemplateOption | null) {
     optional: option.optional === true,
   };
 }
+
+const eventSelectOptions = computed<SelectOption[]>(() =>
+  eventOptions.value.map((option) => ({ value: option.value, label: formatEventOptionLabel(option) })),
+);
+const localeSelectOptions = computed<SelectOption[]>(() =>
+  localeOptions.value.map((value) => ({ value, label: formatLocale(value) })),
+);
 
 function formatEventOptionLabel(option: EmailTemplateOption): string {
   const meta = eventMetaFor(option);
