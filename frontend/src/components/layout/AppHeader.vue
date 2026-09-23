@@ -197,7 +197,7 @@
               </div>
 
                 <!-- Contact Support (魔改 #12: 后台可自定义条目) -->
-                <div v-if="contactEntries.length" class="border-t border-gray-100 px-4 py-3 dark:border-dark-700">
+                <div v-if="contactEntries.length" class="border-t border-gray-100 px-3 py-3 dark:border-dark-700">
                   <ContactEntries
                     variant="dropdown"
                     :entries="contactEntries"
@@ -246,13 +246,14 @@
   <BaseDialog
     :show="showContactModal"
     :title="contactSectionTitle"
-    width="normal"
+    width="narrow"
     @close="showContactModal = false"
   >
-    <p v-if="contactSectionDescription" class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+    <p v-if="contactSectionDescription" class="mb-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
       {{ contactSectionDescription }}
     </p>
-    <ContactEntries variant="list" force-inline :entries="contactEntries" />
+    <!-- 魔改 #29: 总弹窗使用专用 contact sheet，不再把不同类型强塞成零散内联元素。 -->
+    <ContactEntries variant="sheet" :entries="contactEntries" />
   </BaseDialog>
 </template>
 

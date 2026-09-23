@@ -661,4 +661,40 @@ agreementAccepted.value =
   **严禁直接 restart**。
 
 ---
+
+### 29. 客服联系方式视觉与交互重构 —— 2026-09-24
+
+> 用户根据线上截图反馈：客服入口、悬停详情和「联系我们」总弹窗的排版、组件形态与展示方式不协调，
+> 微信文本像输入框加大按钮，Telegram 又只是普通链接，弹窗内容挤在左上角且留白过多。
+
+#### 29.1 本轮更正的设计
+
+- `ContactEntries` 新增 `sheet` 变体，顶栏「联系我们」总弹窗改用专用联系面板；文本、链接、二维码都使用
+  同一套「图标 + 名称 + 内容动作」纵向结构，不再通过 `list + forceInline` 强制渲染成互不一致的碎片。
+- 顶栏下拉和个人中心入口统一为中性列表行：默认不使用整块高饱和主色背景，只在 hover/focus 时显示边框和浅色反馈；
+  右侧使用明确的方向图标，长名称与描述均可截断，不会撑破菜单。
+- 文本值与复制动作合并进一个紧凑内容区，复制改为带 `title` / `aria-label` 的图标按钮；链接使用低饱和整行操作；
+  二维码增加白底、边框和稳定尺寸，浅色/深色主题下都清晰。
+- 分组标题取消全大写和过宽字距，改为正文大小的小标题加分隔线，更适合中文；未配置 group 时仍不显示标题。
+- 悬停浮层使用 CSS `min()` 固定最大宽度并 `overflow-hidden`，内部文本不能再把浮层撑出侧栏；顶栏下拉仍靠右对齐。
+  保留 #24 的无死区内边距、延时关闭和触屏弹窗兜底，并新增 `focusin/focusout` 键盘访问。
+- 顶栏联系方式总弹窗由 `normal` 改为 `narrow`，内容按条目纵向排列；点击遮罩关闭沿用 `BaseDialog` 的全站规则。
+
+#### 29.2 保持不变的行为
+
+- 不新增或修改数据库字段，不改当前 `contact_entries`、旧字段兼容链或管理员已经保存的值。
+- `icon_type`、`type`、`display`、`open_target`、`group`、排序、启用状态仍完全由后台配置决定。
+- Telegram 新标签页/当前页、文本复制、二维码、modal/hover/inline、触屏 hover 回退均保留。
+- 兑换页继续使用紧凑 `list + forceInline`；后台实时预览继续复用同一个 `ContactEntries` 组件，因此与前台同步更新。
+
+#### 29.3 关键文件与保护
+
+- `frontend/src/components/common/ContactEntries.vue`
+- `frontend/src/components/common/ContactEntryBody.vue`
+- `frontend/src/components/layout/AppHeader.vue`
+- `frontend/src/components/common/__tests__/ContactEntries.spec.ts`
+- **对应体检段**：`scripts/customizations-verify.sh` 的 **#29**。升级后必须验证 sheet、悬停、复制、链接目标、
+  分组、触屏和键盘访问，不能只看静态截图。
+
+---
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

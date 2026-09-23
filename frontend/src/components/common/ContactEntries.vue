@@ -1,99 +1,152 @@
 <template>
-  <div :class="variant === 'list' ? 'inline-block' : 'w-full'">
-    <div v-if="title || description" class="mb-2">
-      <p v-if="title" class="text-xs font-semibold text-gray-500 dark:text-gray-400">{{ title }}</p>
-      <p v-if="description" class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ description }}</p>
+  <div :class="rootClass">
+    <div v-if="title || description" :class="variant === 'dropdown' ? 'mb-2 px-1' : 'mb-3'">
+      <p v-if="title" class="text-xs font-semibold text-gray-600 dark:text-gray-300">{{ title }}</p>
+      <p v-if="description" class="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
+        {{ description }}
+      </p>
     </div>
 
-    <!-- 魔改 #23: 可选分组。没有任何 group 时下面的结构与 #12 完全一致，
-         所以老配置的前台表现不会发生变化。 -->
+    <!-- 魔改 #29: 所有使用场景共用同一套分组与条目骨架，只有密度不同。 -->
     <template v-for="(group, groupIndex) in groupedEntries" :key="group.key + ':' + groupIndex">
-      <div v-if="group.title" :class="groupIndex === 0 ? '' : 'mt-3'">
-        <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-400">
+      <div
+        v-if="group.title"
+        class="flex items-center gap-2"
+        :class="groupIndex === 0 ? 'mb-2' : 'mb-2 mt-4'"
+      >
+        <p class="shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
           {{ group.title }}
         </p>
+        <span v-if="variant !== 'list'" class="h-px flex-1 bg-gray-200 dark:bg-dark-700" />
       </div>
-      <div :class="[listClass, groupIndex > 0 ? 'mt-1' : '']">
+
+      <div :class="[listClass, groupIndex > 0 && !group.title ? 'mt-2' : '']">
         <template v-for="(item, index) in group.items" :key="item.id || String(index)">
-          <!-- inline link -->
+          <!-- 联系方式总览：每个条目都是结构一致、宽度稳定的详情行。 -->
+          <div
+            v-if="variant === 'sheet'"
+            data-testid="contact-sheet-entry"
+            class="rounded-lg border border-gray-200 bg-gray-50/70 p-3 dark:border-dark-700 dark:bg-dark-900/30"
+          >
+            <div class="flex min-w-0 items-center gap-3">
+              <ContactEntryIcon :entry="item" size="md" />
+              <p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {{ item.label }}
+              </p>
+            </div>
+            <ContactEntryBody
+              class="mt-3"
+              :entry="item"
+              compact
+              @copied="notifyCopied"
+              @failed="notifyCopyFailed"
+            />
+          </div>
+
+          <!-- 直接打开的链接。 -->
           <a
-            v-if="displayOf(item) === 'inline' && item.type === 'link'"
+            v-else-if="displayOf(item) === 'inline' && item.type === 'link'"
             :href="safeLink(item)"
             :target="targetOf(item)"
             :rel="targetOf(item) === '_blank' ? 'noopener noreferrer' : undefined"
             :class="entryClass"
           >
-            <ContactEntryIcon :entry="item" />
-            <span class="truncate">{{ item.label }}</span>
+            <ContactEntryIcon :entry="item" :size="variant === 'list' ? 'sm' : 'md'" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate">{{ item.label }}</span>
+              <span
+                v-if="item.description && variant !== 'list'"
+                class="mt-0.5 block truncate text-xs font-normal text-gray-500 dark:text-gray-400"
+              >
+                {{ item.description }}
+              </span>
+            </span>
+            <Icon name="externalLink" size="sm" class="shrink-0 opacity-55" />
           </a>
 
-          <!-- inline text -->
-          <span
+          <!-- 可复制文本：整行都是明确的复制动作，不再嵌套输入框形按钮。 -->
+          <button
             v-else-if="displayOf(item) === 'inline' && item.type === 'text'"
-            class="inline-flex max-w-full items-center gap-2 rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-700 dark:bg-dark-700 dark:text-gray-200"
+            type="button"
+            :class="inlineTextClass"
+            :title="t('common.copy')"
+            @click="copyInline(item)"
           >
-            <ContactEntryIcon :entry="item" />
-            <span class="font-medium">{{ item.label }}：</span>
-            <code class="select-all truncate font-mono">{{ item.value }}</code>
-            <button type="button" class="text-primary-600 hover:text-primary-700 dark:text-primary-400" @click="copyInline(item)">
-              <Icon name="copy" size="sm" />
-            </button>
-          </span>
+            <ContactEntryIcon :entry="item" :size="variant === 'list' ? 'sm' : 'md'" />
+            <span class="min-w-0 flex-1 text-left">
+              <span class="block truncate font-medium">{{ item.label }}</span>
+              <code class="mt-0.5 block truncate font-mono text-xs font-normal text-gray-500 dark:text-gray-400">
+                {{ item.value }}
+              </code>
+            </span>
+            <Icon name="copy" size="sm" class="shrink-0 opacity-60" />
+          </button>
 
-          <!-- inline qrcode -->
-          <span
-            v-else-if="displayOf(item) === 'inline' && item.type === 'qrcode'"
-            class="inline-flex flex-col items-center gap-1 rounded-lg border border-gray-200 p-2 dark:border-dark-600"
+          <!-- 内联二维码仅用于管理员明确选择内联的卡片场景。 -->
+          <div
+            v-else-if="displayOf(item) === 'inline' && item.type === 'qrcode' && variant !== 'list'"
+            class="rounded-lg border border-gray-200 bg-white p-3 dark:border-dark-700 dark:bg-dark-800"
           >
-            <ContactEntryIcon :entry="item" size="md" />
-            <span class="text-xs font-medium text-gray-700 dark:text-gray-200">{{ item.label }}</span>
-            <img
-              v-if="safeQrOf(item)"
-              :src="safeQrOf(item)"
-              :alt="item.label"
-              class="h-32 w-32 object-contain"
-            />
-          </span>
+            <div class="mb-3 flex items-center gap-3">
+              <ContactEntryIcon :entry="item" size="md" />
+              <p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {{ item.label }}
+              </p>
+            </div>
+            <ContactEntryBody :entry="item" compact />
+          </div>
 
-          <!-- modal / hover -->
+          <!-- 弹窗 / 悬停入口。 -->
           <div
             v-else
-            class="relative"
+            class="relative min-w-0"
             @mouseenter="hoverIn(item)"
             @mouseleave="hoverOut(item)"
+            @focusin="hoverIn(item)"
+            @focusout="hoverOut(item)"
           >
             <button
               type="button"
               :class="entryClass"
-              :aria-expanded="hoverShown(item)"
+              :aria-expanded="displayOf(item) === 'hover' ? hoverShown(item) : undefined"
+              :aria-haspopup="displayOf(item) === 'modal' || !canHover ? 'dialog' : undefined"
               @click="activate(item)"
             >
-              <ContactEntryIcon :entry="item" />
-              <span class="truncate">{{ item.label }}</span>
-              <Icon
-                :name="item.type === 'link' ? 'externalLink' : 'chevronDown'"
-                size="sm"
-                class="opacity-60"
-              />
+              <ContactEntryIcon :entry="item" :size="variant === 'list' ? 'sm' : 'md'" />
+              <span class="min-w-0 flex-1">
+                <span class="block truncate">{{ item.label }}</span>
+                <span
+                  v-if="item.description && variant !== 'list'"
+                  class="mt-0.5 block truncate text-xs font-normal text-gray-500 dark:text-gray-400"
+                >
+                  {{ item.description }}
+                </span>
+              </span>
+              <Icon name="chevronRight" size="sm" class="shrink-0 opacity-45" />
             </button>
 
-            <!-- 魔改 #24: 悬停卡片用 pt-1.5 内边距把按钮与卡片之间的空隙并入
-                 可悬停区域（原来 mt-1.5 的 6px 空隙会让鼠标在移动途中触发
-                 mouseleave，卡片消失导致复制按钮点不到）；同时 hoverOut 采用
-                 延时关闭，作为移动过程中抖动/越界的兜底。 -->
+            <!-- pt-2 仍是可悬停区域的一部分，避免按钮和浮层之间产生鼠标死区。 -->
             <div
               v-if="hoverShown(item)"
-              class="absolute top-full z-40 max-w-[calc(100vw-2rem)] pt-1.5"
+              data-testid="contact-hover-panel"
+              class="contact-hover-panel absolute top-full z-[60] pt-2"
               :class="hoverCardClass"
             >
-              <div class="rounded-xl border border-gray-200 bg-white p-3.5 text-left shadow-xl dark:border-dark-600 dark:bg-dark-800">
-                <div class="mb-2 flex items-center gap-2">
+              <div class="overflow-hidden rounded-lg border border-gray-200 bg-white text-left shadow-xl dark:border-dark-600 dark:bg-dark-800">
+                <div class="flex min-w-0 items-center gap-3 border-b border-gray-100 px-3 py-2.5 dark:border-dark-700">
                   <ContactEntryIcon :entry="item" size="md" />
-                  <p class="min-w-0 flex-1 truncate text-xs font-semibold text-gray-700 dark:text-gray-200">
+                  <p class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {{ item.label }}
                   </p>
                 </div>
-                <ContactEntryBody :entry="item" @copied="notifyCopied" @failed="notifyCopyFailed" />
+                <div class="p-3">
+                  <ContactEntryBody
+                    :entry="item"
+                    compact
+                    @copied="notifyCopied"
+                    @failed="notifyCopyFailed"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -128,7 +181,7 @@ const props = withDefaults(
     entries?: ContactEntry[]
     title?: string
     description?: string
-    variant?: 'card' | 'list' | 'dropdown'
+    variant?: 'card' | 'list' | 'dropdown' | 'sheet'
     forceInline?: boolean
   }>(),
   {
@@ -186,26 +239,36 @@ const groupedEntries = computed<ContactEntryGroup[]>(() => {
 
 const listClass = computed(() => {
   if (props.variant === 'list') return 'flex flex-wrap items-center gap-x-4 gap-y-2'
-  if (props.variant === 'dropdown') return 'flex flex-col gap-1'
-  return 'flex flex-wrap gap-2'
+  if (props.variant === 'dropdown') return 'flex flex-col gap-1.5'
+  if (props.variant === 'sheet') return 'flex flex-col gap-2'
+  return 'grid grid-cols-1 gap-2 sm:grid-cols-2'
 })
 
-// 顶栏下拉菜单在屏幕右侧，悬浮卡片靠右对齐才不会越界；
-// 其余场景保持左对齐，与 #12 一致。
+const rootClass = computed(() => props.variant === 'list' ? 'inline-block max-w-full' : 'w-full')
+
+// 魔改 #29: 浮层宽度由稳定的 CSS min() 控制，不再被内部文本最小宽度撑破。
+// 顶栏下拉靠右对齐，其余使用场景靠左对齐。
 const hoverCardClass = computed(() => {
-  if (props.variant === 'dropdown') return 'right-0 w-64'
-  if (props.variant === 'list') return 'left-0 w-64'
-  return 'left-0 w-72'
+  if (props.variant === 'dropdown') return 'contact-hover-dropdown'
+  if (props.variant === 'list') return 'contact-hover-list'
+  return 'contact-hover-card'
 })
 
 const entryClass = computed(() => {
   if (props.variant === 'dropdown') {
-    return 'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30'
+    return 'group flex w-full min-w-0 items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left text-sm font-medium text-gray-700 transition-colors hover:border-gray-200 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:text-gray-200 dark:hover:border-dark-600 dark:hover:bg-dark-700/70'
   }
   if (props.variant === 'list') {
-    return 'inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+    return 'inline-flex max-w-full items-center gap-1.5 rounded-md text-sm font-medium text-primary-600 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:text-primary-400 dark:hover:text-primary-300'
   }
-  return 'btn btn-secondary btn-sm inline-flex items-center gap-2'
+  return 'group flex w-full min-w-0 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-800 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:border-dark-700 dark:bg-dark-800 dark:text-gray-100 dark:hover:border-primary-700 dark:hover:bg-primary-900/15'
+})
+
+const inlineTextClass = computed(() => {
+  if (props.variant === 'list') {
+    return 'inline-flex max-w-full items-center gap-1.5 rounded-md text-sm text-gray-700 transition-colors hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:text-gray-200 dark:hover:text-primary-300'
+  }
+  return entryClass.value
 })
 
 function displayOf(item: ContactEntry): 'modal' | 'hover' | 'inline' {
@@ -216,10 +279,6 @@ function displayOf(item: ContactEntry): 'modal' | 'hover' | 'inline' {
 
 function safeLink(item: ContactEntry): string {
   return sanitizeUrl(item.url || '')
-}
-
-function safeQrOf(item: ContactEntry): string {
-  return sanitizeUrl(item.qr_code || '', { allowDataUrl: true })
 }
 
 function targetOf(item: ContactEntry): string {
@@ -327,3 +386,20 @@ onBeforeUnmount(() => {
 })
 
 </script>
+
+<style scoped>
+.contact-hover-panel {
+  width: min(20rem, calc(100vw - 1rem));
+  max-width: calc(100vw - 1rem);
+  box-sizing: border-box;
+}
+
+.contact-hover-dropdown {
+  right: 0;
+}
+
+.contact-hover-list,
+.contact-hover-card {
+  left: 0;
+}
+</style>

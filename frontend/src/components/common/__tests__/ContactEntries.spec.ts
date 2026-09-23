@@ -43,7 +43,7 @@ function mountEntries(entries: ContactEntry[], props: Record<string, unknown> = 
   })
 }
 
-describe('ContactEntries (#23)', () => {
+describe('ContactEntries (#23/#24/#29)', () => {
   afterEach(() => {
     vi.clearAllMocks()
     document.body.innerHTML = ''
@@ -91,6 +91,20 @@ describe('ContactEntries (#23)', () => {
     expect(wrapper.text()).toContain('Good')
   })
 
+  it('renders a consistent contact sheet for mixed entry types', () => {
+    const wrapper = mountEntries([
+      entry({ id: 'text', label: 'WeChat', type: 'text', value: 'shiyu_tv', description: '工作时间内回复' }),
+      entry({ id: 'link', label: 'Telegram', group: '官方群组' }),
+    ], { variant: 'sheet' })
+
+    expect(wrapper.findAll('[data-testid="contact-sheet-entry"]')).toHaveLength(2)
+    expect(wrapper.find('[data-testid="contact-copy-button"]').attributes('aria-label')).toBe('common.copy')
+    expect(wrapper.find('a').attributes('href')).toBe('https://example.com/')
+    expect(wrapper.find('a').attributes('target')).toBe('_blank')
+    expect(wrapper.text()).toContain('shiyu_tv')
+    expect(wrapper.text()).toContain('官方群组')
+  })
+
   it('shows the hover card on mouseenter and closes it shortly after mouseleave', async () => {
     vi.useFakeTimers()
     try {
@@ -99,16 +113,16 @@ describe('ContactEntries (#23)', () => {
 
       await cell.trigger('mouseenter')
       await nextTick()
-      expect(wrapper.find('.z-40').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(true)
 
       await cell.trigger('mouseleave')
       await nextTick()
       // 魔改 #24: 关闭是延时的，给鼠标从按钮移动到卡片留出时间。
-      expect(wrapper.find('.z-40').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(true)
 
       vi.advanceTimersByTime(300)
       await nextTick()
-      expect(wrapper.find('.z-40').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(false)
     } finally {
       vi.useRealTimers()
     }
@@ -122,7 +136,7 @@ describe('ContactEntries (#23)', () => {
 
       await cell.trigger('mouseenter')
       await nextTick()
-      expect(wrapper.find('.z-40').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(true)
 
       // 模拟鼠标从按钮移向卡片：中途触发一次 mouseleave 后立刻重新进入。
       await cell.trigger('mouseleave')
@@ -131,11 +145,22 @@ describe('ContactEntries (#23)', () => {
       vi.advanceTimersByTime(300)
       await nextTick()
 
-      expect(wrapper.find('.z-40').exists()).toBe(true)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(true)
       expect(wrapper.find('button').exists()).toBe(true)
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('opens the hover panel when the trigger receives keyboard focus', async () => {
+    const wrapper = mountEntries([entry({ display: 'hover' })])
+    const cell = wrapper.find('div.relative')
+
+    await cell.trigger('focusin')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(true)
+    expect(wrapper.find('.contact-hover-panel').classes()).toContain('contact-hover-card')
   })
 
   it('opens the modal when a hover entry is tapped on a device without hover support', async () => {
@@ -158,7 +183,7 @@ describe('ContactEntries (#23)', () => {
       await nextTick()
 
       expect(wrapper.find('a').attributes('href')).toBe('https://example.com/')
-      expect(wrapper.find('.z-40').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="contact-hover-panel"]').exists()).toBe(false)
     } finally {
       window.matchMedia = original
     }

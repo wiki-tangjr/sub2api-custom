@@ -369,7 +369,7 @@ g "前端类型 group"         group?:                                    fronte
 g "前台分组渲染"           groupedEntries                              frontend/src/components/common/ContactEntries.vue
 g "分组不渲染空标题"       "if (!hasGroup) return [{ key: 'all', title: '', items }]" frontend/src/components/common/ContactEntries.vue
 g "悬停卡片方向修正"       hoverCardClass                              frontend/src/components/common/ContactEntries.vue
-g "顶栏下拉右对齐"         "if (props.variant === 'dropdown') return 'right-0 w-64'" frontend/src/components/common/ContactEntries.vue
+g "顶栏下拉右对齐"         "if (props.variant === 'dropdown') return 'contact-hover-dropdown'" frontend/src/components/common/ContactEntries.vue
 g "触屏可悬停探测"         canHover                                    frontend/src/components/common/ContactEntries.vue
 g "触屏点击回退弹窗"       "if (displayOf(item) === 'hover' && canHover.value) return" frontend/src/components/common/ContactEntries.vue
 # 后台：实时预览 + 图标预览 + 控件提示
@@ -394,7 +394,7 @@ begin "#24 四项体验修复（悬停卡片 / 移动端备案 / 弹窗遮罩 / 
 # --- 1) 客服 hover 悬浮卡片：指针跨越按钮与卡片之间的空隙不再被判定为离开 ---
 g   "悬停延时关闭常量"       HOVER_CLOSE_DELAY     frontend/src/components/common/ContactEntries.vue
 g   "悬停定时器清理函数"     clearHoverCloseTimer  frontend/src/components/common/ContactEntries.vue
-g   "空隙并入容器内边距"     "pt-1.5"              frontend/src/components/common/ContactEntries.vue
+g   "空隙并入容器内边距"     "contact-hover-panel absolute top-full z-[60] pt-2" frontend/src/components/common/ContactEntries.vue
 geq "悬停返回卡片用例"       "briefly leaves and returns" frontend/src/components/common/__tests__/ContactEntries.spec.ts 1
 
 # --- 2) 移动端备案信息不再吸顶悬浮（去掉毛玻璃合成层 + 去掉双重滚动容器）---
@@ -506,6 +506,25 @@ g   "注册页取消仍会 reject"  "rejectLoginAgreement" frontend/src/views/au
 g   "默认勾选不落存储标记"   "魔改 #27" frontend/src/views/auth/LoginView.vue
 # 文档
 g   "文档已记录 #27"         "登录/注册协议默认勾选" CUSTOMIZATIONS.md
+end
+
+# ============ #29 客服联系方式视觉与交互重构  2026-09-24 ============
+begin "#29 客服联系方式视觉与交互重构"
+# 总弹窗必须使用专用 sheet 布局，不得再把文本、链接和二维码强塞成零散内联元素。
+g   "ContactEntries 支持 sheet"  "variant?: 'card' | 'list' | 'dropdown' | 'sheet'" frontend/src/components/common/ContactEntries.vue
+g   "总弹窗使用 sheet"          'variant="sheet"' frontend/src/components/layout/AppHeader.vue
+g   "总弹窗改为窄版"            'width="narrow"' frontend/src/components/layout/AppHeader.vue
+lmx "总弹窗移除旧 force-inline" '<ContactEntries variant="list" force-inline :entries="contactEntries" />' frontend/src/components/layout/AppHeader.vue 0
+# 菜单、悬停和复制控件必须保持稳定尺寸、可聚焦和可操作。
+g   "联系方式详情行"            'data-testid="contact-sheet-entry"' frontend/src/components/common/ContactEntries.vue
+g   "悬停浮层稳定宽度"          'width: min(20rem, calc(100vw - 1rem))' frontend/src/components/common/ContactEntries.vue
+g   "悬停支持键盘聚焦"          '@focusin="hoverIn(item)"' frontend/src/components/common/ContactEntries.vue
+g   "复制使用紧凑图标按钮"      'data-testid="contact-copy-button"' frontend/src/components/common/ContactEntryBody.vue
+g   "复制按钮有无障碍名称"      ':aria-label="t(' frontend/src/components/common/ContactEntryBody.vue
+# 回归测试和文档用于阻止后续官方更新把旧布局带回来。
+g   "测试覆盖混合类型 sheet"    "renders a consistent contact sheet for mixed entry types" frontend/src/components/common/__tests__/ContactEntries.spec.ts
+g   "测试覆盖键盘悬停"          "opens the hover panel when the trigger receives keyboard focus" frontend/src/components/common/__tests__/ContactEntries.spec.ts
+g   "文档已记录 #29"            "客服联系方式视觉与交互重构" CUSTOMIZATIONS.md
 end
 
 # ============ 源码体检小结 ============
