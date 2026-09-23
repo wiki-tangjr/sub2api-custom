@@ -528,11 +528,11 @@ bash scripts/customizations-verify.sh --live     # 发布后复验
 
 #### 26.2 用户可见报错中文化（只在前端展示层做，不碰后端）
 
-用户诉求是「前端报错不要有英文」。后端 **456 个 reason 码 / 369 条唯一英文 message / 832 个
+用户诉求是「前端报错不要有英文」。初始基线后端有 **456 个 reason 码 / 369 条唯一英文 message / 832 个
 infraerrors 调用点**，直接改后端风险极高且会影响在途 AI 调用，因此**策略定为只在前端最终展示层翻译**：
 
-1. **稳定错误码优先**：`reason` / `code` → 中文（`ERROR_CODE_ZH`，456 条）。
-2. **英文原文精确匹配**（大小写/首尾空白不敏感）→ 中文（`ERROR_TEXT_ZH`，458 条 + 本轮追加 24 条前端自有文案）。
+1. **稳定错误码优先**：`reason` / `code` → 中文（`ERROR_CODE_ZH`，当前 486 条；合并 v0.2.8 时又补齐 30 条新错误码）。
+2. **英文原文精确匹配**（大小写/首尾空白不敏感）→ 中文（`ERROR_TEXT_ZH`，当前 481 条）。
 3. **兜底**：拿到纯英文句子时按语义回退中文（网络 / 登录 / 权限 / 支付 / 通用），**绝不放英文给用户**；
    已含中文、纯数字、URL、`SUCCESS` 这类稳定标识符**保持原样**。
 
@@ -540,6 +540,8 @@ infraerrors 调用点**，直接改后端风险极高且会影响在途 AI 调�
 
 - `frontend/src/utils/errorMessagesZh.ts` —— 两张映射表（**必须放 `utils/`**，`errorLocalization.ts` 用
   `@/utils/errorMessagesZh` 引用；写错成 `./errorMessagesZh` 会直接构建失败，**勿改回**）。
+- `scripts/customizations-verify.sh` 会自动扫描后端 `infraerrors` reason 码并与中文表做差集；
+  上游新增任何未翻译错误码都会让体检报红、阻止发布。
 - `frontend/src/i18n/errorLocalization.ts` —— `localizeErrorMessage` / `localizeUnknownError` /
   `isTranslatableEnglishSentence` / `containsChinese` / `isChineseLocale`。
   **只在中文界面生效，英文界面原样透传**；非浏览器环境（单测）回退中文。
@@ -609,8 +611,8 @@ agreementAccepted.value =
 #### 27.4 验证
 
 - `pnpm exec vue-tsc --noEmit` → **EXIT=0**
-- `views/auth/__tests__/`（LoginView / RegisterView 等）全部通过；两个 spec 内**没有协议门控断言**，
-  不会被本次改动破坏（已确认）。
+- `LoginView.spec.ts` / `RegisterView.spec.ts` 均已新增协议门控回归：默认已勾选时输入框可用，
+  用户主动取消后 `accepted=false` 且账号密码输入重新禁用。
 - WebKit 真机：登录页 / 注册页复选框**默认已勾选**且可直接登录；**主动取消勾选后仍被拦截并提示**。
 
 #### 27.5 关键文件与体检段
@@ -620,6 +622,43 @@ agreementAccepted.value =
 - **对应体检段**：`scripts/customizations-verify.sh` 的 **#27**
 
 ---
+
+### 28. 官方 v0.2.8 更新合并（保留全部魔改）—— 2026-09-24
+
+> 用户要求：「帮我更新一下 sub2api 系统，记得要保留所有魔改的功能」。
+
+#### 28.1 更新坐标
+
+- 更新前魔改 HEAD：`71b01d13a`（#26 / #27 三项前端收尾）
+- 官方上游：`a3eb7ef302`（`v0.2.8-1`，`backend/cmd/server/VERSION = 0.2.8`）
+- 合并提交：`ed89edf26`
+- 规模：相对上次官方基线新增 **215 个上游提交**。
+- 保护分支：`protect-before-update-20260923-122128`；更新脚本同时创建了完整源码快照。
+
+#### 28.2 冲突处理（本轮只有 1 个）
+
+`backend/internal/service/affiliate_service.go` 同一个错误变量区块发生冲突：
+
+- 我方魔改 #17：一级/二级代理的等级、父级、返利上限、邀请归属错误码与代理等级常量。
+- 官方 v0.2.8：线下提现的「可用返利额度不足」与「提现金额无效」错误码。
+- 解法：**两组错误码全部保留**，代理等级常量仍是独立 `const` 块。已在独立 worktree
+  先试合并、再应用到正式分支；合并后 affiliate service / handler / repository 定向测试全通过。
+
+#### 28.3 报错中文化跟随官方更新
+
+- v0.2.8 新增 30 个后端错误码，已全部补入 `ERROR_CODE_ZH`（现共 486 条）。
+- 体检脚本新增自动差集：每次更新都扫描后端 `infraerrors` reason 码，只要有一个没有中文映射就拒绝发布。
+
+#### 28.4 验证基线
+
+- 魔改源码体检：**25/25 全绿**。
+- 前端 `vue-tsc --noEmit`：通过。
+- 前端全量 Vitest：**334/336 文件通过，2522/2524 用例通过**；仅 2 个更新前已存在失败：
+  `useRoutePrefetch.spec.ts` 计时用例、`SettingsView.spec.ts` 自定义菜单保存断言。
+- 后端 `go test ./...`：除 `internal/config` 的 2 个官方默认值断言外其余全通过；
+  同样的 2 个失败已在**纯官方 `origin/main` worktree** 独立复现，确认不是魔改或合并引入。
+- 发布仍必须使用 `build-and-stage.sh` → `zero-downtime-deploy.sh` → `customizations-verify.sh --live`，
+  **严禁直接 restart**。
 
 ---
 _本文件随魔改更新持续维护。新增魔改时，在上面加一节并提交。_

@@ -459,6 +459,20 @@ g   "新增 Passkey 映射"      "'passkey sign-in was cancelled'" frontend/src/
 g   "新增 tokenRefresh 映射" "'session changed during token refresh'" frontend/src/utils/errorMessagesZh.ts
 g   "新增 no response body 映射" "'no response body'" frontend/src/utils/errorMessagesZh.ts
 geq "新增前端键 >= 20 条"    "魔改 #26 追加" frontend/src/utils/errorMessagesZh.ts 1
+# 官方更新时自动拦截「后端新增 reason，前端未补中文」。
+TMP_BACKEND_CODES=$(mktemp)
+TMP_FRONTEND_CODES=$(mktemp)
+grep -rhoE --include='*.go' '[A-Za-z_][A-Za-z0-9_]*errors\.[A-Za-z]+\("[A-Z0-9_]+"' backend 2>/dev/null \
+  | sed -E 's/.*\("([A-Z0-9_]+)"/\1/' | sort -u > "$TMP_BACKEND_CODES"
+grep -oE '^[[:space:]]+[A-Z][A-Z0-9_]+:' frontend/src/utils/errorMessagesZh.ts 2>/dev/null \
+  | sed -E 's/[[:space:]:]//g' | sort -u > "$TMP_FRONTEND_CODES"
+MISSING_ERROR_CODES=$(comm -23 "$TMP_BACKEND_CODES" "$TMP_FRONTEND_CODES")
+if [ -z "$MISSING_ERROR_CODES" ]; then
+  ok "后端错误码全部有中文映射"
+else
+  bad "后端存在未翻译错误码: $(printf '%s' "$MISSING_ERROR_CODES" | tr '\n' ' ')"
+fi
+rm -f "$TMP_BACKEND_CODES" "$TMP_FRONTEND_CODES"
 g   "showToast 错误漏斗接入" "localizeErrorMessage" frontend/src/stores/app.ts
 g   "apiError 接入本地化"    "localizeErrorMessage" frontend/src/utils/apiError.ts
 g   "客户端网络错误改中文"   "网络连接异常，请检查网络后重试" frontend/src/api/client.ts
