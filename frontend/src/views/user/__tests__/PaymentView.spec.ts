@@ -374,6 +374,16 @@ describe('PaymentView subscription plan grid', () => {
   })
 })
 
+describe('PaymentView content width', () => {
+  it('uses the wider bounded container without removing mobile gutters', async () => {
+    const wrapper = await mountSubscriptionPlanList(3)
+    const content = wrapper.find('.mx-auto.max-w-6xl')
+
+    expect(content.exists()).toBe(true)
+    expect(content.classes()).not.toContain('max-w-4xl')
+  })
+})
+
 describe('PaymentView recharge rate preview', () => {
   it('uses the selected payment method currency in both locale templates', async () => {
     translate.mockClear()

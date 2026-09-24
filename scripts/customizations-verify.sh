@@ -527,6 +527,14 @@ g   "测试覆盖键盘悬停"          "opens the hover panel when the trigger 
 g   "文档已记录 #29"            "客服联系方式视觉与交互重构" CUSTOMIZATIONS.md
 end
 
+# ============ #30 充值/订阅页内容区宽度优化  2026-09-24 ============
+begin "#30 充值/订阅页内容区宽度优化"
+g   "充值订阅页使用更宽容器" "mx-auto max-w-6xl space-y-6" frontend/src/views/user/PaymentView.vue
+lmx "充值订阅页不回退旧窄容器" "mx-auto max-w-4xl space-y-6" frontend/src/views/user/PaymentView.vue 0
+g   "布局回归测试覆盖" "PaymentView content width" frontend/src/views/user/__tests__/PaymentView.spec.ts
+g   "文档已记录 #30" "充值/订阅页内容区收窄左右留白" CUSTOMIZATIONS.md
+end
+
 # ============ 源码体检小结 ============
 printf '\n%s============================================================%s\n' "$C_DIM" "$C_RST"
 if [ "$MOD_LOST" -eq 0 ]; then
